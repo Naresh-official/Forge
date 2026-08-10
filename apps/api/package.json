@@ -1,0 +1,27 @@
+{
+    "name": "api",
+    "module": "index.ts",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "bun run --watch src/index.ts",
+        "start": "bun run src/index.ts",
+        "build": "bun build src/index.ts --outdir dist"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "prisma": "^7.9.1"
+    },
+    "peerDependencies": {
+        "typescript": "^5"
+    },
+    "dependencies": {
+        "@prisma/adapter-pg": "^7.9.1",
+        "@prisma/client": "^7.9.1",
+        "@types/express": "^5.0.6",
+        "@workspace/config": "workspace:*",
+        "express": "^5.2.1",
+        "jsonwebtoken": "^9.0.3",
+        "pg": "^8.23.0"
+    }
+}

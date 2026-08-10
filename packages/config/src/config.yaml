@@ -1,0 +1,17 @@
+# Static configurations for web application
+web:
+    port: 3000
+
+# Static configurations for API application
+api:
+    port: 8000
+
+# Static configurations for Builder application
+builder:
+    port: 8002
+    tempDir: "/tmp/forge-builder"
+
+# Static configurations for Deployer application
+deployer:
+    port: 8003
+    clusterName: "forge-cluster"

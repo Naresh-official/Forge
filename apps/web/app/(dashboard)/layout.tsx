@@ -1,7 +1,7 @@
 import { AppShell } from "./_components/app-shell"
 
 export default function DashboardLayout({
-  children,
+    children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <AppShell>{children}</AppShell>
+    return <AppShell>{children}</AppShell>
 }

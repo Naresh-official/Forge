@@ -1,0 +1,357 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+    provider = "prisma-client"
+    output   = "../src/generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum RepositoryProvider {
+    GITHUB
+    GITLAB // TODO:
+    BITBUCKET // TODO:
+}
+
+enum DeploymentStatus {
+    QUEUED
+    BUILDING
+    DEPLOYING
+    READY
+    FAILED
+    CANCELLED
+}
+
+enum DeploymentEnvironment {
+    PRODUCTION
+    PREVIEW
+}
+
+enum DomainType {
+    CUSTOM
+    SYSTEM
+}
+
+enum DomainStatus {
+    PENDING
+    ACTIVE
+    FAILED
+}
+
+enum BuildStatus {
+    QUEUED
+    BUILDING
+    SUCCEEDED
+    FAILED
+    CANCELLED
+}
+
+enum GitHubAccountType {
+    USER
+    ORGANIZATION
+}
+
+// ─────────────────────────────────────────────
+// Users
+// ─────────────────────────────────────────────
+
+model User {
+    id        String   @id @default(uuid()) @db.Uuid
+    name      String?
+    email     String   @unique
+    image     String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    accounts    Account[]
+    apiKeys     ApiKey[]
+    deployments Deployment[] @relation("DeploymentCreatedBy")
+
+    @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// OAuth Accounts
+// ─────────────────────────────────────────────
+
+model Account {
+    id                   String    @id @default(uuid()) @db.Uuid
+    userId               String    @db.Uuid
+    provider             String
+    providerAccountId    String
+    accessToken          String?
+    refreshToken         String?
+    accessTokenExpiresAt DateTime?
+    createdAt            DateTime  @default(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@index([userId])
+    @@map("accounts")
+}
+
+// ─────────────────────────────────────────────
+// API Keys
+// ─────────────────────────────────────────────
+
+model ApiKey {
+    id         String    @id @default(uuid()) @db.Uuid
+    userId     String    @db.Uuid
+    name       String
+    keyHash    String    @unique
+    lastUsedAt DateTime?
+    expiresAt  DateTime?
+    createdAt  DateTime  @default(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+    @@map("apiKeys")
+}
+
+// ─────────────────────────────────────────────
+// Projects
+// ─────────────────────────────────────────────
+
+model Project {
+    id                 String             @id @default(uuid()) @db.Uuid
+    name               String
+    slug               String
+    repositoryUrl      String
+    repositoryProvider RepositoryProvider
+    defaultBranch      String
+    createdAt          DateTime           @default(now())
+    updatedAt          DateTime           @updatedAt
+
+    deployments          Deployment[]
+    domains              Domain[]
+    environmentVariables EnvironmentVariable[]
+    githubRepository     GitHubRepository?
+
+    @@unique([slug])
+    @@map("projects")
+}
+
+// ─────────────────────────────────────────────
+// Deployments
+// ─────────────────────────────────────────────
+
+model Deployment {
+    id               String                @id @default(uuid()) @db.Uuid
+    projectId        String                @db.Uuid
+    deploymentNumber Int
+    commitSha        String
+    commitMessage    String?
+    branch           String
+    status           DeploymentStatus
+    environment      DeploymentEnvironment
+    imageUrl         String?
+    imageTag         String?
+    createdBy        String                @db.Uuid
+    createdAt        DateTime              @default(now())
+    startedAt        DateTime?
+    completedAt      DateTime?
+
+    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    createdByUser User @relation("DeploymentCreatedBy", fields: [createdBy], references: [id])
+
+    resources            DeploymentResource?
+    autoscalingPolicy    AutoscalingPolicy?
+    domains              Domain[]
+    environmentVariables DeploymentEnvironmentVariable[]
+    build                Build?
+    events               DeploymentEvent[]
+
+    @@unique([projectId, deploymentNumber])
+    @@index([projectId])
+    @@index([createdBy])
+    @@index([status])
+    @@map("deployments")
+}
+
+// ─────────────────────────────────────────────
+// Deployment Resources
+// ─────────────────────────────────────────────
+
+model DeploymentResource {
+    id                 String @id @default(uuid()) @db.Uuid
+    deploymentId       String @unique @db.Uuid
+    cpuMillicores      Int
+    memoryMb           Int
+    ephemeralStorageMb Int
+
+    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+    @@map("deploymentResources")
+}
+
+// ─────────────────────────────────────────────
+// Autoscaling
+// ─────────────────────────────────────────────
+
+model AutoscalingPolicy {
+    id                  String   @id @default(uuid()) @db.Uuid
+    deploymentId        String   @unique @db.Uuid
+    enabled             Boolean  @default(false)
+    minReplicas         Int      @default(1)
+    maxReplicas         Int      @default(1)
+    targetCpuPercent    Int?
+    targetMemoryPercent Int?
+    createdAt           DateTime @default(now())
+    updatedAt           DateTime @updatedAt
+
+    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+    @@map("autoscalingPolicies")
+}
+
+// ─────────────────────────────────────────────
+// Domains
+// ─────────────────────────────────────────────
+
+model Domain {
+    id           String       @id @default(uuid()) @db.Uuid
+    projectId    String       @db.Uuid
+    deploymentId String?      @db.Uuid
+    hostname     String       @unique
+    type         DomainType
+    status       DomainStatus
+    isPrimary    Boolean      @default(false)
+    createdAt    DateTime     @default(now())
+
+    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    deployment Deployment? @relation(fields: [deploymentId], references: [id], onDelete: SetNull)
+
+    @@index([projectId])
+    @@index([deploymentId])
+    @@map("domains")
+}
+
+// ─────────────────────────────────────────────
+// Project Environment Variables
+// ─────────────────────────────────────────────
+
+model EnvironmentVariable {
+    id             String   @id @default(uuid()) @db.Uuid
+    projectId      String   @db.Uuid
+    key            String
+    valueEncrypted String
+    isSecret       Boolean  @default(true)
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    @@unique([projectId, key])
+    @@index([projectId])
+    @@map("environmentVariables")
+}
+
+// ─────────────────────────────────────────────
+// Deployment Environment Variables
+// ─────────────────────────────────────────────
+
+model DeploymentEnvironmentVariable {
+    id             String  @id @default(uuid()) @db.Uuid
+    deploymentId   String  @db.Uuid
+    key            String
+    valueEncrypted String
+    isSecret       Boolean @default(true)
+
+    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+    @@unique([deploymentId, key])
+    @@index([deploymentId])
+    @@map("deploymentEnvironmentVariables")
+}
+
+// ─────────────────────────────────────────────
+// Builds
+// ─────────────────────────────────────────────
+
+model Build {
+    id           String      @id @default(uuid()) @db.Uuid
+    deploymentId String      @unique @db.Uuid
+    status       BuildStatus
+    builderId    String?
+    buildImage   String?
+    artifactPath String?
+    logsPath     String?
+    createdAt    DateTime    @default(now())
+    startedAt    DateTime?
+    completedAt  DateTime?
+
+    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+    @@map("builds")
+}
+
+// ─────────────────────────────────────────────
+// Deployment Events
+// ─────────────────────────────────────────────
+
+model DeploymentEvent {
+    id           String   @id @default(uuid()) @db.Uuid
+    deploymentId String   @db.Uuid
+    type         String
+    message      String?
+    metadata     Json?
+    createdAt    DateTime @default(now())
+
+    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+    @@index([deploymentId])
+    @@index([deploymentId, createdAt])
+    @@map("deploymentEvents")
+}
+
+// ─────────────────────────────────────────────
+// GitHub Installations
+// ─────────────────────────────────────────────
+
+model GitHubInstallation {
+    id             String            @id @default(uuid()) @db.Uuid
+    installationId String            @unique
+    accountLogin   String
+    accountType    GitHubAccountType
+    createdAt      DateTime          @default(now())
+    updatedAt      DateTime          @updatedAt
+
+    repositories GitHubRepository[]
+
+    @@map("githubInstallations")
+}
+
+// ─────────────────────────────────────────────
+// GitHub Repositories
+// ─────────────────────────────────────────────
+
+model GitHubRepository {
+    id             String   @id @default(uuid()) @db.Uuid
+    installationId String   @db.Uuid
+    projectId      String   @unique @db.Uuid
+    repositoryId   String
+    fullName       String
+    defaultBranch  String
+    createdAt      DateTime @default(now())
+
+    installation GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    @@unique([installationId, repositoryId])
+    @@index([installationId])
+    @@map("githubRepositories")
+}

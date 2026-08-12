@@ -1,6 +1,7 @@
 # Static configurations for web application
 web:
     port: 3000
+    apiBaseRoute: "/api/v1"
 
 # Static configurations for API application
 api:

@@ -14,12 +14,15 @@
     "dependencies": {
         "@vercel/analytics": "^2.0.1",
         "@workspace/ui": "workspace:*",
+        "@workspace/api-client": "workspace:*",
         "clsx": "^2.1.1",
         "lucide-react": "^1.30.0",
         "next": "16.2.6",
+        "next-auth": "^5.0.0-beta.32",
         "next-themes": "^0.4.6",
         "react": "19.2.4",
         "react-dom": "19.2.4",
+        "react-icons": "^5.7.0",
         "tailwind-merge": "^3.6.0"
     },
     "devDependencies": {
@@ -29,6 +32,7 @@
         "@types/react-dom": "^19",
         "@workspace/eslint-config": "workspace:^",
         "@workspace/typescript-config": "workspace:*",
+        "@workspace/types": "workspace:*",
         "eslint": "^9",
         "typescript": "^5"
     }

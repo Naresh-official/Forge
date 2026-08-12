@@ -1,6 +1,6 @@
 {
     "name": "@workspace/config",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "main": "./src/index.ts",
     "types": "./src/index.ts",
     "type": "module",
@@ -14,12 +14,12 @@
     },
     "dependencies": {
         "dotenv": "^16.4.7",
-        "yaml": "^2.7.0",
-        "zod": "^4.4.3"
+        "yaml": "^2.7.0"
     },
     "devDependencies": {
         "@types/bun": "latest",
-        "@types/node": "^20.17.17"
+        "@types/node": "^20.17.17",
+        "@workspace/types": "workspace:*"
     },
     "peerDependencies": {
         "typescript": "^5"

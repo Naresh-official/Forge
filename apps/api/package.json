@@ -8,10 +8,6 @@
         "start": "bun run src/index.ts",
         "build": "bun build src/index.ts --outdir dist"
     },
-    "devDependencies": {
-        "@types/bun": "latest",
-        "prisma": "^7.9.1"
-    },
     "peerDependencies": {
         "typescript": "^5"
     },
@@ -20,8 +16,13 @@
         "@prisma/client": "^7.9.1",
         "@types/express": "^5.0.6",
         "@workspace/config": "workspace:*",
+        "cors": "^2.8.6",
         "express": "^5.2.1",
-        "jsonwebtoken": "^9.0.3",
-        "pg": "^8.23.0"
+        "jsonwebtoken": "^9.0.3"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "prisma": "^7.9.1",
+        "@workspace/types": "workspace:*"
     }
 }

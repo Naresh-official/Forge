@@ -84,18 +84,16 @@ model User {
 // ─────────────────────────────────────────────
 
 model Account {
-    id                   String    @id @default(uuid()) @db.Uuid
-    userId               String    @db.Uuid
-    provider             String
-    providerAccountId    String
-    accessToken          String?
-    refreshToken         String?
-    accessTokenExpiresAt DateTime?
-    createdAt            DateTime  @default(now())
+    id                String             @id @default(uuid()) @db.Uuid
+    userId            String             @db.Uuid
+    provider          RepositoryProvider
+    providerAccountId String
+    accessToken       String
+    createdAt         DateTime           @default(now())
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([provider, providerAccountId])
+    @@unique([userId, provider])
     @@index([userId])
     @@map("accounts")
 }

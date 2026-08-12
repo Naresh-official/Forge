@@ -8,10 +8,9 @@ const yamlConfig = loadYamlConfig()
 // 2. Define the Zod validation schema for the API service
 export const apiSchema = z.object({
     port: z.number().int().positive().default(3001),
-    env: z.string().default("production"),
-    databaseUrl: z.url(),
-    directUrl: z.url(),
-    jwtSecret: z.string().min(8),
+    nodeEnv: z.string().default("production"),
+    databaseUrl: z.string(),
+    directUrl: z.string(),
 })
 
 // 3. Merge static yaml configs and env variables
@@ -19,8 +18,7 @@ const merged = {
     ...yamlConfig.api,
     databaseUrl: process.env.DATABASE_URL || undefined,
     directUrl: process.env.DIRECT_URL || undefined,
-    jwtSecret: process.env.JWT_SECRET || undefined,
-    env: process.env.NODE_ENV || "production",
+    nodeEnv: process.env.NODE_ENV || "production",
 }
 
 // 4. Validate and export

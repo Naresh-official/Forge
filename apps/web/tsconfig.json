@@ -9,7 +9,9 @@
             {
                 "name": "next"
             }
-        ]
+        ],
+        "declaration": false,
+        "declarationMap": false
     },
     "include": [
         "next-env.d.ts",

@@ -9,6 +9,7 @@ import cors from "cors"
 
 import authRouter from "@/features/auth/auth.routes"
 import githubRouter from "@/features/github/github.routes"
+import repositoriesRouter from "@/features/repositories/repositories.routes"
 
 const app: Express = express()
 
@@ -52,5 +53,6 @@ app.get("/api/v1/health", (req, res) => {
 
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/github", githubRouter)
+app.use("/api/v1/repositories", repositoriesRouter)
 
 export default app

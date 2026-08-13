@@ -26,13 +26,15 @@ export const authenticate = async (
             salt: COOKIE_NAME,
         })
 
-        if (!decoded?.sub) {
+        const userId = (decoded as any)?.userId ?? decoded?.sub
+
+        if (!userId) {
             return next(new ApiError(401, "Invalid session token"))
         }
 
         req.user = {
-            id: decoded.sub,
-            email: decoded.email ?? "",
+            id: userId,
+            email: decoded?.email ?? "",
         }
 
         next()

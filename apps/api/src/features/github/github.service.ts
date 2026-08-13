@@ -3,7 +3,10 @@ import { githubApp } from "./github.client"
 import type { GitHubAccountType } from "@/generated/prisma/enums"
 import { ApiError } from "@workspace/types/apiResponses"
 
-export const setupGithubAppService = async (installationId: number) => {
+export const setupGithubAppService = async (
+    installationId: number,
+    userId: string
+) => {
     const octokitApp = await githubApp.getInstallationOctokit(installationId)
 
     const { data: installationData } =
@@ -44,6 +47,9 @@ export const setupGithubAppService = async (installationId: number) => {
             installationId: String(installationId),
             accountLogin,
             accountType,
+            user: {
+                connect: { id: userId },
+            },
         },
         update: {
             accountLogin,

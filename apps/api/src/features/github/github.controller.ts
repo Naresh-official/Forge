@@ -29,7 +29,7 @@ export const githubSetup = async (req: Request, res: Response) => {
             })
         }
 
-        await setupGithubAppService(Number(installationId))
+        await setupGithubAppService(Number(installationId), req.user!.id)
 
         return res.json({
             message: "GitHub App installed successfully",

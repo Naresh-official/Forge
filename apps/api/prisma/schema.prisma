@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
     provider = "prisma-client"
     output   = "../src/generated/prisma"
@@ -15,6 +13,11 @@ datasource db {
 // ─────────────────────────────────────────────
 // Enums
 // ─────────────────────────────────────────────
+
+enum OAuthProvider {
+    GITHUB
+    GOOGLE
+}
 
 enum RepositoryProvider {
     GITHUB
@@ -72,9 +75,11 @@ model User {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    accounts    Account[]
-    apiKeys     ApiKey[]
-    deployments Deployment[] @relation("DeploymentCreatedBy")
+    accounts      Account[]
+    apiKeys       ApiKey[]
+    projects      Project[]
+    deployments   Deployment[]         @relation("DeploymentCreatedBy")
+    installations GitHubInstallation[]
 
     @@map("users")
 }
@@ -84,12 +89,12 @@ model User {
 // ─────────────────────────────────────────────
 
 model Account {
-    id                String             @id @default(uuid()) @db.Uuid
-    userId            String             @db.Uuid
-    provider          RepositoryProvider
+    id                String        @id @default(uuid()) @db.Uuid
+    userId            String        @db.Uuid
+    provider          OAuthProvider
     providerAccountId String
     accessToken       String
-    createdAt         DateTime           @default(now())
+    createdAt         DateTime      @default(now())
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -123,6 +128,7 @@ model ApiKey {
 
 model Project {
     id                 String             @id @default(uuid()) @db.Uuid
+    userId             String             @db.Uuid
     name               String
     slug               String
     repositoryUrl      String
@@ -131,12 +137,15 @@ model Project {
     createdAt          DateTime           @default(now())
     updatedAt          DateTime           @updatedAt
 
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
     deployments          Deployment[]
     domains              Domain[]
     environmentVariables EnvironmentVariable[]
     githubRepository     GitHubRepository?
 
-    @@unique([slug])
+    @@unique([userId, slug])
+    @@index([userId])
     @@map("projects")
 }
 
@@ -321,14 +330,18 @@ model DeploymentEvent {
 
 model GitHubInstallation {
     id             String            @id @default(uuid()) @db.Uuid
+    userId         String            @db.Uuid
     installationId String            @unique
     accountLogin   String
     accountType    GitHubAccountType
     createdAt      DateTime          @default(now())
     updatedAt      DateTime          @updatedAt
 
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
     repositories GitHubRepository[]
 
+    @@index([userId])
     @@map("githubInstallations")
 }
 

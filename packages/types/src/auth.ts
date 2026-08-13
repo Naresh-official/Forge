@@ -27,3 +27,8 @@ export const createAccountSchema = z.object({
 })
 
 export type CreateAccountInput = z.infer<typeof createAccountSchema>
+
+export type AuthUser = {
+    id: string
+    email: string
+}

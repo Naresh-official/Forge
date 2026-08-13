@@ -2,6 +2,8 @@ import express from "express"
 import type { Express } from "express"
 import { apiConfig } from "@workspace/config"
 import logger from "./utils/logger"
+import cookieParser from "cookie-parser"
+import cors from "cors"
 
 // importing routers
 
@@ -12,6 +14,13 @@ const app: Express = express()
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser())
+app.use(
+    cors({
+        origin: apiConfig.allowedOrigins,
+        credentials: true,
+    })
+)
 
 // Logger middleware
 
@@ -43,4 +52,5 @@ app.get("/api/v1/health", (req, res) => {
 
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/github", githubRouter)
+
 export default app

@@ -11,11 +11,13 @@ export const apiSchema = z.object({
     nodeEnv: z.string().default("production"),
     databaseUrl: z.string(),
     directUrl: z.string(),
+    authSecret: z.string(),
     github: z.object({
         appSlug: z.string(),
         appId: z.string(),
         privateKeyPath: z.string(),
     }),
+    allowedOrigins: z.array(z.url()),
 })
 
 // 3. Merge static yaml configs and env variables
@@ -24,11 +26,13 @@ const merged = {
     databaseUrl: process.env.DATABASE_URL || undefined,
     directUrl: process.env.DIRECT_URL || undefined,
     nodeEnv: process.env.NODE_ENV || "production",
+    authSecret: process.env.AUTH_SECRET || undefined,
     github: {
         appSlug: process.env.GITHUB_APP_SLUG || undefined,
         appId: process.env.GITHUB_APP_ID || undefined,
         privateKeyPath: process.env.GITHUB_APP_PRIVATE_KEY_PATH || undefined,
     },
+    allowedOrigins: [process.env.ALLOWED_ORIGIN_1 || ""],
 }
 
 // 4. Validate and export

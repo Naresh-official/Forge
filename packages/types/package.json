@@ -9,7 +9,8 @@
         ".": "./src/index.ts",
         "./auth": "./src/auth.ts",
         "./apiResponses": "./src/apiResponses.ts",
-        "./user": "./src/user.ts"
+        "./user": "./src/user.ts",
+        "./github": "./src/github.ts"
     },
     "devDependencies": {
         "@types/bun": "latest"

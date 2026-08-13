@@ -1,10 +1,12 @@
 import express from "express"
 import type { Express } from "express"
+import { apiConfig } from "@workspace/config"
+import logger from "./utils/logger"
 
 // importing routers
 
 import authRouter from "@/features/auth/auth.routes"
-import { apiConfig } from "@workspace/config"
+import githubRouter from "@/features/github/github.routes"
 
 const app: Express = express()
 
@@ -14,19 +16,24 @@ app.use(express.urlencoded({ extended: true }))
 // Logger middleware
 
 app.use((req, res, next) => {
-    const timestamp = new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-    }).format(new Date())
-    console.log(`[${timestamp}] ${req.method} ${req.url}`)
+    logger.info(
+        {
+            method: req.method,
+            url: req.originalUrl,
+            ip: req.ip,
+        },
+        "Incoming request"
+    )
+
     if (apiConfig.nodeEnv === "development") {
-        console.log("Request Body:", req.body)
+        logger.debug(
+            {
+                body: req.body,
+            },
+            "Request body"
+        )
     }
+
     next()
 })
 
@@ -35,5 +42,5 @@ app.get("/api/v1/health", (req, res) => {
 })
 
 app.use("/api/v1/auth", authRouter)
-
+app.use("/api/v1/github", githubRouter)
 export default app

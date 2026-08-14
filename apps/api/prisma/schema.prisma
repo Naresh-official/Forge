@@ -34,11 +34,6 @@ enum DeploymentStatus {
     CANCELLED
 }
 
-enum DeploymentEnvironment {
-    PRODUCTION
-    PREVIEW
-}
-
 enum DomainType {
     CUSTOM
     SYSTEM
@@ -76,7 +71,6 @@ model User {
     updatedAt DateTime @updatedAt
 
     accounts      Account[]
-    apiKeys       ApiKey[]
     projects      Project[]
     deployments   Deployment[]         @relation("DeploymentCreatedBy")
     installations GitHubInstallation[]
@@ -104,38 +98,16 @@ model Account {
 }
 
 // ─────────────────────────────────────────────
-// API Keys
-// ─────────────────────────────────────────────
-
-model ApiKey {
-    id         String    @id @default(uuid()) @db.Uuid
-    userId     String    @db.Uuid
-    name       String
-    keyHash    String    @unique
-    lastUsedAt DateTime?
-    expiresAt  DateTime?
-    createdAt  DateTime  @default(now())
-
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@index([userId])
-    @@map("apiKeys")
-}
-
-// ─────────────────────────────────────────────
 // Projects
 // ─────────────────────────────────────────────
 
 model Project {
-    id                 String             @id @default(uuid()) @db.Uuid
-    userId             String             @db.Uuid
-    name               String
-    slug               String
-    repositoryUrl      String
-    repositoryProvider RepositoryProvider
-    defaultBranch      String
-    createdAt          DateTime           @default(now())
-    updatedAt          DateTime           @updatedAt
+    id        String   @id @default(uuid()) @db.Uuid
+    userId    String   @db.Uuid
+    name      String
+    slug      String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -154,31 +126,33 @@ model Project {
 // ─────────────────────────────────────────────
 
 model Deployment {
-    id               String                @id @default(uuid()) @db.Uuid
-    projectId        String                @db.Uuid
+    id               String           @id @default(uuid()) @db.Uuid
+    projectId        String           @db.Uuid
     deploymentNumber Int
     commitSha        String
     commitMessage    String?
     branch           String
     status           DeploymentStatus
-    environment      DeploymentEnvironment
+    // Container deployment
     imageUrl         String?
     imageTag         String?
-    createdBy        String                @db.Uuid
-    createdAt        DateTime              @default(now())
-    startedAt        DateTime?
-    completedAt      DateTime?
+
+    // Static deployment
+    artifactBucket String?
+    artifactKey    String?
+    createdBy      String    @db.Uuid
+    createdAt      DateTime  @default(now())
+    startedAt      DateTime?
+    completedAt    DateTime?
 
     project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
     createdByUser User @relation("DeploymentCreatedBy", fields: [createdBy], references: [id])
 
-    resources            DeploymentResource?
-    autoscalingPolicy    AutoscalingPolicy?
-    domains              Domain[]
-    environmentVariables DeploymentEnvironmentVariable[]
-    build                Build?
-    events               DeploymentEvent[]
+    resources DeploymentResource?
+    domains   Domain[]
+    build     Build?
+    events    DeploymentEvent[]
 
     @@unique([projectId, deploymentNumber])
     @@index([projectId])
@@ -192,35 +166,16 @@ model Deployment {
 // ─────────────────────────────────────────────
 
 model DeploymentResource {
-    id                 String @id @default(uuid()) @db.Uuid
-    deploymentId       String @unique @db.Uuid
+    id                 String  @id @default(uuid()) @db.Uuid
+    deploymentId       String  @unique @db.Uuid
     cpuMillicores      Int
     memoryMb           Int
     ephemeralStorageMb Int
+    autoscalingEnabled Boolean
 
     deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
 
     @@map("deploymentResources")
-}
-
-// ─────────────────────────────────────────────
-// Autoscaling
-// ─────────────────────────────────────────────
-
-model AutoscalingPolicy {
-    id                  String   @id @default(uuid()) @db.Uuid
-    deploymentId        String   @unique @db.Uuid
-    enabled             Boolean  @default(false)
-    minReplicas         Int      @default(1)
-    maxReplicas         Int      @default(1)
-    targetCpuPercent    Int?
-    targetMemoryPercent Int?
-    createdAt           DateTime @default(now())
-    updatedAt           DateTime @updatedAt
-
-    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
-
-    @@map("autoscalingPolicies")
 }
 
 // ─────────────────────────────────────────────
@@ -267,24 +222,6 @@ model EnvironmentVariable {
 }
 
 // ─────────────────────────────────────────────
-// Deployment Environment Variables
-// ─────────────────────────────────────────────
-
-model DeploymentEnvironmentVariable {
-    id             String  @id @default(uuid()) @db.Uuid
-    deploymentId   String  @db.Uuid
-    key            String
-    valueEncrypted String
-    isSecret       Boolean @default(true)
-
-    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
-
-    @@unique([deploymentId, key])
-    @@index([deploymentId])
-    @@map("deploymentEnvironmentVariables")
-}
-
-// ─────────────────────────────────────────────
 // Builds
 // ─────────────────────────────────────────────
 
@@ -292,9 +229,6 @@ model Build {
     id           String      @id @default(uuid()) @db.Uuid
     deploymentId String      @unique @db.Uuid
     status       BuildStatus
-    builderId    String?
-    buildImage   String?
-    artifactPath String?
     logsPath     String?
     createdAt    DateTime    @default(now())
     startedAt    DateTime?

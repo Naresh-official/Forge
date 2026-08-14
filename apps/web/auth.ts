@@ -1,7 +1,7 @@
 import NextAuth from "next-auth"
 import GitHub from "next-auth/providers/github"
-import { webConfig } from "@workspace/config/web"
-import { handleGithubAuth } from "@workspace/api-client/auth"
+import { webConfig } from "@forge/config/web"
+import { handleGithubAuth } from "@forge/api-client/auth"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     providers: [

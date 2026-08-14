@@ -9,10 +9,10 @@ api:
 
 # Static configurations for Builder application
 builder:
-    port: 8002
+    port: 8001
     tempDir: "/tmp/forge-builder"
 
 # Static configurations for Deployer application
 deployer:
-    port: 8003
+    port: 8002
     clusterName: "forge-cluster"

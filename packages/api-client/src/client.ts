@@ -1,4 +1,4 @@
-import { webConfig } from "@workspace/config"
+import { webConfig } from "@forge/config"
 
 const API_URL = webConfig.apiUrl + webConfig.apiBaseRoute
 

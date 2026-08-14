@@ -1,5 +1,5 @@
 import app from "./app"
-import apiConfig from "@workspace/config/api"
+import apiConfig from "@forge/config/api"
 import prisma from "./utils/db"
 import logger from "./utils/logger"
 

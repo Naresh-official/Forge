@@ -1,5 +1,5 @@
-import { apiConfig } from "@workspace/config"
-import { ApiError } from "@workspace/types/apiResponses"
+import { apiConfig } from "@forge/config"
+import { ApiError } from "@forge/types/apiResponses"
 import type { Response } from "express"
 
 export function handleErrors(res: Response, error: any) {

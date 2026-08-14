@@ -7,9 +7,9 @@ const yamlConfig = loadYamlConfig()
 
 // 2. Define the Zod validation schema for the Builder service
 export const builderSchema = z.object({
-    port: z.number().int().positive().default(3002),
+    port: z.number().positive(),
     tempDir: z.string().default("/tmp/forge-builder"),
-    redisUrl: z.string().url().default("redis://localhost:6379"),
+    redisUrl: z.url().default("redis://localhost:6379"),
 })
 
 // 3. Merge static yaml configs and env variables

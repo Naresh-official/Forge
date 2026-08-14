@@ -1,6 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "../generated/prisma/client"
-import apiConfig from "@workspace/config/api"
+import apiConfig from "@forge/config/api"
 
 const adapter = new PrismaPg({
     connectionString: apiConfig.databaseUrl,

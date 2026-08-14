@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express"
 import { decode } from "next-auth/jwt"
-import { apiConfig } from "@workspace/config"
-import { ApiError } from "@workspace/types/apiResponses"
+import { apiConfig } from "@forge/config"
+import { ApiError } from "@forge/types/apiResponses"
 
 const COOKIE_NAME =
     apiConfig.nodeEnv === "production"

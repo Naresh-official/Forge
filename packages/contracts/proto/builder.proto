@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package builder;
+
+service BuilderService {
+  rpc Build(BuildRequest) returns (BuildResponse);
+}
+
+message BuildRequest {
+  string project_id = 1;
+}
+
+message BuildResponse {
+  string message = 1;
+}

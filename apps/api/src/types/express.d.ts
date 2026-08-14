@@ -1,4 +1,4 @@
-import type { AuthUser } from "@workspace/types"
+import type { AuthUser } from "@forge/types"
 
 declare global {
     namespace Express {

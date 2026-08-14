@@ -1,6 +1,6 @@
 import { App } from "octokit"
 import fs from "node:fs"
-import { apiConfig } from "@workspace/config/api"
+import { apiConfig } from "@forge/config/api"
 
 const privateKey = fs.readFileSync(apiConfig.github.privateKeyPath, "utf8")
 

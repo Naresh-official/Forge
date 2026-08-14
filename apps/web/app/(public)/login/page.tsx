@@ -1,6 +1,6 @@
 import ForgeLogo from "@/components/ForgeLogo"
 import { signIn } from "@/auth"
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@forge/ui/components/button"
 import { FaGithub } from "react-icons/fa"
 
 export default function LoginPage() {

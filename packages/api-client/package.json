@@ -1,5 +1,5 @@
 {
-    "name": "@workspace/api-client",
+    "name": "@forge/api-client",
     "version": "0.0.1",
     "main": "./src/client.ts",
     "types": "./src/client.ts",
@@ -11,8 +11,8 @@
     },
     "devDependencies": {
         "@types/bun": "latest",
-        "@workspace/config": "workspace:*",
-        "@workspace/types": "workspace:*"
+        "@forge/config": "workspace:*",
+        "@forge/types": "workspace:*"
     },
     "peerDependencies": {
         "typescript": "^5"

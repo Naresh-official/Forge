@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { authenticate } from "@/middleware/auth.middleware"
-import { deployRepository, listRepositories } from "./repositories.controller"
+import { listRepositories } from "./repositories.controller"
 
 const router: Router = Router()
 
@@ -8,6 +8,5 @@ const router: Router = Router()
 router.use(authenticate)
 
 router.get("/", listRepositories)
-router.post("/deploy", deployRepository)
 
 export default router

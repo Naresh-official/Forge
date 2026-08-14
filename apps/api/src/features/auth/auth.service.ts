@@ -1,9 +1,6 @@
 import type { RepositoryProvider } from "@/generated/prisma/enums"
 import prisma from "../../utils/db"
-import type {
-    CreateUserInput,
-    FindUserByEmailInput,
-} from "@workspace/types/auth"
+import type { CreateUserInput, FindUserByEmailInput } from "@forge/types/auth"
 
 export const createUserAndAccountService = async (input: CreateUserInput) => {
     const existingUser = await findUserByEmailService({ email: input.email })

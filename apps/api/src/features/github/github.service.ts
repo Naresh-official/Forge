@@ -1,7 +1,7 @@
 import prisma from "@/utils/db"
 import { githubApp } from "./github.client"
 import type { GitHubAccountType } from "@/generated/prisma/enums"
-import { ApiError } from "@workspace/types/apiResponses"
+import { ApiError } from "@forge/types/apiResponses"
 
 export const setupGithubAppService = async (
     installationId: number,

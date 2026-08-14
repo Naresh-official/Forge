@@ -11,11 +11,11 @@
     },
     "iconLibrary": "lucide",
     "aliases": {
-        "components": "@workspace/ui/components",
-        "utils": "@workspace/ui/lib/utils",
-        "hooks": "@workspace/ui/hooks",
-        "lib": "@workspace/ui/lib",
-        "ui": "@workspace/ui/components"
+        "components": "@forge/ui/components",
+        "utils": "@forge/ui/lib/utils",
+        "hooks": "@forge/ui/hooks",
+        "lib": "@forge/ui/lib",
+        "ui": "@forge/ui/components"
     },
     "rtl": false,
     "menuColor": "default",

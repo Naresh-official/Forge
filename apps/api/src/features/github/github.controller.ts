@@ -1,7 +1,7 @@
 import type { Request, Response } from "express"
-import { apiConfig } from "@workspace/config/api"
+import { apiConfig } from "@forge/config/api"
 import { setupGithubAppService } from "./github.service"
-import { ApiError } from "@workspace/types/apiResponses"
+import { ApiError } from "@forge/types/apiResponses"
 import { handleErrors } from "@/utils/handleErrors"
 
 export const redirectToInstallationPage = async (

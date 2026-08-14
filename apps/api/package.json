@@ -15,7 +15,8 @@
         "@prisma/adapter-pg": "^7.9.1",
         "@prisma/client": "^7.9.1",
         "@types/express": "^5.0.6",
-        "@workspace/config": "workspace:*",
+        "@forge/config": "workspace:*",
+        "@forge/contracts": "workspace:*",
         "add": "^2.0.9",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.6",
@@ -30,7 +31,7 @@
         "@types/bun": "latest",
         "@types/cookie-parser": "^1.4.10",
         "@types/cors": "^2.8.19",
-        "@workspace/types": "workspace:*",
+        "@forge/types": "workspace:*",
         "prisma": "^7.9.1"
     }
 }

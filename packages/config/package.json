@@ -1,5 +1,5 @@
 {
-    "name": "@workspace/config",
+    "name": "@forge/config",
     "version": "0.0.1",
     "main": "./src/index.ts",
     "types": "./src/index.ts",
@@ -19,7 +19,7 @@
     "devDependencies": {
         "@types/bun": "latest",
         "@types/node": "^20.17.17",
-        "@workspace/types": "workspace:*"
+        "@forge/types": "workspace:*"
     },
     "peerDependencies": {
         "typescript": "^5"

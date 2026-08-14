@@ -1,6 +1,6 @@
 import express from "express"
 import type { Express } from "express"
-import { apiConfig } from "@workspace/config"
+import { apiConfig } from "@forge/config"
 import logger from "./utils/logger"
 import cookieParser from "cookie-parser"
 import cors from "cors"
@@ -10,6 +10,7 @@ import cors from "cors"
 import authRouter from "@/features/auth/auth.routes"
 import githubRouter from "@/features/github/github.routes"
 import repositoriesRouter from "@/features/repositories/repositories.routes"
+import deploymentRouter from "@/features/deployment/deployment.routes"
 
 const app: Express = express()
 
@@ -54,5 +55,6 @@ app.get("/api/v1/health", (req, res) => {
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/github", githubRouter)
 app.use("/api/v1/repositories", repositoriesRouter)
+app.use("/api/v1/deployments", deploymentRouter)
 
 export default app

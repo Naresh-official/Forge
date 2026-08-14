@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import "@workspace/ui/globals.css"
+import "@forge/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export const metadata: Metadata = {

@@ -92,7 +92,7 @@ model Account {
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([userId, provider])
+    @@unique([provider, providerAccountId])
     @@index([userId])
     @@map("accounts")
 }
@@ -133,21 +133,23 @@ model Deployment {
     commitMessage    String?
     branch           String
     status           DeploymentStatus
+
     // Container deployment
-    imageUrl         String?
-    imageTag         String?
+    imageUrl String?
+    imageTag String?
 
     // Static deployment
     artifactBucket String?
     artifactKey    String?
-    createdBy      String    @db.Uuid
-    createdAt      DateTime  @default(now())
-    startedAt      DateTime?
-    completedAt    DateTime?
+
+    createdByUserId String    @db.Uuid
+    createdAt       DateTime  @default(now())
+    startedAt       DateTime?
+    completedAt     DateTime?
 
     project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-    createdByUser User @relation("DeploymentCreatedBy", fields: [createdBy], references: [id])
+    createdByUser User @relation("DeploymentCreatedBy", fields: [createdByUserId], references: [id])
 
     resources DeploymentResource?
     domains   Domain[]
@@ -155,7 +157,7 @@ model Deployment {
 
     @@unique([projectId, deploymentNumber])
     @@index([projectId])
-    @@index([createdBy])
+    @@index([createdByUserId])
     @@index([status])
     @@map("deployments")
 }
@@ -243,13 +245,15 @@ model Build {
 // ─────────────────────────────────────────────
 
 model GitHubInstallation {
-    id             String            @id @default(uuid()) @db.Uuid
-    userId         String            @db.Uuid
-    installationId String            @unique
-    accountLogin   String
-    accountType    GitHubAccountType
-    createdAt      DateTime          @default(now())
-    updatedAt      DateTime          @updatedAt
+    id     String @id @default(uuid()) @db.Uuid
+    userId String @db.Uuid
+
+    githubId     String            @unique
+    accountLogin String
+    accountType  GitHubAccountType
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -259,24 +263,21 @@ model GitHubInstallation {
     @@map("githubInstallations")
 }
 
-// ─────────────────────────────────────────────
-// GitHub Repositories
-// ─────────────────────────────────────────────
-
 model GitHubRepository {
-    id             String   @id @default(uuid()) @db.Uuid
-    installationId String   @db.Uuid
-    projectId      String?  @unique @db.Uuid
-    repositoryId   String
-    fullName       String
-    defaultBranch  String   @default("main")
-    createdAt      DateTime @default(now())
+    id             String  @id @default(uuid()) @db.Uuid
+    installationId String  @db.Uuid
+    projectId      String? @unique @db.Uuid
+
+    githubId      String
+    fullName      String
+    defaultBranch String   @default("main")
+    createdAt     DateTime @default(now())
 
     installation GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
 
     project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-    @@unique([installationId, repositoryId])
+    @@unique([installationId, githubId])
     @@index([installationId])
     @@map("githubRepositories")
 }

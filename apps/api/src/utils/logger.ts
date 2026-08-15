@@ -1,6 +1,7 @@
 import pino from "pino"
 import fs from "node:fs"
 import path from "node:path"
+import { apiConfig } from "@forge/config"
 
 const LOG_RETENTION_DAYS = 5
 
@@ -94,13 +95,16 @@ const terminalStream = pino.transport({
 
 const logger = pino(
     {
-        level: process.env.LOG_LEVEL || "info",
+        level: apiConfig.nodeEnv === "development" ? "debug" : "info",
     },
     pino.multistream([
+        // Development debug + info → terminal
         {
-            level: "info",
+            level: "debug",
             stream: terminalStream,
         },
+
+        // Info and above → log file
         {
             level: "info",
             stream: fileStream,

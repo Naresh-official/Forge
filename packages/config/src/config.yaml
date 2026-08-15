@@ -6,13 +6,20 @@ web:
 # Static configurations for API application
 api:
     port: 8000
+    grpcPort: 8001
 
 # Static configurations for Builder application
 builder:
-    port: 8001
+    grpcPort: 8002
     tempDir: "/tmp/forge-builder"
+    defaultQueueOptions:
+        name: "forge-builder"
+        defaultJobOptions:
+            attempts: 2
+            backoff: 3000
+    workerCount: 2
 
 # Static configurations for Deployer application
 deployer:
-    port: 8002
+    grpcPort: 8003
     clusterName: "forge-cluster"

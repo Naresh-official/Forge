@@ -41,10 +41,10 @@ export const setupGithubAppService = async (
 
     const installation = await prisma.gitHubInstallation.upsert({
         where: {
-            installationId: String(installationId),
+            id: installationId,
         },
         create: {
-            installationId: String(installationId),
+            id: installationId,
             accountLogin,
             accountType,
             user: {
@@ -62,14 +62,14 @@ export const setupGithubAppService = async (
         repositories.repositories.map((repo) =>
             prisma.gitHubRepository.upsert({
                 where: {
-                    installationId_repositoryId: {
+                    installationId_id: {
                         installationId: installation.id,
-                        repositoryId: String(repo.id),
+                        id: repo.id,
                     },
                 },
                 create: {
                     installationId: installation.id,
-                    repositoryId: String(repo.id),
+                    id: repo.id,
                     fullName: repo.full_name,
                     defaultBranch: repo.default_branch ?? "main",
                 },

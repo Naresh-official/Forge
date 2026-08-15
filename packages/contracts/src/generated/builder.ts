@@ -5,253 +5,517 @@
 // source: builder.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire"
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
-    type CallOptions,
-    type ChannelCredentials,
-    Client,
-    type ClientOptions,
-    type ClientUnaryCall,
-    type handleUnaryCall,
-    makeGenericClientConstructor,
-    type Metadata,
-    type ServiceError,
-    type UntypedServiceImplementation,
-} from "@grpc/grpc-js"
+  type CallOptions,
+  type ChannelCredentials,
+  Client,
+  type ClientOptions,
+  type ClientUnaryCall,
+  type handleUnaryCall,
+  makeGenericClientConstructor,
+  type Metadata,
+  type ServiceError,
+  type UntypedServiceImplementation,
+} from "@grpc/grpc-js";
 
-export const protobufPackage = "builder"
+export const protobufPackage = "builder";
 
 export interface BuildRequest {
-    projectId: string
+  buildId: string;
 }
 
 export interface BuildResponse {
-    message: string
+  message: string;
+}
+
+export interface BuildStartedRequest {
+  buildId: string;
+}
+
+export interface BuildStartedResponse {
+  repoFullName: string;
+  projectId: string;
+  deploymentId: string;
+  branch: string;
+  commitSha: string;
+  accessToken: string;
+  buildId: string;
 }
 
 function createBaseBuildRequest(): BuildRequest {
-    return { projectId: "" }
+  return { buildId: "" };
 }
 
 export const BuildRequest: MessageFns<BuildRequest> = {
-    encode(
-        message: BuildRequest,
-        writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-        if (message.projectId !== "") {
-            writer.uint32(10).string(message.projectId)
+  encode(message: BuildRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.buildId !== "") {
+      writer.uint32(10).string(message.buildId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BuildRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuildRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.buildId = reader.string();
+          continue;
         }
-        return writer
-    },
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): BuildRequest {
-        const reader =
-            input instanceof BinaryReader ? input : new BinaryReader(input)
-        const end = length === undefined ? reader.len : reader.pos + length
-        const message = createBaseBuildRequest()
-        while (reader.pos < end) {
-            const tag = reader.uint32()
-            switch (tag >>> 3) {
-                case 1: {
-                    if (tag !== 10) {
-                        break
-                    }
+  fromJSON(object: any): BuildRequest {
+    return {
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+        ? globalThis.String(object.build_id)
+        : "",
+    };
+  },
 
-                    message.projectId = reader.string()
-                    continue
-                }
-            }
-            if ((tag & 7) === 4 || tag === 0) {
-                break
-            }
-            reader.skip(tag & 7)
-        }
-        return message
-    },
+  toJSON(message: BuildRequest): unknown {
+    const obj: any = {};
+    if (message.buildId !== "") {
+      obj.buildId = message.buildId;
+    }
+    return obj;
+  },
 
-    fromJSON(object: any): BuildRequest {
-        return {
-            projectId: isSet(object.projectId)
-                ? globalThis.String(object.projectId)
-                : isSet(object.project_id)
-                  ? globalThis.String(object.project_id)
-                  : "",
-        }
-    },
-
-    toJSON(message: BuildRequest): unknown {
-        const obj: any = {}
-        if (message.projectId !== "") {
-            obj.projectId = message.projectId
-        }
-        return obj
-    },
-
-    create<I extends Exact<DeepPartial<BuildRequest>, I>>(
-        base?: I
-    ): BuildRequest {
-        return BuildRequest.fromPartial(base ?? ({} as any))
-    },
-    fromPartial<I extends Exact<DeepPartial<BuildRequest>, I>>(
-        object: I
-    ): BuildRequest {
-        const message = createBaseBuildRequest()
-        message.projectId = object.projectId ?? ""
-        return message
-    },
-}
+  create<I extends Exact<DeepPartial<BuildRequest>, I>>(base?: I): BuildRequest {
+    return BuildRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildRequest>, I>>(object: I): BuildRequest {
+    const message = createBaseBuildRequest();
+    message.buildId = object.buildId ?? "";
+    return message;
+  },
+};
 
 function createBaseBuildResponse(): BuildResponse {
-    return { message: "" }
+  return { message: "" };
 }
 
 export const BuildResponse: MessageFns<BuildResponse> = {
-    encode(
-        message: BuildResponse,
-        writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-        if (message.message !== "") {
-            writer.uint32(10).string(message.message)
+  encode(message: BuildResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.message !== "") {
+      writer.uint32(10).string(message.message);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BuildResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuildResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
         }
-        return writer
-    },
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): BuildResponse {
-        const reader =
-            input instanceof BinaryReader ? input : new BinaryReader(input)
-        const end = length === undefined ? reader.len : reader.pos + length
-        const message = createBaseBuildResponse()
-        while (reader.pos < end) {
-            const tag = reader.uint32()
-            switch (tag >>> 3) {
-                case 1: {
-                    if (tag !== 10) {
-                        break
-                    }
+  fromJSON(object: any): BuildResponse {
+    return { message: isSet(object.message) ? globalThis.String(object.message) : "" };
+  },
 
-                    message.message = reader.string()
-                    continue
-                }
-            }
-            if ((tag & 7) === 4 || tag === 0) {
-                break
-            }
-            reader.skip(tag & 7)
-        }
-        return message
-    },
+  toJSON(message: BuildResponse): unknown {
+    const obj: any = {};
+    if (message.message !== "") {
+      obj.message = message.message;
+    }
+    return obj;
+  },
 
-    fromJSON(object: any): BuildResponse {
-        return {
-            message: isSet(object.message)
-                ? globalThis.String(object.message)
-                : "",
-        }
-    },
+  create<I extends Exact<DeepPartial<BuildResponse>, I>>(base?: I): BuildResponse {
+    return BuildResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildResponse>, I>>(object: I): BuildResponse {
+    const message = createBaseBuildResponse();
+    message.message = object.message ?? "";
+    return message;
+  },
+};
 
-    toJSON(message: BuildResponse): unknown {
-        const obj: any = {}
-        if (message.message !== "") {
-            obj.message = message.message
-        }
-        return obj
-    },
-
-    create<I extends Exact<DeepPartial<BuildResponse>, I>>(
-        base?: I
-    ): BuildResponse {
-        return BuildResponse.fromPartial(base ?? ({} as any))
-    },
-    fromPartial<I extends Exact<DeepPartial<BuildResponse>, I>>(
-        object: I
-    ): BuildResponse {
-        const message = createBaseBuildResponse()
-        message.message = object.message ?? ""
-        return message
-    },
+function createBaseBuildStartedRequest(): BuildStartedRequest {
+  return { buildId: "" };
 }
 
-export type BuilderServiceService = typeof BuilderServiceService
+export const BuildStartedRequest: MessageFns<BuildStartedRequest> = {
+  encode(message: BuildStartedRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.buildId !== "") {
+      writer.uint32(10).string(message.buildId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BuildStartedRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuildStartedRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.buildId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BuildStartedRequest {
+    return {
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+        ? globalThis.String(object.build_id)
+        : "",
+    };
+  },
+
+  toJSON(message: BuildStartedRequest): unknown {
+    const obj: any = {};
+    if (message.buildId !== "") {
+      obj.buildId = message.buildId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BuildStartedRequest>, I>>(base?: I): BuildStartedRequest {
+    return BuildStartedRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildStartedRequest>, I>>(object: I): BuildStartedRequest {
+    const message = createBaseBuildStartedRequest();
+    message.buildId = object.buildId ?? "";
+    return message;
+  },
+};
+
+function createBaseBuildStartedResponse(): BuildStartedResponse {
+  return { repoFullName: "", projectId: "", deploymentId: "", branch: "", commitSha: "", accessToken: "", buildId: "" };
+}
+
+export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
+  encode(message: BuildStartedResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.repoFullName !== "") {
+      writer.uint32(10).string(message.repoFullName);
+    }
+    if (message.projectId !== "") {
+      writer.uint32(18).string(message.projectId);
+    }
+    if (message.deploymentId !== "") {
+      writer.uint32(26).string(message.deploymentId);
+    }
+    if (message.branch !== "") {
+      writer.uint32(34).string(message.branch);
+    }
+    if (message.commitSha !== "") {
+      writer.uint32(42).string(message.commitSha);
+    }
+    if (message.accessToken !== "") {
+      writer.uint32(50).string(message.accessToken);
+    }
+    if (message.buildId !== "") {
+      writer.uint32(58).string(message.buildId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BuildStartedResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuildStartedResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.repoFullName = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.projectId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deploymentId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.branch = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.commitSha = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.accessToken = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.buildId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BuildStartedResponse {
+    return {
+      repoFullName: isSet(object.repoFullName)
+        ? globalThis.String(object.repoFullName)
+        : isSet(object.repo_full_name)
+        ? globalThis.String(object.repo_full_name)
+        : "",
+      projectId: isSet(object.projectId)
+        ? globalThis.String(object.projectId)
+        : isSet(object.project_id)
+        ? globalThis.String(object.project_id)
+        : "",
+      deploymentId: isSet(object.deploymentId)
+        ? globalThis.String(object.deploymentId)
+        : isSet(object.deployment_id)
+        ? globalThis.String(object.deployment_id)
+        : "",
+      branch: isSet(object.branch) ? globalThis.String(object.branch) : "",
+      commitSha: isSet(object.commitSha)
+        ? globalThis.String(object.commitSha)
+        : isSet(object.commit_sha)
+        ? globalThis.String(object.commit_sha)
+        : "",
+      accessToken: isSet(object.accessToken)
+        ? globalThis.String(object.accessToken)
+        : isSet(object.access_token)
+        ? globalThis.String(object.access_token)
+        : "",
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+        ? globalThis.String(object.build_id)
+        : "",
+    };
+  },
+
+  toJSON(message: BuildStartedResponse): unknown {
+    const obj: any = {};
+    if (message.repoFullName !== "") {
+      obj.repoFullName = message.repoFullName;
+    }
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId;
+    }
+    if (message.deploymentId !== "") {
+      obj.deploymentId = message.deploymentId;
+    }
+    if (message.branch !== "") {
+      obj.branch = message.branch;
+    }
+    if (message.commitSha !== "") {
+      obj.commitSha = message.commitSha;
+    }
+    if (message.accessToken !== "") {
+      obj.accessToken = message.accessToken;
+    }
+    if (message.buildId !== "") {
+      obj.buildId = message.buildId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BuildStartedResponse>, I>>(base?: I): BuildStartedResponse {
+    return BuildStartedResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildStartedResponse>, I>>(object: I): BuildStartedResponse {
+    const message = createBaseBuildStartedResponse();
+    message.repoFullName = object.repoFullName ?? "";
+    message.projectId = object.projectId ?? "";
+    message.deploymentId = object.deploymentId ?? "";
+    message.branch = object.branch ?? "";
+    message.commitSha = object.commitSha ?? "";
+    message.accessToken = object.accessToken ?? "";
+    message.buildId = object.buildId ?? "";
+    return message;
+  },
+};
+
+export type BuilderServiceService = typeof BuilderServiceService;
 export const BuilderServiceService = {
-    build: {
-        path: "/builder.BuilderService/Build" as const,
-        requestStream: false as const,
-        responseStream: false as const,
-        requestSerialize: (value: BuildRequest): Buffer =>
-            Buffer.from(BuildRequest.encode(value).finish()),
-        requestDeserialize: (value: Buffer): BuildRequest =>
-            BuildRequest.decode(value),
-        responseSerialize: (value: BuildResponse): Buffer =>
-            Buffer.from(BuildResponse.encode(value).finish()),
-        responseDeserialize: (value: Buffer): BuildResponse =>
-            BuildResponse.decode(value),
-    },
-} as const
+  build: {
+    path: "/builder.BuilderService/Build" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BuildRequest): Buffer => Buffer.from(BuildRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BuildRequest => BuildRequest.decode(value),
+    responseSerialize: (value: BuildResponse): Buffer => Buffer.from(BuildResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BuildResponse => BuildResponse.decode(value),
+  },
+} as const;
 
 export interface BuilderServiceServer extends UntypedServiceImplementation {
-    build: handleUnaryCall<BuildRequest, BuildResponse>
+  build: handleUnaryCall<BuildRequest, BuildResponse>;
 }
 
 export interface BuilderServiceClient extends Client {
-    build(
-        request: BuildRequest,
-        callback: (error: ServiceError | null, response: BuildResponse) => void
-    ): ClientUnaryCall
-    build(
-        request: BuildRequest,
-        metadata: Metadata,
-        callback: (error: ServiceError | null, response: BuildResponse) => void
-    ): ClientUnaryCall
-    build(
-        request: BuildRequest,
-        metadata: Metadata,
-        options: Partial<CallOptions>,
-        callback: (error: ServiceError | null, response: BuildResponse) => void
-    ): ClientUnaryCall
+  build(
+    request: BuildRequest,
+    callback: (error: ServiceError | null, response: BuildResponse) => void,
+  ): ClientUnaryCall;
+  build(
+    request: BuildRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BuildResponse) => void,
+  ): ClientUnaryCall;
+  build(
+    request: BuildRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BuildResponse) => void,
+  ): ClientUnaryCall;
 }
 
 export const BuilderServiceClient = makeGenericClientConstructor(
-    BuilderServiceService,
-    "builder.BuilderService"
+  BuilderServiceService,
+  "builder.BuilderService",
 ) as unknown as {
-    new (
-        address: string,
-        credentials: ChannelCredentials,
-        options?: Partial<ClientOptions>
-    ): BuilderServiceClient
-    service: typeof BuilderServiceService
-    serviceName: string
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): BuilderServiceClient;
+  service: typeof BuilderServiceService;
+  serviceName: string;
+};
+
+export type ApiServiceService = typeof ApiServiceService;
+export const ApiServiceService = {
+  buildStarted: {
+    path: "/builder.ApiService/BuildStarted" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BuildStartedRequest): Buffer => Buffer.from(BuildStartedRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BuildStartedRequest => BuildStartedRequest.decode(value),
+    responseSerialize: (value: BuildStartedResponse): Buffer =>
+      Buffer.from(BuildStartedResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BuildStartedResponse => BuildStartedResponse.decode(value),
+  },
+} as const;
+
+export interface ApiServiceServer extends UntypedServiceImplementation {
+  buildStarted: handleUnaryCall<BuildStartedRequest, BuildStartedResponse>;
 }
 
-type Builtin =
-    Date | Function | Uint8Array | string | number | boolean | undefined
+export interface ApiServiceClient extends Client {
+  buildStarted(
+    request: BuildStartedRequest,
+    callback: (error: ServiceError | null, response: BuildStartedResponse) => void,
+  ): ClientUnaryCall;
+  buildStarted(
+    request: BuildStartedRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BuildStartedResponse) => void,
+  ): ClientUnaryCall;
+  buildStarted(
+    request: BuildStartedRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BuildStartedResponse) => void,
+  ): ClientUnaryCall;
+}
 
-export type DeepPartial<T> = T extends Builtin
-    ? T
-    : T extends globalThis.Array<infer U>
-      ? globalThis.Array<DeepPartial<U>>
-      : T extends ReadonlyArray<infer U>
-        ? ReadonlyArray<DeepPartial<U>>
-        : T extends {}
-          ? { [K in keyof T]?: DeepPartial<T[K]> }
-          : Partial<T>
+export const ApiServiceClient = makeGenericClientConstructor(ApiServiceService, "builder.ApiService") as unknown as {
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): ApiServiceClient;
+  service: typeof ApiServiceService;
+  serviceName: string;
+};
 
-type KeysOfUnion<T> = T extends T ? keyof T : never
-export type Exact<P, I extends P> = P extends Builtin
-    ? P
-    : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
-          [K in Exclude<keyof I, KeysOfUnion<P>>]: never
-      }
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
+
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+export type Exact<P, I extends P> = P extends Builtin ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {
-    return value !== null && value !== undefined
+  return value !== null && value !== undefined;
 }
 
 export interface MessageFns<T> {
-    encode(message: T, writer?: BinaryWriter): BinaryWriter
-    decode(input: BinaryReader | Uint8Array, length?: number): T
-    fromJSON(object: any): T
-    toJSON(message: T): unknown
-    create<I extends Exact<DeepPartial<T>, I>>(base?: I): T
-    fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T
+  encode(message: T, writer?: BinaryWriter): BinaryWriter;
+  decode(input: BinaryReader | Uint8Array, length?: number): T;
+  fromJSON(object: any): T;
+  toJSON(message: T): unknown;
+  create<I extends Exact<DeepPartial<T>, I>>(base?: I): T;
+  fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T;
 }

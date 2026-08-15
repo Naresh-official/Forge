@@ -7,6 +7,6 @@ const router: Router = Router()
 // All routes here require authentication
 router.use(authenticate)
 
-router.post("/new/:repoId", deployRepository)
+router.post("/new", deployRepository)
 
 export default router

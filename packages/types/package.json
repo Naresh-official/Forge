@@ -10,7 +10,8 @@
         "./auth": "./src/auth.ts",
         "./apiResponses": "./src/apiResponses.ts",
         "./user": "./src/user.ts",
-        "./github": "./src/github.ts"
+        "./github": "./src/github.ts",
+        "./deployment": "./src/deployment.ts"
     },
     "devDependencies": {
         "@types/bun": "latest"

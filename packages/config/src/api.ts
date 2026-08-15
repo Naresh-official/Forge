@@ -7,7 +7,8 @@ const yamlConfig = loadYamlConfig()
 
 // 2. Define the Zod validation schema for the API service
 export const apiSchema = z.object({
-    port: z.number().int().positive().default(3001),
+    port: z.number().int().positive().default(8000),
+    grpcPort: z.number().int().positive().default(8001),
     nodeEnv: z.string().default("production"),
     databaseUrl: z.string(),
     directUrl: z.string(),
@@ -18,6 +19,7 @@ export const apiSchema = z.object({
         privateKeyPath: z.string(),
     }),
     allowedOrigins: z.array(z.url()),
+    builderGRPCUrl: z.string().default("localhost:8002"),
 })
 
 // 3. Merge static yaml configs and env variables
@@ -33,6 +35,7 @@ const merged = {
         privateKeyPath: process.env.GITHUB_APP_PRIVATE_KEY_PATH || undefined,
     },
     allowedOrigins: [process.env.ALLOWED_ORIGIN_1 || ""],
+    builderGRPCUrl: process.env.BUILDER_GRPC_URL || "localhost:8002",
 }
 
 // 4. Validate and export

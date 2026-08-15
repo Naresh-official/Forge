@@ -8,7 +8,7 @@ import { handleErrors } from "@/utils/handleErrors"
 
 export const githubAuthHandler = async (req: Request, res: Response) => {
     try {
-        const input = await createUserSchema.parseAsync(req.body)
+        const input = createUserSchema.parse(req.body)
 
         const user = await createUserAndAccountService(input)
 

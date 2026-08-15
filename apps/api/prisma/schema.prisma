@@ -152,7 +152,6 @@ model Deployment {
     resources DeploymentResource?
     domains   Domain[]
     build     Build?
-    events    DeploymentEvent[]
 
     @@unique([projectId, deploymentNumber])
     @@index([projectId])
@@ -237,25 +236,6 @@ model Build {
     deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
 
     @@map("builds")
-}
-
-// ─────────────────────────────────────────────
-// Deployment Events
-// ─────────────────────────────────────────────
-
-model DeploymentEvent {
-    id           String   @id @default(uuid()) @db.Uuid
-    deploymentId String   @db.Uuid
-    type         String
-    message      String?
-    metadata     Json?
-    createdAt    DateTime @default(now())
-
-    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
-
-    @@index([deploymentId])
-    @@index([deploymentId, createdAt])
-    @@map("deploymentEvents")
 }
 
 // ─────────────────────────────────────────────

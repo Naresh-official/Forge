@@ -3,21 +3,47 @@ import { builderConfig } from "@forge/config"
 import { connection, type BuilderQueueJob } from "@/queue/queue"
 import { buildStarted } from "@/gRPC/wrapper/api.wrapper"
 import { cloneGitRepository } from "./features/git"
+import { detectProject } from "./features/detect"
+import { buildNodeProject } from "./features/builders/node.builder"
+import { createBuildLogger } from "./features/logs/build-logs"
 
 const workerId = process.env.WORKER_ID ?? "unknown"
 
 const worker = new Worker<BuilderQueueJob>(
     builderConfig.defaultQueueOptions.name,
     async (job) => {
-        console.log(`[Worker ${workerId}] Processing build ${job.data.buildId}`)
+        const { buildId } = job.data
 
-        // TODO: build logic
+        console.log(`[Worker ${workerId}] Processing build ${buildId}`)
 
         const response = await buildStarted({
-            buildId: job.data.buildId,
+            buildId,
         })
 
         const repoPath = await cloneGitRepository(response)
+
+        const logger = createBuildLogger(repoPath, buildId)
+
+        const detection = detectProject(repoPath)
+
+        if (detection.strategy === "node") {
+            if (detection.packageRunner === undefined) {
+                throw new Error("Package runner is undefined")
+            }
+
+            if (detection.framework === undefined) {
+                throw new Error("Framework is undefined")
+            }
+
+            const output = await buildNodeProject({
+                projectPath: repoPath,
+                packageRunner: detection.packageRunner,
+                framework: detection.framework,
+                logger,
+            })
+
+            console.log({ output })
+        }
 
         return {
             success: true,
@@ -47,7 +73,6 @@ worker.on("completed", (job, result) => {
 async function shutdown(signal: string) {
     console.log(`[Worker ${workerId}] Received ${signal}, shutting down...`)
 
-    // stop taking new jobs and wait for the current job
     await worker.close()
 
     console.log(`[Worker ${workerId}] Shutdown complete`)

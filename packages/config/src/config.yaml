@@ -18,6 +18,17 @@ builder:
             attempts: 2
             backoff: 3000
     workerCount: 2
+    storage:
+        endpoint: "http://localhost:9000"
+        accessKey: "minioadmin"
+        secretKey: "minioadmin"
+        bucket: "forge-artifacts"
+        region: "us-east-1"
+        useSSL: false
+    dockerRegistry:
+        url: "localhost:5000"
+        username: ""
+        password: ""
 
 # Static configurations for Deployer application
 deployer:

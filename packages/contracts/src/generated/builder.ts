@@ -43,6 +43,28 @@ export interface BuildStartedResponse {
   buildId: string;
 }
 
+export interface BuildCompletedRequest {
+  buildId: string;
+  /** SUCCEEDED | FAILED | CANCELLED */
+  status: string;
+  message: string;
+  /** Container deployments */
+  imageUrl: string;
+  imageTag: string;
+  /** Static deployments */
+  artifactBucket: string;
+  artifactKey: string;
+  /** Detection details for observability */
+  strategy: string;
+  framework: string;
+  packageRunner: string;
+}
+
+export interface BuildCompletedResponse {
+  success: boolean;
+  message: string;
+}
+
 function createBaseBuildRequest(): BuildRequest {
   return { buildId: "" };
 }
@@ -409,6 +431,321 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
   },
 };
 
+function createBaseBuildCompletedRequest(): BuildCompletedRequest {
+  return {
+    buildId: "",
+    status: "",
+    message: "",
+    imageUrl: "",
+    imageTag: "",
+    artifactBucket: "",
+    artifactKey: "",
+    strategy: "",
+    framework: "",
+    packageRunner: "",
+  };
+}
+
+export const BuildCompletedRequest: MessageFns<BuildCompletedRequest> = {
+  encode(message: BuildCompletedRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.buildId !== "") {
+      writer.uint32(10).string(message.buildId);
+    }
+    if (message.status !== "") {
+      writer.uint32(18).string(message.status);
+    }
+    if (message.message !== "") {
+      writer.uint32(26).string(message.message);
+    }
+    if (message.imageUrl !== "") {
+      writer.uint32(34).string(message.imageUrl);
+    }
+    if (message.imageTag !== "") {
+      writer.uint32(42).string(message.imageTag);
+    }
+    if (message.artifactBucket !== "") {
+      writer.uint32(50).string(message.artifactBucket);
+    }
+    if (message.artifactKey !== "") {
+      writer.uint32(58).string(message.artifactKey);
+    }
+    if (message.strategy !== "") {
+      writer.uint32(66).string(message.strategy);
+    }
+    if (message.framework !== "") {
+      writer.uint32(74).string(message.framework);
+    }
+    if (message.packageRunner !== "") {
+      writer.uint32(82).string(message.packageRunner);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BuildCompletedRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuildCompletedRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.buildId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.imageUrl = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.imageTag = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.artifactBucket = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.artifactKey = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.strategy = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.framework = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.packageRunner = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BuildCompletedRequest {
+    return {
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+        ? globalThis.String(object.build_id)
+        : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+      imageUrl: isSet(object.imageUrl)
+        ? globalThis.String(object.imageUrl)
+        : isSet(object.image_url)
+        ? globalThis.String(object.image_url)
+        : "",
+      imageTag: isSet(object.imageTag)
+        ? globalThis.String(object.imageTag)
+        : isSet(object.image_tag)
+        ? globalThis.String(object.image_tag)
+        : "",
+      artifactBucket: isSet(object.artifactBucket)
+        ? globalThis.String(object.artifactBucket)
+        : isSet(object.artifact_bucket)
+        ? globalThis.String(object.artifact_bucket)
+        : "",
+      artifactKey: isSet(object.artifactKey)
+        ? globalThis.String(object.artifactKey)
+        : isSet(object.artifact_key)
+        ? globalThis.String(object.artifact_key)
+        : "",
+      strategy: isSet(object.strategy) ? globalThis.String(object.strategy) : "",
+      framework: isSet(object.framework) ? globalThis.String(object.framework) : "",
+      packageRunner: isSet(object.packageRunner)
+        ? globalThis.String(object.packageRunner)
+        : isSet(object.package_runner)
+        ? globalThis.String(object.package_runner)
+        : "",
+    };
+  },
+
+  toJSON(message: BuildCompletedRequest): unknown {
+    const obj: any = {};
+    if (message.buildId !== "") {
+      obj.buildId = message.buildId;
+    }
+    if (message.status !== "") {
+      obj.status = message.status;
+    }
+    if (message.message !== "") {
+      obj.message = message.message;
+    }
+    if (message.imageUrl !== "") {
+      obj.imageUrl = message.imageUrl;
+    }
+    if (message.imageTag !== "") {
+      obj.imageTag = message.imageTag;
+    }
+    if (message.artifactBucket !== "") {
+      obj.artifactBucket = message.artifactBucket;
+    }
+    if (message.artifactKey !== "") {
+      obj.artifactKey = message.artifactKey;
+    }
+    if (message.strategy !== "") {
+      obj.strategy = message.strategy;
+    }
+    if (message.framework !== "") {
+      obj.framework = message.framework;
+    }
+    if (message.packageRunner !== "") {
+      obj.packageRunner = message.packageRunner;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BuildCompletedRequest>, I>>(base?: I): BuildCompletedRequest {
+    return BuildCompletedRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildCompletedRequest>, I>>(object: I): BuildCompletedRequest {
+    const message = createBaseBuildCompletedRequest();
+    message.buildId = object.buildId ?? "";
+    message.status = object.status ?? "";
+    message.message = object.message ?? "";
+    message.imageUrl = object.imageUrl ?? "";
+    message.imageTag = object.imageTag ?? "";
+    message.artifactBucket = object.artifactBucket ?? "";
+    message.artifactKey = object.artifactKey ?? "";
+    message.strategy = object.strategy ?? "";
+    message.framework = object.framework ?? "";
+    message.packageRunner = object.packageRunner ?? "";
+    return message;
+  },
+};
+
+function createBaseBuildCompletedResponse(): BuildCompletedResponse {
+  return { success: false, message: "" };
+}
+
+export const BuildCompletedResponse: MessageFns<BuildCompletedResponse> = {
+  encode(message: BuildCompletedResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.success !== false) {
+      writer.uint32(8).bool(message.success);
+    }
+    if (message.message !== "") {
+      writer.uint32(18).string(message.message);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BuildCompletedResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBuildCompletedResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BuildCompletedResponse {
+    return {
+      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+    };
+  },
+
+  toJSON(message: BuildCompletedResponse): unknown {
+    const obj: any = {};
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    if (message.message !== "") {
+      obj.message = message.message;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BuildCompletedResponse>, I>>(base?: I): BuildCompletedResponse {
+    return BuildCompletedResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildCompletedResponse>, I>>(object: I): BuildCompletedResponse {
+    const message = createBaseBuildCompletedResponse();
+    message.success = object.success ?? false;
+    message.message = object.message ?? "";
+    return message;
+  },
+};
+
 export type BuilderServiceService = typeof BuilderServiceService;
 export const BuilderServiceService = {
   build: {
@@ -465,10 +802,22 @@ export const ApiServiceService = {
       Buffer.from(BuildStartedResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): BuildStartedResponse => BuildStartedResponse.decode(value),
   },
+  buildCompleted: {
+    path: "/builder.ApiService/BuildCompleted" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BuildCompletedRequest): Buffer =>
+      Buffer.from(BuildCompletedRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BuildCompletedRequest => BuildCompletedRequest.decode(value),
+    responseSerialize: (value: BuildCompletedResponse): Buffer =>
+      Buffer.from(BuildCompletedResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BuildCompletedResponse => BuildCompletedResponse.decode(value),
+  },
 } as const;
 
 export interface ApiServiceServer extends UntypedServiceImplementation {
   buildStarted: handleUnaryCall<BuildStartedRequest, BuildStartedResponse>;
+  buildCompleted: handleUnaryCall<BuildCompletedRequest, BuildCompletedResponse>;
 }
 
 export interface ApiServiceClient extends Client {
@@ -486,6 +835,21 @@ export interface ApiServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: BuildStartedResponse) => void,
+  ): ClientUnaryCall;
+  buildCompleted(
+    request: BuildCompletedRequest,
+    callback: (error: ServiceError | null, response: BuildCompletedResponse) => void,
+  ): ClientUnaryCall;
+  buildCompleted(
+    request: BuildCompletedRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BuildCompletedResponse) => void,
+  ): ClientUnaryCall;
+  buildCompleted(
+    request: BuildCompletedRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BuildCompletedResponse) => void,
   ): ClientUnaryCall;
 }
 

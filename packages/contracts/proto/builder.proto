@@ -16,6 +16,7 @@ message BuildResponse {
 
 service ApiService {
   rpc BuildStarted(BuildStartedRequest) returns (BuildStartedResponse);
+  rpc BuildCompleted(BuildCompletedRequest) returns (BuildCompletedResponse);
 }
 
 message BuildStartedRequest {
@@ -30,4 +31,29 @@ message BuildStartedResponse {
   string commit_sha = 5;
   string access_token = 6;
   string build_id = 7;
+}
+
+message BuildCompletedRequest {
+  string build_id = 1;
+  // SUCCEEDED | FAILED | CANCELLED
+  string status = 2;
+  string message = 3;
+
+  // Container deployments
+  string image_url = 4;
+  string image_tag = 5;
+
+  // Static deployments
+  string artifact_bucket = 6;
+  string artifact_key = 7;
+
+  // Detection details for observability
+  string strategy = 8;
+  string framework = 9;
+  string package_runner = 10;
+}
+
+message BuildCompletedResponse {
+  bool success = 1;
+  string message = 2;
 }

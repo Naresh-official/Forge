@@ -1,8 +1,11 @@
 import { githubApp } from "@/features/github/github.client"
 import prisma from "@/utils/db"
+import { completeBuildService } from "@/features/builds/build.service"
 import type {
     BuildStartedRequest,
     BuildStartedResponse,
+    BuildCompletedRequest,
+    BuildCompletedResponse,
 } from "@forge/contracts"
 import type { sendUnaryData, ServerUnaryCall } from "@grpc/grpc-js"
 
@@ -70,6 +73,44 @@ export const apiService = {
                 branch: build.deployment.branch,
                 commitSha: build.deployment.commitSha,
                 buildId: build.id,
+            })
+        } catch (error) {
+            callback(error as Error, null)
+            return
+        }
+    },
+
+    async buildCompleted(
+        call: ServerUnaryCall<BuildCompletedRequest, BuildCompletedResponse>,
+        callback: sendUnaryData<BuildCompletedResponse>
+    ) {
+        try {
+            const request = call.request
+
+            if (!request.buildId) {
+                throw new Error("Build ID is required")
+            }
+
+            if (
+                !["SUCCEEDED", "FAILED", "CANCELLED"].includes(
+                    request.status
+                )
+            ) {
+                throw new Error(`Invalid build status: ${request.status}`)
+            }
+
+            await completeBuildService({
+                buildId: request.buildId,
+                status: request.status as "SUCCEEDED" | "FAILED" | "CANCELLED",
+                imageUrl: request.imageUrl || undefined,
+                imageTag: request.imageTag || undefined,
+                artifactBucket: request.artifactBucket || undefined,
+                artifactKey: request.artifactKey || undefined,
+            })
+
+            callback(null, {
+                success: true,
+                message: "Build completed",
             })
         } catch (error) {
             callback(error as Error, null)

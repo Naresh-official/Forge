@@ -12,18 +12,71 @@ interface NodeBuildInput {
 }
 
 interface NodeBuildResult {
-    outputDirectory: string
+    outputDirectory?: string
 }
 
-function getInstallCommand(runner: PackageRunner): {
+/*
+ * Frameworks whose build output is a static site that can be
+ * uploaded to object storage. Everything else runs a server
+ * and is containerized instead.
+ */
+const STATIC_FRAMEWORKS: Framework[] = [
+    "vite",
+    "react",
+    "vue",
+    "svelte",
+    "sveltekit",
+    "astro",
+    "angular",
+]
+
+export function isStaticFramework(framework: Framework): boolean {
+    return STATIC_FRAMEWORKS.includes(framework)
+}
+
+interface PackageJson {
+    scripts?: {
+        build?: string
+    }
+}
+
+function readPackageJson(projectPath: string): PackageJson | null {
+    const packageJsonPath = path.join(projectPath, "package.json")
+
+    if (!fs.existsSync(packageJsonPath)) {
+        return null
+    }
+
+    try {
+        return JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"))
+    } catch {
+        return null
+    }
+}
+
+function getInstallCommand(
+    runner: PackageRunner,
+    projectPath: string
+): {
     command: string
     args: string[]
 } {
     switch (runner) {
         case "npm":
+            /*
+             * npm ci requires an existing lockfile. Fall back
+             * to npm install for lockfile-less projects.
+             */
+            if (fs.existsSync(path.join(projectPath, "package-lock.json"))) {
+                return {
+                    command: "npm",
+                    args: ["ci"],
+                }
+            }
+
             return {
                 command: "npm",
-                args: ["ci"],
+                args: ["install"],
             }
 
         case "pnpm":
@@ -49,25 +102,62 @@ function getInstallCommand(runner: PackageRunner): {
     }
 }
 
-function getOutputDirectory(projectPath: string, framework: Framework): string {
+/*
+ * Candidate output directories per framework, in priority order.
+ * The first directory that exists after the build is used.
+ */
+function getOutputDirectoryCandidates(framework: Framework): string[] {
     switch (framework) {
         case "nextjs":
-            return path.join(projectPath, ".next")
+            return [".next"]
+
+        case "nuxt":
+            /*
+             * nuxi build outputs to .output, nuxi generate
+             * outputs to dist.
+             */
+            return [".output", "dist"]
+
+        case "remix":
+            return ["build"]
+
+        case "sveltekit":
+            return ["build", "dist"]
 
         case "vite":
         case "react":
         case "vue":
         case "svelte":
-        case "sveltekit":
         case "astro":
         case "angular":
-            return path.join(projectPath, "dist")
-
-        default:
-            throw new Error(
-                `Cannot determine output directory for framework: ${framework}`
-            )
+        case "nestjs":
+        case "express":
+        case "unknown":
+            return ["dist"]
     }
+}
+
+/*
+ * Frameworks without a well-known output directory.
+ * For these the build output is best-effort.
+ */
+function hasStandardOutputDirectory(framework: Framework): boolean {
+    return framework !== "express" && framework !== "unknown"
+}
+
+function findOutputDirectory(
+    projectPath: string,
+    framework: Framework
+): string | undefined {
+    for (const candidate of getOutputDirectoryCandidates(framework)) {
+        const directory = path.join(projectPath, candidate)
+
+        if (fs.existsSync(directory)) {
+            return directory
+        }
+    }
+
+    return undefined
 }
 
 export async function buildNodeProject(
@@ -76,7 +166,7 @@ export async function buildNodeProject(
     const { projectPath, packageRunner, framework, logger } = input
 
     try {
-        const install = getInstallCommand(packageRunner)
+        const install = getInstallCommand(packageRunner, projectPath)
 
         await runCommand(install.command, install.args, {
             cwd: projectPath,
@@ -90,23 +180,36 @@ export async function buildNodeProject(
             },
         })
 
-        await runCommand(packageRunner, ["run", "build"], {
-            cwd: projectPath,
+        const packageJson = readPackageJson(projectPath)
+        const hasBuildScript = packageJson?.scripts?.build !== undefined
 
-            onStdout: (data) => {
-                logger.stdout(data)
-            },
+        /*
+         * Projects without a build script (e.g. plain JavaScript
+         * Express apps) are install-only and still buildable.
+         */
+        if (hasBuildScript) {
+            await runCommand(packageRunner, ["run", "build"], {
+                cwd: projectPath,
 
-            onStderr: (data) => {
-                logger.stderr(data)
-            },
-        })
+                onStdout: (data) => {
+                    logger.stdout(data)
+                },
 
-        const outputDirectory = getOutputDirectory(projectPath, framework)
+                onStderr: (data) => {
+                    logger.stderr(data)
+                },
+            })
+        }
 
-        if (!fs.existsSync(outputDirectory)) {
+        const outputDirectory = findOutputDirectory(projectPath, framework)
+
+        if (
+            hasBuildScript &&
+            hasStandardOutputDirectory(framework) &&
+            outputDirectory === undefined
+        ) {
             throw new Error(
-                `Build completed but output directory was not found: ${outputDirectory}`
+                `Build completed but output directory was not found for framework: ${framework}`
             )
         }
 

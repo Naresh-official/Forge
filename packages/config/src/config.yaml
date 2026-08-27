@@ -33,4 +33,9 @@ builder:
 # Static configurations for Deployer application
 deployer:
     grpcPort: 8003
-    clusterName: "forge-cluster"
+    defaultQueueOptions:
+        name: "forge-deployer"
+        defaultJobOptions:
+            attempts: 2
+            backoff: 3000
+    workerCount: 2

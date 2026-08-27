@@ -101,9 +101,7 @@ function spawnDocker(options: SpawnDockerOptions): Promise<void> {
             }
 
             reject(
-                new Error(
-                    `docker ${args.join(" ")} exited with code ${code}`
-                )
+                new Error(`docker ${args.join(" ")} exited with code ${code}`)
             )
         })
     })
@@ -138,9 +136,7 @@ function runDockerCaptured(options: SpawnDockerOptions): Promise<string> {
             }
 
             reject(
-                new Error(
-                    `docker ${args.join(" ")} exited with code ${code}`
-                )
+                new Error(`docker ${args.join(" ")} exited with code ${code}`)
             )
         })
     })

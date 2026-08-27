@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package deployer;
+
+service DeployerService {
+  rpc Deploy(DeployRequest) returns (DeployResponse);
+}
+
+message DeployRequest {
+  string deployment_id = 1;
+  string project_id = 2;
+  string build_id = 3;
+
+  // Container deployments
+  string image_url = 4;
+  string image_tag = 5;
+
+  // Static deployments
+  string artifact_bucket = 6;
+  string artifact_key = 7;
+
+  // Detection details
+  string strategy = 8;
+  string framework = 9;
+}
+
+message DeployResponse {
+  string message = 1;
+}
+
+service DeployerApiService {
+  rpc DeploymentStarted(DeploymentStartedRequest) returns (DeploymentStartedResponse);
+}
+
+message DeploymentStartedRequest {
+  string deployment_id = 1;
+}
+
+message DeploymentStartedResponse {
+  bool success = 1;
+  string message = 2;
+}

@@ -1,6 +1,7 @@
 import { githubApp } from "@/features/github/github.client"
 import prisma from "@/utils/db"
 import { completeBuildService } from "@/features/builds/build.service"
+import { deployWrapper } from "../wrapper/deployer.wrapper"
 import type {
     BuildStartedRequest,
     BuildStartedResponse,
@@ -92,14 +93,12 @@ export const apiService = {
             }
 
             if (
-                !["SUCCEEDED", "FAILED", "CANCELLED"].includes(
-                    request.status
-                )
+                !["SUCCEEDED", "FAILED", "CANCELLED"].includes(request.status)
             ) {
                 throw new Error(`Invalid build status: ${request.status}`)
             }
 
-            await completeBuildService({
+            const updatedBuild = await completeBuildService({
                 buildId: request.buildId,
                 status: request.status as "SUCCEEDED" | "FAILED" | "CANCELLED",
                 imageUrl: request.imageUrl || undefined,
@@ -107,6 +106,27 @@ export const apiService = {
                 artifactBucket: request.artifactBucket || undefined,
                 artifactKey: request.artifactKey || undefined,
             })
+
+            if (request.status === "SUCCEEDED" && updatedBuild.deployment) {
+                try {
+                    await deployWrapper({
+                        deploymentId: updatedBuild.deployment.id,
+                        projectId: updatedBuild.deployment.projectId,
+                        buildId: request.buildId,
+                        imageUrl: request.imageUrl || "",
+                        imageTag: request.imageTag || "",
+                        artifactBucket: request.artifactBucket || "",
+                        artifactKey: request.artifactKey || "",
+                        strategy: request.strategy || "",
+                        framework: request.framework || "",
+                    })
+                } catch (deployError) {
+                    console.error(
+                        "Failed to forward build to deployer:",
+                        deployError
+                    )
+                }
+            }
 
             callback(null, {
                 success: true,

@@ -20,6 +20,7 @@ export const apiSchema = z.object({
     }),
     allowedOrigins: z.array(z.url()),
     builderGRPCUrl: z.string().default("localhost:8002"),
+    deployerGRPCUrl: z.string().default("localhost:8003"),
 })
 
 // 3. Merge static yaml configs and env variables
@@ -36,6 +37,7 @@ const merged = {
     },
     allowedOrigins: [process.env.ALLOWED_ORIGIN_1 || ""],
     builderGRPCUrl: process.env.BUILDER_GRPC_URL || "localhost:8002",
+    deployerGRPCUrl: process.env.DEPLOYER_GRPC_URL || "localhost:8003",
 }
 
 // 4. Validate and export

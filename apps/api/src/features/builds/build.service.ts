@@ -32,12 +32,8 @@ export async function completeBuildService(input: CompleteBuildInput) {
                     data: {
                         status: deploymentStatus,
                         completedAt: new Date(),
-                        ...(input.imageUrl
-                            ? { imageUrl: input.imageUrl }
-                            : {}),
-                        ...(input.imageTag
-                            ? { imageTag: input.imageTag }
-                            : {}),
+                        ...(input.imageUrl ? { imageUrl: input.imageUrl } : {}),
+                        ...(input.imageTag ? { imageTag: input.imageTag } : {}),
                         ...(input.artifactBucket
                             ? { artifactBucket: input.artifactBucket }
                             : {}),

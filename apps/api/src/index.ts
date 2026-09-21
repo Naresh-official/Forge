@@ -11,44 +11,44 @@ const PORT = apiConfig.port
 const grpcServer = createServer()
 
 function startGrpcServer(): Promise<void> {
-    return new Promise((resolve, reject) => {
-        grpcServer.bindAsync(
-            `0.0.0.0:${apiConfig.grpcPort}`,
-            grpc.ServerCredentials.createInsecure(),
-            (error, port) => {
-                if (error) {
-                    reject(error)
-                    return
-                }
+  return new Promise((resolve, reject) => {
+    grpcServer.bindAsync(
+      `0.0.0.0:${apiConfig.grpcPort}`,
+      grpc.ServerCredentials.createInsecure(),
+      (error, port) => {
+        if (error) {
+          reject(error)
+          return
+        }
 
-                logger.info(`Api gRPC service listening on :${port}`)
-                resolve()
-            }
-        )
-    })
+        logger.info(`Api gRPC service listening on :${port}`)
+        resolve()
+      }
+    )
+  })
 }
 
 async function startServer() {
-    try {
-        await prisma.$connect()
+  try {
+    await prisma.$connect()
 
-        await prisma.$queryRaw`SELECT 1`
+    await prisma.$queryRaw`SELECT 1`
 
-        logger.info("Database connected")
+    logger.info("Database connected")
 
-        await healthCheckWrapper()
+    await healthCheckWrapper()
 
-        logger.info("Builder connected")
+    logger.info("Builder connected")
 
-        await startGrpcServer()
+    await startGrpcServer()
 
-        app.listen(PORT, () => {
-            logger.info(`Server is running on port ${PORT}`)
-        })
-    } catch (error) {
-        logger.error(error, "Failed to start server")
-        process.exit(1)
-    }
+    app.listen(PORT, () => {
+      logger.info(`Server is running on port ${PORT}`)
+    })
+  } catch (error) {
+    logger.error(error, "Failed to start server")
+    process.exit(1)
+  }
 }
 
 startServer()

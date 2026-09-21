@@ -3,8 +3,8 @@ name: prisma-compute
 description: Prisma Compute deployment and hosting guide. Use whenever the user mentions Prisma Compute, `prisma.compute.ts`, `defineComputeConfig`, deploying or hosting a Prisma app, `@prisma/cli app deploy`, `compute:deploy`, `create-prisma --deploy`, `PRISMA_SERVICE_TOKEN`, Compute auth/workspaces, apps/deployments/build logs/domains, localhost vs `0.0.0.0`, deploy port binding, or framework deploy readiness for Hono, Elysia, Next.js, TanStack Start, Astro, Nuxt, Svelte, Nest, Turborepo, or custom/prebuilt artifacts.
 license: MIT
 metadata:
-    author: prisma
-    version: "1.5.1"
+  author: prisma
+  version: "1.5.1"
 ---
 
 # Prisma Compute
@@ -175,9 +175,9 @@ Use this skill for:
 2. Verify CLI help output for the package actually being used.
 3. Verify auth context before project/app mutations: `auth whoami --json`, and when multiple local sessions may exist, `auth workspace list --json`.
 4. Choose the path:
-    - existing app deploy: config-backed target when present, generated `compute:deploy`, or `@prisma/cli app build/run/deploy` flags
-    - new app scaffold: `create-prisma`, then generated `compute:deploy` or `@prisma/cli app deploy`
-    - low-level automation: `@prisma/compute-sdk` or Management API
+   - existing app deploy: config-backed target when present, generated `compute:deploy`, or `@prisma/cli app build/run/deploy` flags
+   - new app scaffold: `create-prisma`, then generated `compute:deploy` or `@prisma/cli app deploy`
+   - low-level automation: `@prisma/compute-sdk` or Management API
 5. Check framework readiness plus host/port/env/runtime requirements, including project and branch scope.
 6. Run a local build or `app build` before deploying when feasible.
 7. Deploy with JSON output when automating, then request the public URL and summarize app URL, app id, deployment id, project id, workspace id, and follow-up steps.

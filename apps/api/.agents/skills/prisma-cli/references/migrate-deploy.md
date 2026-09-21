@@ -45,7 +45,7 @@ prisma migrate deploy
 - name: Apply migrations
   run: npx prisma migrate deploy
   env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    DATABASE_URL: ${{ secrets.DATABASE_URL }}
 ```
 
 ### Docker deployment
@@ -71,21 +71,21 @@ CMD npx prisma migrate deploy && node dist/index.js
 
 1. **Development**: Create migrations locally
 
-    ```bash
-    prisma migrate dev --name add_feature
-    ```
+   ```bash
+   prisma migrate dev --name add_feature
+   ```
 
 2. **Commit**: Include migration files in version control
 
-    ```bash
-    git add prisma/migrations
-    git commit -m "Add feature migration"
-    ```
+   ```bash
+   git add prisma/migrations
+   git commit -m "Add feature migration"
+   ```
 
 3. **Deploy**: Apply in production
-    ```bash
-    prisma migrate deploy
-    ```
+   ```bash
+   prisma migrate deploy
+   ```
 
 ## Error Handling
 
@@ -116,9 +116,9 @@ import "dotenv/config"
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 

@@ -5,6 +5,6 @@ import { apiConfig } from "@forge/config/api"
 const privateKey = fs.readFileSync(apiConfig.github.privateKeyPath, "utf8")
 
 export const githubApp: App = new App({
-    appId: apiConfig.github.appId,
-    privateKey,
+  appId: apiConfig.github.appId,
+  privateKey,
 })

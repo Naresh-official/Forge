@@ -1,25 +1,25 @@
 {
-    "name": "builder",
-    "module": "src/index.ts",
-    "type": "module",
-    "private": true,
-    "scripts": {
-        "dev": "bun run --watch src/index.ts",
-        "start": "bun run src/index.ts",
-        "build": "bun build src/index.ts --target bun --outdir dist"
-    },
-    "dependencies": {
-        "@forge/config": "workspace:*",
-        "@forge/contracts": "workspace:*",
-        "@forge/registry": "workspace:*",
-        "@forge/storage": "workspace:*",
-        "bullmq": "^6.1.1",
-        "simple-git": "^3.36.0"
-    },
-    "devDependencies": {
-        "@types/bun": "latest"
-    },
-    "peerDependencies": {
-        "typescript": "^5"
-    }
+  "name": "builder",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --target bun --outdir dist"
+  },
+  "dependencies": {
+    "@forge/config": "workspace:*",
+    "@forge/contracts": "workspace:*",
+    "@forge/registry": "workspace:*",
+    "@forge/storage": "workspace:*",
+    "bullmq": "^6.1.1",
+    "simple-git": "^3.36.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
 }

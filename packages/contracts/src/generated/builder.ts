@@ -7,1014 +7,1001 @@
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire"
 import {
-    type CallOptions,
-    type ChannelCredentials,
-    Client,
-    type ClientOptions,
-    type ClientUnaryCall,
-    type handleUnaryCall,
-    makeGenericClientConstructor,
-    type Metadata,
-    type ServiceError,
-    type UntypedServiceImplementation,
+  type CallOptions,
+  type ChannelCredentials,
+  Client,
+  type ClientOptions,
+  type ClientUnaryCall,
+  type handleUnaryCall,
+  makeGenericClientConstructor,
+  type Metadata,
+  type ServiceError,
+  type UntypedServiceImplementation,
 } from "@grpc/grpc-js"
 
 export const protobufPackage = "builder"
 
 export interface BuildRequest {
-    buildId: string
+  buildId: string
 }
 
 export interface BuildResponse {
-    message: string
+  message: string
 }
 
 export interface BuildStartedRequest {
-    buildId: string
+  buildId: string
 }
 
 export interface BuildStartedResponse {
-    repoFullName: string
-    projectId: string
-    deploymentId: string
-    branch: string
-    commitSha: string
-    accessToken: string
-    buildId: string
+  repoFullName: string
+  projectId: string
+  deploymentId: string
+  branch: string
+  commitSha: string
+  accessToken: string
+  buildId: string
 }
 
 export interface BuildCompletedRequest {
-    buildId: string
-    /** SUCCEEDED | FAILED | CANCELLED */
-    status: string
-    message: string
-    /** Container deployments */
-    imageUrl: string
-    imageTag: string
-    /** Static deployments */
-    artifactBucket: string
-    artifactKey: string
-    /** Detection details for observability */
-    strategy: string
-    framework: string
-    packageRunner: string
+  buildId: string
+  /** SUCCEEDED | FAILED | CANCELLED */
+  status: string
+  message: string
+  /** Container deployments */
+  imageUrl: string
+  imageTag: string
+  /** Static deployments */
+  artifactBucket: string
+  artifactKey: string
+  /** Detection details for observability */
+  strategy: string
+  framework: string
+  packageRunner: string
 }
 
 export interface BuildCompletedResponse {
-    success: boolean
-    message: string
+  success: boolean
+  message: string
 }
 
 function createBaseBuildRequest(): BuildRequest {
-    return { buildId: "" }
+  return { buildId: "" }
 }
 
 export const BuildRequest: MessageFns<BuildRequest> = {
-    encode(
-        message: BuildRequest,
-        writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-        if (message.buildId !== "") {
-            writer.uint32(10).string(message.buildId)
+  encode(
+    message: BuildRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.buildId !== "") {
+      writer.uint32(10).string(message.buildId)
+    }
+    return writer
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BuildRequest {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBuildRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
+
+          message.buildId = reader.string()
+          continue
         }
-        return writer
-    },
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): BuildRequest {
-        const reader =
-            input instanceof BinaryReader ? input : new BinaryReader(input)
-        const end = length === undefined ? reader.len : reader.pos + length
-        const message = createBaseBuildRequest()
-        while (reader.pos < end) {
-            const tag = reader.uint32()
-            switch (tag >>> 3) {
-                case 1: {
-                    if (tag !== 10) {
-                        break
-                    }
+  fromJSON(object: any): BuildRequest {
+    return {
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+          ? globalThis.String(object.build_id)
+          : "",
+    }
+  },
 
-                    message.buildId = reader.string()
-                    continue
-                }
-            }
-            if ((tag & 7) === 4 || tag === 0) {
-                break
-            }
-            reader.skip(tag & 7)
-        }
-        return message
-    },
+  toJSON(message: BuildRequest): unknown {
+    const obj: any = {}
+    if (message.buildId !== "") {
+      obj.buildId = message.buildId
+    }
+    return obj
+  },
 
-    fromJSON(object: any): BuildRequest {
-        return {
-            buildId: isSet(object.buildId)
-                ? globalThis.String(object.buildId)
-                : isSet(object.build_id)
-                  ? globalThis.String(object.build_id)
-                  : "",
-        }
-    },
-
-    toJSON(message: BuildRequest): unknown {
-        const obj: any = {}
-        if (message.buildId !== "") {
-            obj.buildId = message.buildId
-        }
-        return obj
-    },
-
-    create<I extends Exact<DeepPartial<BuildRequest>, I>>(
-        base?: I
-    ): BuildRequest {
-        return BuildRequest.fromPartial(base ?? ({} as any))
-    },
-    fromPartial<I extends Exact<DeepPartial<BuildRequest>, I>>(
-        object: I
-    ): BuildRequest {
-        const message = createBaseBuildRequest()
-        message.buildId = object.buildId ?? ""
-        return message
-    },
+  create<I extends Exact<DeepPartial<BuildRequest>, I>>(
+    base?: I
+  ): BuildRequest {
+    return BuildRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildRequest>, I>>(
+    object: I
+  ): BuildRequest {
+    const message = createBaseBuildRequest()
+    message.buildId = object.buildId ?? ""
+    return message
+  },
 }
 
 function createBaseBuildResponse(): BuildResponse {
-    return { message: "" }
+  return { message: "" }
 }
 
 export const BuildResponse: MessageFns<BuildResponse> = {
-    encode(
-        message: BuildResponse,
-        writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-        if (message.message !== "") {
-            writer.uint32(10).string(message.message)
+  encode(
+    message: BuildResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.message !== "") {
+      writer.uint32(10).string(message.message)
+    }
+    return writer
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BuildResponse {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBuildResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
+
+          message.message = reader.string()
+          continue
         }
-        return writer
-    },
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): BuildResponse {
-        const reader =
-            input instanceof BinaryReader ? input : new BinaryReader(input)
-        const end = length === undefined ? reader.len : reader.pos + length
-        const message = createBaseBuildResponse()
-        while (reader.pos < end) {
-            const tag = reader.uint32()
-            switch (tag >>> 3) {
-                case 1: {
-                    if (tag !== 10) {
-                        break
-                    }
+  fromJSON(object: any): BuildResponse {
+    return {
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+    }
+  },
 
-                    message.message = reader.string()
-                    continue
-                }
-            }
-            if ((tag & 7) === 4 || tag === 0) {
-                break
-            }
-            reader.skip(tag & 7)
-        }
-        return message
-    },
+  toJSON(message: BuildResponse): unknown {
+    const obj: any = {}
+    if (message.message !== "") {
+      obj.message = message.message
+    }
+    return obj
+  },
 
-    fromJSON(object: any): BuildResponse {
-        return {
-            message: isSet(object.message)
-                ? globalThis.String(object.message)
-                : "",
-        }
-    },
-
-    toJSON(message: BuildResponse): unknown {
-        const obj: any = {}
-        if (message.message !== "") {
-            obj.message = message.message
-        }
-        return obj
-    },
-
-    create<I extends Exact<DeepPartial<BuildResponse>, I>>(
-        base?: I
-    ): BuildResponse {
-        return BuildResponse.fromPartial(base ?? ({} as any))
-    },
-    fromPartial<I extends Exact<DeepPartial<BuildResponse>, I>>(
-        object: I
-    ): BuildResponse {
-        const message = createBaseBuildResponse()
-        message.message = object.message ?? ""
-        return message
-    },
+  create<I extends Exact<DeepPartial<BuildResponse>, I>>(
+    base?: I
+  ): BuildResponse {
+    return BuildResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildResponse>, I>>(
+    object: I
+  ): BuildResponse {
+    const message = createBaseBuildResponse()
+    message.message = object.message ?? ""
+    return message
+  },
 }
 
 function createBaseBuildStartedRequest(): BuildStartedRequest {
-    return { buildId: "" }
+  return { buildId: "" }
 }
 
 export const BuildStartedRequest: MessageFns<BuildStartedRequest> = {
-    encode(
-        message: BuildStartedRequest,
-        writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-        if (message.buildId !== "") {
-            writer.uint32(10).string(message.buildId)
+  encode(
+    message: BuildStartedRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.buildId !== "") {
+      writer.uint32(10).string(message.buildId)
+    }
+    return writer
+  },
+
+  decode(
+    input: BinaryReader | Uint8Array,
+    length?: number
+  ): BuildStartedRequest {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBuildStartedRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
+
+          message.buildId = reader.string()
+          continue
         }
-        return writer
-    },
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
 
-    decode(
-        input: BinaryReader | Uint8Array,
-        length?: number
-    ): BuildStartedRequest {
-        const reader =
-            input instanceof BinaryReader ? input : new BinaryReader(input)
-        const end = length === undefined ? reader.len : reader.pos + length
-        const message = createBaseBuildStartedRequest()
-        while (reader.pos < end) {
-            const tag = reader.uint32()
-            switch (tag >>> 3) {
-                case 1: {
-                    if (tag !== 10) {
-                        break
-                    }
+  fromJSON(object: any): BuildStartedRequest {
+    return {
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+          ? globalThis.String(object.build_id)
+          : "",
+    }
+  },
 
-                    message.buildId = reader.string()
-                    continue
-                }
-            }
-            if ((tag & 7) === 4 || tag === 0) {
-                break
-            }
-            reader.skip(tag & 7)
-        }
-        return message
-    },
+  toJSON(message: BuildStartedRequest): unknown {
+    const obj: any = {}
+    if (message.buildId !== "") {
+      obj.buildId = message.buildId
+    }
+    return obj
+  },
 
-    fromJSON(object: any): BuildStartedRequest {
-        return {
-            buildId: isSet(object.buildId)
-                ? globalThis.String(object.buildId)
-                : isSet(object.build_id)
-                  ? globalThis.String(object.build_id)
-                  : "",
-        }
-    },
-
-    toJSON(message: BuildStartedRequest): unknown {
-        const obj: any = {}
-        if (message.buildId !== "") {
-            obj.buildId = message.buildId
-        }
-        return obj
-    },
-
-    create<I extends Exact<DeepPartial<BuildStartedRequest>, I>>(
-        base?: I
-    ): BuildStartedRequest {
-        return BuildStartedRequest.fromPartial(base ?? ({} as any))
-    },
-    fromPartial<I extends Exact<DeepPartial<BuildStartedRequest>, I>>(
-        object: I
-    ): BuildStartedRequest {
-        const message = createBaseBuildStartedRequest()
-        message.buildId = object.buildId ?? ""
-        return message
-    },
+  create<I extends Exact<DeepPartial<BuildStartedRequest>, I>>(
+    base?: I
+  ): BuildStartedRequest {
+    return BuildStartedRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildStartedRequest>, I>>(
+    object: I
+  ): BuildStartedRequest {
+    const message = createBaseBuildStartedRequest()
+    message.buildId = object.buildId ?? ""
+    return message
+  },
 }
 
 function createBaseBuildStartedResponse(): BuildStartedResponse {
-    return {
-        repoFullName: "",
-        projectId: "",
-        deploymentId: "",
-        branch: "",
-        commitSha: "",
-        accessToken: "",
-        buildId: "",
-    }
+  return {
+    repoFullName: "",
+    projectId: "",
+    deploymentId: "",
+    branch: "",
+    commitSha: "",
+    accessToken: "",
+    buildId: "",
+  }
 }
 
 export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
-    encode(
-        message: BuildStartedResponse,
-        writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-        if (message.repoFullName !== "") {
-            writer.uint32(10).string(message.repoFullName)
-        }
-        if (message.projectId !== "") {
-            writer.uint32(18).string(message.projectId)
-        }
-        if (message.deploymentId !== "") {
-            writer.uint32(26).string(message.deploymentId)
-        }
-        if (message.branch !== "") {
-            writer.uint32(34).string(message.branch)
-        }
-        if (message.commitSha !== "") {
-            writer.uint32(42).string(message.commitSha)
-        }
-        if (message.accessToken !== "") {
-            writer.uint32(50).string(message.accessToken)
-        }
-        if (message.buildId !== "") {
-            writer.uint32(58).string(message.buildId)
-        }
-        return writer
-    },
+  encode(
+    message: BuildStartedResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.repoFullName !== "") {
+      writer.uint32(10).string(message.repoFullName)
+    }
+    if (message.projectId !== "") {
+      writer.uint32(18).string(message.projectId)
+    }
+    if (message.deploymentId !== "") {
+      writer.uint32(26).string(message.deploymentId)
+    }
+    if (message.branch !== "") {
+      writer.uint32(34).string(message.branch)
+    }
+    if (message.commitSha !== "") {
+      writer.uint32(42).string(message.commitSha)
+    }
+    if (message.accessToken !== "") {
+      writer.uint32(50).string(message.accessToken)
+    }
+    if (message.buildId !== "") {
+      writer.uint32(58).string(message.buildId)
+    }
+    return writer
+  },
 
-    decode(
-        input: BinaryReader | Uint8Array,
-        length?: number
-    ): BuildStartedResponse {
-        const reader =
-            input instanceof BinaryReader ? input : new BinaryReader(input)
-        const end = length === undefined ? reader.len : reader.pos + length
-        const message = createBaseBuildStartedResponse()
-        while (reader.pos < end) {
-            const tag = reader.uint32()
-            switch (tag >>> 3) {
-                case 1: {
-                    if (tag !== 10) {
-                        break
-                    }
+  decode(
+    input: BinaryReader | Uint8Array,
+    length?: number
+  ): BuildStartedResponse {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBuildStartedResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
 
-                    message.repoFullName = reader.string()
-                    continue
-                }
-                case 2: {
-                    if (tag !== 18) {
-                        break
-                    }
-
-                    message.projectId = reader.string()
-                    continue
-                }
-                case 3: {
-                    if (tag !== 26) {
-                        break
-                    }
-
-                    message.deploymentId = reader.string()
-                    continue
-                }
-                case 4: {
-                    if (tag !== 34) {
-                        break
-                    }
-
-                    message.branch = reader.string()
-                    continue
-                }
-                case 5: {
-                    if (tag !== 42) {
-                        break
-                    }
-
-                    message.commitSha = reader.string()
-                    continue
-                }
-                case 6: {
-                    if (tag !== 50) {
-                        break
-                    }
-
-                    message.accessToken = reader.string()
-                    continue
-                }
-                case 7: {
-                    if (tag !== 58) {
-                        break
-                    }
-
-                    message.buildId = reader.string()
-                    continue
-                }
-            }
-            if ((tag & 7) === 4 || tag === 0) {
-                break
-            }
-            reader.skip(tag & 7)
+          message.repoFullName = reader.string()
+          continue
         }
-        return message
-    },
+        case 2: {
+          if (tag !== 18) {
+            break
+          }
 
-    fromJSON(object: any): BuildStartedResponse {
-        return {
-            repoFullName: isSet(object.repoFullName)
-                ? globalThis.String(object.repoFullName)
-                : isSet(object.repo_full_name)
-                  ? globalThis.String(object.repo_full_name)
-                  : "",
-            projectId: isSet(object.projectId)
-                ? globalThis.String(object.projectId)
-                : isSet(object.project_id)
-                  ? globalThis.String(object.project_id)
-                  : "",
-            deploymentId: isSet(object.deploymentId)
-                ? globalThis.String(object.deploymentId)
-                : isSet(object.deployment_id)
-                  ? globalThis.String(object.deployment_id)
-                  : "",
-            branch: isSet(object.branch)
-                ? globalThis.String(object.branch)
-                : "",
-            commitSha: isSet(object.commitSha)
-                ? globalThis.String(object.commitSha)
-                : isSet(object.commit_sha)
-                  ? globalThis.String(object.commit_sha)
-                  : "",
-            accessToken: isSet(object.accessToken)
-                ? globalThis.String(object.accessToken)
-                : isSet(object.access_token)
-                  ? globalThis.String(object.access_token)
-                  : "",
-            buildId: isSet(object.buildId)
-                ? globalThis.String(object.buildId)
-                : isSet(object.build_id)
-                  ? globalThis.String(object.build_id)
-                  : "",
+          message.projectId = reader.string()
+          continue
         }
-    },
+        case 3: {
+          if (tag !== 26) {
+            break
+          }
 
-    toJSON(message: BuildStartedResponse): unknown {
-        const obj: any = {}
-        if (message.repoFullName !== "") {
-            obj.repoFullName = message.repoFullName
+          message.deploymentId = reader.string()
+          continue
         }
-        if (message.projectId !== "") {
-            obj.projectId = message.projectId
-        }
-        if (message.deploymentId !== "") {
-            obj.deploymentId = message.deploymentId
-        }
-        if (message.branch !== "") {
-            obj.branch = message.branch
-        }
-        if (message.commitSha !== "") {
-            obj.commitSha = message.commitSha
-        }
-        if (message.accessToken !== "") {
-            obj.accessToken = message.accessToken
-        }
-        if (message.buildId !== "") {
-            obj.buildId = message.buildId
-        }
-        return obj
-    },
+        case 4: {
+          if (tag !== 34) {
+            break
+          }
 
-    create<I extends Exact<DeepPartial<BuildStartedResponse>, I>>(
-        base?: I
-    ): BuildStartedResponse {
-        return BuildStartedResponse.fromPartial(base ?? ({} as any))
-    },
-    fromPartial<I extends Exact<DeepPartial<BuildStartedResponse>, I>>(
-        object: I
-    ): BuildStartedResponse {
-        const message = createBaseBuildStartedResponse()
-        message.repoFullName = object.repoFullName ?? ""
-        message.projectId = object.projectId ?? ""
-        message.deploymentId = object.deploymentId ?? ""
-        message.branch = object.branch ?? ""
-        message.commitSha = object.commitSha ?? ""
-        message.accessToken = object.accessToken ?? ""
-        message.buildId = object.buildId ?? ""
-        return message
-    },
+          message.branch = reader.string()
+          continue
+        }
+        case 5: {
+          if (tag !== 42) {
+            break
+          }
+
+          message.commitSha = reader.string()
+          continue
+        }
+        case 6: {
+          if (tag !== 50) {
+            break
+          }
+
+          message.accessToken = reader.string()
+          continue
+        }
+        case 7: {
+          if (tag !== 58) {
+            break
+          }
+
+          message.buildId = reader.string()
+          continue
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
+
+  fromJSON(object: any): BuildStartedResponse {
+    return {
+      repoFullName: isSet(object.repoFullName)
+        ? globalThis.String(object.repoFullName)
+        : isSet(object.repo_full_name)
+          ? globalThis.String(object.repo_full_name)
+          : "",
+      projectId: isSet(object.projectId)
+        ? globalThis.String(object.projectId)
+        : isSet(object.project_id)
+          ? globalThis.String(object.project_id)
+          : "",
+      deploymentId: isSet(object.deploymentId)
+        ? globalThis.String(object.deploymentId)
+        : isSet(object.deployment_id)
+          ? globalThis.String(object.deployment_id)
+          : "",
+      branch: isSet(object.branch) ? globalThis.String(object.branch) : "",
+      commitSha: isSet(object.commitSha)
+        ? globalThis.String(object.commitSha)
+        : isSet(object.commit_sha)
+          ? globalThis.String(object.commit_sha)
+          : "",
+      accessToken: isSet(object.accessToken)
+        ? globalThis.String(object.accessToken)
+        : isSet(object.access_token)
+          ? globalThis.String(object.access_token)
+          : "",
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+          ? globalThis.String(object.build_id)
+          : "",
+    }
+  },
+
+  toJSON(message: BuildStartedResponse): unknown {
+    const obj: any = {}
+    if (message.repoFullName !== "") {
+      obj.repoFullName = message.repoFullName
+    }
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId
+    }
+    if (message.deploymentId !== "") {
+      obj.deploymentId = message.deploymentId
+    }
+    if (message.branch !== "") {
+      obj.branch = message.branch
+    }
+    if (message.commitSha !== "") {
+      obj.commitSha = message.commitSha
+    }
+    if (message.accessToken !== "") {
+      obj.accessToken = message.accessToken
+    }
+    if (message.buildId !== "") {
+      obj.buildId = message.buildId
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<BuildStartedResponse>, I>>(
+    base?: I
+  ): BuildStartedResponse {
+    return BuildStartedResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildStartedResponse>, I>>(
+    object: I
+  ): BuildStartedResponse {
+    const message = createBaseBuildStartedResponse()
+    message.repoFullName = object.repoFullName ?? ""
+    message.projectId = object.projectId ?? ""
+    message.deploymentId = object.deploymentId ?? ""
+    message.branch = object.branch ?? ""
+    message.commitSha = object.commitSha ?? ""
+    message.accessToken = object.accessToken ?? ""
+    message.buildId = object.buildId ?? ""
+    return message
+  },
 }
 
 function createBaseBuildCompletedRequest(): BuildCompletedRequest {
-    return {
-        buildId: "",
-        status: "",
-        message: "",
-        imageUrl: "",
-        imageTag: "",
-        artifactBucket: "",
-        artifactKey: "",
-        strategy: "",
-        framework: "",
-        packageRunner: "",
-    }
+  return {
+    buildId: "",
+    status: "",
+    message: "",
+    imageUrl: "",
+    imageTag: "",
+    artifactBucket: "",
+    artifactKey: "",
+    strategy: "",
+    framework: "",
+    packageRunner: "",
+  }
 }
 
 export const BuildCompletedRequest: MessageFns<BuildCompletedRequest> = {
-    encode(
-        message: BuildCompletedRequest,
-        writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-        if (message.buildId !== "") {
-            writer.uint32(10).string(message.buildId)
-        }
-        if (message.status !== "") {
-            writer.uint32(18).string(message.status)
-        }
-        if (message.message !== "") {
-            writer.uint32(26).string(message.message)
-        }
-        if (message.imageUrl !== "") {
-            writer.uint32(34).string(message.imageUrl)
-        }
-        if (message.imageTag !== "") {
-            writer.uint32(42).string(message.imageTag)
-        }
-        if (message.artifactBucket !== "") {
-            writer.uint32(50).string(message.artifactBucket)
-        }
-        if (message.artifactKey !== "") {
-            writer.uint32(58).string(message.artifactKey)
-        }
-        if (message.strategy !== "") {
-            writer.uint32(66).string(message.strategy)
-        }
-        if (message.framework !== "") {
-            writer.uint32(74).string(message.framework)
-        }
-        if (message.packageRunner !== "") {
-            writer.uint32(82).string(message.packageRunner)
-        }
-        return writer
-    },
+  encode(
+    message: BuildCompletedRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.buildId !== "") {
+      writer.uint32(10).string(message.buildId)
+    }
+    if (message.status !== "") {
+      writer.uint32(18).string(message.status)
+    }
+    if (message.message !== "") {
+      writer.uint32(26).string(message.message)
+    }
+    if (message.imageUrl !== "") {
+      writer.uint32(34).string(message.imageUrl)
+    }
+    if (message.imageTag !== "") {
+      writer.uint32(42).string(message.imageTag)
+    }
+    if (message.artifactBucket !== "") {
+      writer.uint32(50).string(message.artifactBucket)
+    }
+    if (message.artifactKey !== "") {
+      writer.uint32(58).string(message.artifactKey)
+    }
+    if (message.strategy !== "") {
+      writer.uint32(66).string(message.strategy)
+    }
+    if (message.framework !== "") {
+      writer.uint32(74).string(message.framework)
+    }
+    if (message.packageRunner !== "") {
+      writer.uint32(82).string(message.packageRunner)
+    }
+    return writer
+  },
 
-    decode(
-        input: BinaryReader | Uint8Array,
-        length?: number
-    ): BuildCompletedRequest {
-        const reader =
-            input instanceof BinaryReader ? input : new BinaryReader(input)
-        const end = length === undefined ? reader.len : reader.pos + length
-        const message = createBaseBuildCompletedRequest()
-        while (reader.pos < end) {
-            const tag = reader.uint32()
-            switch (tag >>> 3) {
-                case 1: {
-                    if (tag !== 10) {
-                        break
-                    }
+  decode(
+    input: BinaryReader | Uint8Array,
+    length?: number
+  ): BuildCompletedRequest {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBuildCompletedRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
 
-                    message.buildId = reader.string()
-                    continue
-                }
-                case 2: {
-                    if (tag !== 18) {
-                        break
-                    }
-
-                    message.status = reader.string()
-                    continue
-                }
-                case 3: {
-                    if (tag !== 26) {
-                        break
-                    }
-
-                    message.message = reader.string()
-                    continue
-                }
-                case 4: {
-                    if (tag !== 34) {
-                        break
-                    }
-
-                    message.imageUrl = reader.string()
-                    continue
-                }
-                case 5: {
-                    if (tag !== 42) {
-                        break
-                    }
-
-                    message.imageTag = reader.string()
-                    continue
-                }
-                case 6: {
-                    if (tag !== 50) {
-                        break
-                    }
-
-                    message.artifactBucket = reader.string()
-                    continue
-                }
-                case 7: {
-                    if (tag !== 58) {
-                        break
-                    }
-
-                    message.artifactKey = reader.string()
-                    continue
-                }
-                case 8: {
-                    if (tag !== 66) {
-                        break
-                    }
-
-                    message.strategy = reader.string()
-                    continue
-                }
-                case 9: {
-                    if (tag !== 74) {
-                        break
-                    }
-
-                    message.framework = reader.string()
-                    continue
-                }
-                case 10: {
-                    if (tag !== 82) {
-                        break
-                    }
-
-                    message.packageRunner = reader.string()
-                    continue
-                }
-            }
-            if ((tag & 7) === 4 || tag === 0) {
-                break
-            }
-            reader.skip(tag & 7)
+          message.buildId = reader.string()
+          continue
         }
-        return message
-    },
+        case 2: {
+          if (tag !== 18) {
+            break
+          }
 
-    fromJSON(object: any): BuildCompletedRequest {
-        return {
-            buildId: isSet(object.buildId)
-                ? globalThis.String(object.buildId)
-                : isSet(object.build_id)
-                  ? globalThis.String(object.build_id)
-                  : "",
-            status: isSet(object.status)
-                ? globalThis.String(object.status)
-                : "",
-            message: isSet(object.message)
-                ? globalThis.String(object.message)
-                : "",
-            imageUrl: isSet(object.imageUrl)
-                ? globalThis.String(object.imageUrl)
-                : isSet(object.image_url)
-                  ? globalThis.String(object.image_url)
-                  : "",
-            imageTag: isSet(object.imageTag)
-                ? globalThis.String(object.imageTag)
-                : isSet(object.image_tag)
-                  ? globalThis.String(object.image_tag)
-                  : "",
-            artifactBucket: isSet(object.artifactBucket)
-                ? globalThis.String(object.artifactBucket)
-                : isSet(object.artifact_bucket)
-                  ? globalThis.String(object.artifact_bucket)
-                  : "",
-            artifactKey: isSet(object.artifactKey)
-                ? globalThis.String(object.artifactKey)
-                : isSet(object.artifact_key)
-                  ? globalThis.String(object.artifact_key)
-                  : "",
-            strategy: isSet(object.strategy)
-                ? globalThis.String(object.strategy)
-                : "",
-            framework: isSet(object.framework)
-                ? globalThis.String(object.framework)
-                : "",
-            packageRunner: isSet(object.packageRunner)
-                ? globalThis.String(object.packageRunner)
-                : isSet(object.package_runner)
-                  ? globalThis.String(object.package_runner)
-                  : "",
+          message.status = reader.string()
+          continue
         }
-    },
+        case 3: {
+          if (tag !== 26) {
+            break
+          }
 
-    toJSON(message: BuildCompletedRequest): unknown {
-        const obj: any = {}
-        if (message.buildId !== "") {
-            obj.buildId = message.buildId
+          message.message = reader.string()
+          continue
         }
-        if (message.status !== "") {
-            obj.status = message.status
-        }
-        if (message.message !== "") {
-            obj.message = message.message
-        }
-        if (message.imageUrl !== "") {
-            obj.imageUrl = message.imageUrl
-        }
-        if (message.imageTag !== "") {
-            obj.imageTag = message.imageTag
-        }
-        if (message.artifactBucket !== "") {
-            obj.artifactBucket = message.artifactBucket
-        }
-        if (message.artifactKey !== "") {
-            obj.artifactKey = message.artifactKey
-        }
-        if (message.strategy !== "") {
-            obj.strategy = message.strategy
-        }
-        if (message.framework !== "") {
-            obj.framework = message.framework
-        }
-        if (message.packageRunner !== "") {
-            obj.packageRunner = message.packageRunner
-        }
-        return obj
-    },
+        case 4: {
+          if (tag !== 34) {
+            break
+          }
 
-    create<I extends Exact<DeepPartial<BuildCompletedRequest>, I>>(
-        base?: I
-    ): BuildCompletedRequest {
-        return BuildCompletedRequest.fromPartial(base ?? ({} as any))
-    },
-    fromPartial<I extends Exact<DeepPartial<BuildCompletedRequest>, I>>(
-        object: I
-    ): BuildCompletedRequest {
-        const message = createBaseBuildCompletedRequest()
-        message.buildId = object.buildId ?? ""
-        message.status = object.status ?? ""
-        message.message = object.message ?? ""
-        message.imageUrl = object.imageUrl ?? ""
-        message.imageTag = object.imageTag ?? ""
-        message.artifactBucket = object.artifactBucket ?? ""
-        message.artifactKey = object.artifactKey ?? ""
-        message.strategy = object.strategy ?? ""
-        message.framework = object.framework ?? ""
-        message.packageRunner = object.packageRunner ?? ""
-        return message
-    },
+          message.imageUrl = reader.string()
+          continue
+        }
+        case 5: {
+          if (tag !== 42) {
+            break
+          }
+
+          message.imageTag = reader.string()
+          continue
+        }
+        case 6: {
+          if (tag !== 50) {
+            break
+          }
+
+          message.artifactBucket = reader.string()
+          continue
+        }
+        case 7: {
+          if (tag !== 58) {
+            break
+          }
+
+          message.artifactKey = reader.string()
+          continue
+        }
+        case 8: {
+          if (tag !== 66) {
+            break
+          }
+
+          message.strategy = reader.string()
+          continue
+        }
+        case 9: {
+          if (tag !== 74) {
+            break
+          }
+
+          message.framework = reader.string()
+          continue
+        }
+        case 10: {
+          if (tag !== 82) {
+            break
+          }
+
+          message.packageRunner = reader.string()
+          continue
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
+
+  fromJSON(object: any): BuildCompletedRequest {
+    return {
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+          ? globalThis.String(object.build_id)
+          : "",
+      status: isSet(object.status) ? globalThis.String(object.status) : "",
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+      imageUrl: isSet(object.imageUrl)
+        ? globalThis.String(object.imageUrl)
+        : isSet(object.image_url)
+          ? globalThis.String(object.image_url)
+          : "",
+      imageTag: isSet(object.imageTag)
+        ? globalThis.String(object.imageTag)
+        : isSet(object.image_tag)
+          ? globalThis.String(object.image_tag)
+          : "",
+      artifactBucket: isSet(object.artifactBucket)
+        ? globalThis.String(object.artifactBucket)
+        : isSet(object.artifact_bucket)
+          ? globalThis.String(object.artifact_bucket)
+          : "",
+      artifactKey: isSet(object.artifactKey)
+        ? globalThis.String(object.artifactKey)
+        : isSet(object.artifact_key)
+          ? globalThis.String(object.artifact_key)
+          : "",
+      strategy: isSet(object.strategy)
+        ? globalThis.String(object.strategy)
+        : "",
+      framework: isSet(object.framework)
+        ? globalThis.String(object.framework)
+        : "",
+      packageRunner: isSet(object.packageRunner)
+        ? globalThis.String(object.packageRunner)
+        : isSet(object.package_runner)
+          ? globalThis.String(object.package_runner)
+          : "",
+    }
+  },
+
+  toJSON(message: BuildCompletedRequest): unknown {
+    const obj: any = {}
+    if (message.buildId !== "") {
+      obj.buildId = message.buildId
+    }
+    if (message.status !== "") {
+      obj.status = message.status
+    }
+    if (message.message !== "") {
+      obj.message = message.message
+    }
+    if (message.imageUrl !== "") {
+      obj.imageUrl = message.imageUrl
+    }
+    if (message.imageTag !== "") {
+      obj.imageTag = message.imageTag
+    }
+    if (message.artifactBucket !== "") {
+      obj.artifactBucket = message.artifactBucket
+    }
+    if (message.artifactKey !== "") {
+      obj.artifactKey = message.artifactKey
+    }
+    if (message.strategy !== "") {
+      obj.strategy = message.strategy
+    }
+    if (message.framework !== "") {
+      obj.framework = message.framework
+    }
+    if (message.packageRunner !== "") {
+      obj.packageRunner = message.packageRunner
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<BuildCompletedRequest>, I>>(
+    base?: I
+  ): BuildCompletedRequest {
+    return BuildCompletedRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildCompletedRequest>, I>>(
+    object: I
+  ): BuildCompletedRequest {
+    const message = createBaseBuildCompletedRequest()
+    message.buildId = object.buildId ?? ""
+    message.status = object.status ?? ""
+    message.message = object.message ?? ""
+    message.imageUrl = object.imageUrl ?? ""
+    message.imageTag = object.imageTag ?? ""
+    message.artifactBucket = object.artifactBucket ?? ""
+    message.artifactKey = object.artifactKey ?? ""
+    message.strategy = object.strategy ?? ""
+    message.framework = object.framework ?? ""
+    message.packageRunner = object.packageRunner ?? ""
+    return message
+  },
 }
 
 function createBaseBuildCompletedResponse(): BuildCompletedResponse {
-    return { success: false, message: "" }
+  return { success: false, message: "" }
 }
 
 export const BuildCompletedResponse: MessageFns<BuildCompletedResponse> = {
-    encode(
-        message: BuildCompletedResponse,
-        writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-        if (message.success !== false) {
-            writer.uint32(8).bool(message.success)
-        }
-        if (message.message !== "") {
-            writer.uint32(18).string(message.message)
-        }
-        return writer
-    },
+  encode(
+    message: BuildCompletedResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.success !== false) {
+      writer.uint32(8).bool(message.success)
+    }
+    if (message.message !== "") {
+      writer.uint32(18).string(message.message)
+    }
+    return writer
+  },
 
-    decode(
-        input: BinaryReader | Uint8Array,
-        length?: number
-    ): BuildCompletedResponse {
-        const reader =
-            input instanceof BinaryReader ? input : new BinaryReader(input)
-        const end = length === undefined ? reader.len : reader.pos + length
-        const message = createBaseBuildCompletedResponse()
-        while (reader.pos < end) {
-            const tag = reader.uint32()
-            switch (tag >>> 3) {
-                case 1: {
-                    if (tag !== 8) {
-                        break
-                    }
+  decode(
+    input: BinaryReader | Uint8Array,
+    length?: number
+  ): BuildCompletedResponse {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseBuildCompletedResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break
+          }
 
-                    message.success = reader.bool()
-                    continue
-                }
-                case 2: {
-                    if (tag !== 18) {
-                        break
-                    }
-
-                    message.message = reader.string()
-                    continue
-                }
-            }
-            if ((tag & 7) === 4 || tag === 0) {
-                break
-            }
-            reader.skip(tag & 7)
+          message.success = reader.bool()
+          continue
         }
-        return message
-    },
+        case 2: {
+          if (tag !== 18) {
+            break
+          }
 
-    fromJSON(object: any): BuildCompletedResponse {
-        return {
-            success: isSet(object.success)
-                ? globalThis.Boolean(object.success)
-                : false,
-            message: isSet(object.message)
-                ? globalThis.String(object.message)
-                : "",
+          message.message = reader.string()
+          continue
         }
-    },
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
 
-    toJSON(message: BuildCompletedResponse): unknown {
-        const obj: any = {}
-        if (message.success !== false) {
-            obj.success = message.success
-        }
-        if (message.message !== "") {
-            obj.message = message.message
-        }
-        return obj
-    },
+  fromJSON(object: any): BuildCompletedResponse {
+    return {
+      success: isSet(object.success)
+        ? globalThis.Boolean(object.success)
+        : false,
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+    }
+  },
 
-    create<I extends Exact<DeepPartial<BuildCompletedResponse>, I>>(
-        base?: I
-    ): BuildCompletedResponse {
-        return BuildCompletedResponse.fromPartial(base ?? ({} as any))
-    },
-    fromPartial<I extends Exact<DeepPartial<BuildCompletedResponse>, I>>(
-        object: I
-    ): BuildCompletedResponse {
-        const message = createBaseBuildCompletedResponse()
-        message.success = object.success ?? false
-        message.message = object.message ?? ""
-        return message
-    },
+  toJSON(message: BuildCompletedResponse): unknown {
+    const obj: any = {}
+    if (message.success !== false) {
+      obj.success = message.success
+    }
+    if (message.message !== "") {
+      obj.message = message.message
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<BuildCompletedResponse>, I>>(
+    base?: I
+  ): BuildCompletedResponse {
+    return BuildCompletedResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<BuildCompletedResponse>, I>>(
+    object: I
+  ): BuildCompletedResponse {
+    const message = createBaseBuildCompletedResponse()
+    message.success = object.success ?? false
+    message.message = object.message ?? ""
+    return message
+  },
 }
 
 export type BuilderServiceService = typeof BuilderServiceService
 export const BuilderServiceService = {
-    build: {
-        path: "/builder.BuilderService/Build" as const,
-        requestStream: false as const,
-        responseStream: false as const,
-        requestSerialize: (value: BuildRequest): Buffer =>
-            Buffer.from(BuildRequest.encode(value).finish()),
-        requestDeserialize: (value: Buffer): BuildRequest =>
-            BuildRequest.decode(value),
-        responseSerialize: (value: BuildResponse): Buffer =>
-            Buffer.from(BuildResponse.encode(value).finish()),
-        responseDeserialize: (value: Buffer): BuildResponse =>
-            BuildResponse.decode(value),
-    },
+  build: {
+    path: "/builder.BuilderService/Build" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BuildRequest): Buffer =>
+      Buffer.from(BuildRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BuildRequest =>
+      BuildRequest.decode(value),
+    responseSerialize: (value: BuildResponse): Buffer =>
+      Buffer.from(BuildResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BuildResponse =>
+      BuildResponse.decode(value),
+  },
 } as const
 
 export interface BuilderServiceServer extends UntypedServiceImplementation {
-    build: handleUnaryCall<BuildRequest, BuildResponse>
+  build: handleUnaryCall<BuildRequest, BuildResponse>
 }
 
 export interface BuilderServiceClient extends Client {
-    build(
-        request: BuildRequest,
-        callback: (error: ServiceError | null, response: BuildResponse) => void
-    ): ClientUnaryCall
-    build(
-        request: BuildRequest,
-        metadata: Metadata,
-        callback: (error: ServiceError | null, response: BuildResponse) => void
-    ): ClientUnaryCall
-    build(
-        request: BuildRequest,
-        metadata: Metadata,
-        options: Partial<CallOptions>,
-        callback: (error: ServiceError | null, response: BuildResponse) => void
-    ): ClientUnaryCall
+  build(
+    request: BuildRequest,
+    callback: (error: ServiceError | null, response: BuildResponse) => void
+  ): ClientUnaryCall
+  build(
+    request: BuildRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BuildResponse) => void
+  ): ClientUnaryCall
+  build(
+    request: BuildRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BuildResponse) => void
+  ): ClientUnaryCall
 }
 
 export const BuilderServiceClient = makeGenericClientConstructor(
-    BuilderServiceService,
-    "builder.BuilderService"
+  BuilderServiceService,
+  "builder.BuilderService"
 ) as unknown as {
-    new (
-        address: string,
-        credentials: ChannelCredentials,
-        options?: Partial<ClientOptions>
-    ): BuilderServiceClient
-    service: typeof BuilderServiceService
-    serviceName: string
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): BuilderServiceClient
+  service: typeof BuilderServiceService
+  serviceName: string
 }
 
 export type ApiServiceService = typeof ApiServiceService
 export const ApiServiceService = {
-    buildStarted: {
-        path: "/builder.ApiService/BuildStarted" as const,
-        requestStream: false as const,
-        responseStream: false as const,
-        requestSerialize: (value: BuildStartedRequest): Buffer =>
-            Buffer.from(BuildStartedRequest.encode(value).finish()),
-        requestDeserialize: (value: Buffer): BuildStartedRequest =>
-            BuildStartedRequest.decode(value),
-        responseSerialize: (value: BuildStartedResponse): Buffer =>
-            Buffer.from(BuildStartedResponse.encode(value).finish()),
-        responseDeserialize: (value: Buffer): BuildStartedResponse =>
-            BuildStartedResponse.decode(value),
-    },
-    buildCompleted: {
-        path: "/builder.ApiService/BuildCompleted" as const,
-        requestStream: false as const,
-        responseStream: false as const,
-        requestSerialize: (value: BuildCompletedRequest): Buffer =>
-            Buffer.from(BuildCompletedRequest.encode(value).finish()),
-        requestDeserialize: (value: Buffer): BuildCompletedRequest =>
-            BuildCompletedRequest.decode(value),
-        responseSerialize: (value: BuildCompletedResponse): Buffer =>
-            Buffer.from(BuildCompletedResponse.encode(value).finish()),
-        responseDeserialize: (value: Buffer): BuildCompletedResponse =>
-            BuildCompletedResponse.decode(value),
-    },
+  buildStarted: {
+    path: "/builder.ApiService/BuildStarted" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BuildStartedRequest): Buffer =>
+      Buffer.from(BuildStartedRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BuildStartedRequest =>
+      BuildStartedRequest.decode(value),
+    responseSerialize: (value: BuildStartedResponse): Buffer =>
+      Buffer.from(BuildStartedResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BuildStartedResponse =>
+      BuildStartedResponse.decode(value),
+  },
+  buildCompleted: {
+    path: "/builder.ApiService/BuildCompleted" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BuildCompletedRequest): Buffer =>
+      Buffer.from(BuildCompletedRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BuildCompletedRequest =>
+      BuildCompletedRequest.decode(value),
+    responseSerialize: (value: BuildCompletedResponse): Buffer =>
+      Buffer.from(BuildCompletedResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BuildCompletedResponse =>
+      BuildCompletedResponse.decode(value),
+  },
 } as const
 
 export interface ApiServiceServer extends UntypedServiceImplementation {
-    buildStarted: handleUnaryCall<BuildStartedRequest, BuildStartedResponse>
-    buildCompleted: handleUnaryCall<
-        BuildCompletedRequest,
-        BuildCompletedResponse
-    >
+  buildStarted: handleUnaryCall<BuildStartedRequest, BuildStartedResponse>
+  buildCompleted: handleUnaryCall<BuildCompletedRequest, BuildCompletedResponse>
 }
 
 export interface ApiServiceClient extends Client {
-    buildStarted(
-        request: BuildStartedRequest,
-        callback: (
-            error: ServiceError | null,
-            response: BuildStartedResponse
-        ) => void
-    ): ClientUnaryCall
-    buildStarted(
-        request: BuildStartedRequest,
-        metadata: Metadata,
-        callback: (
-            error: ServiceError | null,
-            response: BuildStartedResponse
-        ) => void
-    ): ClientUnaryCall
-    buildStarted(
-        request: BuildStartedRequest,
-        metadata: Metadata,
-        options: Partial<CallOptions>,
-        callback: (
-            error: ServiceError | null,
-            response: BuildStartedResponse
-        ) => void
-    ): ClientUnaryCall
-    buildCompleted(
-        request: BuildCompletedRequest,
-        callback: (
-            error: ServiceError | null,
-            response: BuildCompletedResponse
-        ) => void
-    ): ClientUnaryCall
-    buildCompleted(
-        request: BuildCompletedRequest,
-        metadata: Metadata,
-        callback: (
-            error: ServiceError | null,
-            response: BuildCompletedResponse
-        ) => void
-    ): ClientUnaryCall
-    buildCompleted(
-        request: BuildCompletedRequest,
-        metadata: Metadata,
-        options: Partial<CallOptions>,
-        callback: (
-            error: ServiceError | null,
-            response: BuildCompletedResponse
-        ) => void
-    ): ClientUnaryCall
+  buildStarted(
+    request: BuildStartedRequest,
+    callback: (
+      error: ServiceError | null,
+      response: BuildStartedResponse
+    ) => void
+  ): ClientUnaryCall
+  buildStarted(
+    request: BuildStartedRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: BuildStartedResponse
+    ) => void
+  ): ClientUnaryCall
+  buildStarted(
+    request: BuildStartedRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: BuildStartedResponse
+    ) => void
+  ): ClientUnaryCall
+  buildCompleted(
+    request: BuildCompletedRequest,
+    callback: (
+      error: ServiceError | null,
+      response: BuildCompletedResponse
+    ) => void
+  ): ClientUnaryCall
+  buildCompleted(
+    request: BuildCompletedRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: BuildCompletedResponse
+    ) => void
+  ): ClientUnaryCall
+  buildCompleted(
+    request: BuildCompletedRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: BuildCompletedResponse
+    ) => void
+  ): ClientUnaryCall
 }
 
 export const ApiServiceClient = makeGenericClientConstructor(
-    ApiServiceService,
-    "builder.ApiService"
+  ApiServiceService,
+  "builder.ApiService"
 ) as unknown as {
-    new (
-        address: string,
-        credentials: ChannelCredentials,
-        options?: Partial<ClientOptions>
-    ): ApiServiceClient
-    service: typeof ApiServiceService
-    serviceName: string
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): ApiServiceClient
+  service: typeof ApiServiceService
+  serviceName: string
 }
 
 type Builtin =
-    Date | Function | Uint8Array | string | number | boolean | undefined
+  Date | Function | Uint8Array | string | number | boolean | undefined
 
 export type DeepPartial<T> = T extends Builtin
-    ? T
-    : T extends globalThis.Array<infer U>
-      ? globalThis.Array<DeepPartial<U>>
-      : T extends ReadonlyArray<infer U>
-        ? ReadonlyArray<DeepPartial<U>>
-        : T extends {}
-          ? { [K in keyof T]?: DeepPartial<T[K]> }
-          : Partial<T>
+  ? T
+  : T extends globalThis.Array<infer U>
+    ? globalThis.Array<DeepPartial<U>>
+    : T extends ReadonlyArray<infer U>
+      ? ReadonlyArray<DeepPartial<U>>
+      : T extends {}
+        ? { [K in keyof T]?: DeepPartial<T[K]> }
+        : Partial<T>
 
 type KeysOfUnion<T> = T extends T ? keyof T : never
 export type Exact<P, I extends P> = P extends Builtin
-    ? P
-    : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
-          [K in Exclude<keyof I, KeysOfUnion<P>>]: never
-      }
+  ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
+      [K in Exclude<keyof I, KeysOfUnion<P>>]: never
+    }
 
 function isSet(value: any): boolean {
-    return value !== null && value !== undefined
+  return value !== null && value !== undefined
 }
 
 export interface MessageFns<T> {
-    encode(message: T, writer?: BinaryWriter): BinaryWriter
-    decode(input: BinaryReader | Uint8Array, length?: number): T
-    fromJSON(object: any): T
-    toJSON(message: T): unknown
-    create<I extends Exact<DeepPartial<T>, I>>(base?: I): T
-    fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T
+  encode(message: T, writer?: BinaryWriter): BinaryWriter
+  decode(input: BinaryReader | Uint8Array, length?: number): T
+  fromJSON(object: any): T
+  toJSON(message: T): unknown
+  create<I extends Exact<DeepPartial<T>, I>>(base?: I): T
+  fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T
 }

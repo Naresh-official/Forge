@@ -86,7 +86,7 @@ bunx @prisma/cli@latest app deploy --framework nextjs --env .env
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-    output: "standalone",
+  output: "standalone",
 }
 
 export default nextConfig
@@ -111,12 +111,12 @@ Config shape:
 
 ```typescript
 export default defineComputeConfig({
-    app: {
-        framework: "hono",
-        entry: "src/index.ts",
-        httpPort: 8080,
-        env: ".env",
-    },
+  app: {
+    framework: "hono",
+    entry: "src/index.ts",
+    httpPort: 8080,
+    env: ".env",
+  },
 })
 ```
 
@@ -148,10 +148,10 @@ Config shape:
 
 ```typescript
 export default defineComputeConfig({
-    app: {
-        framework: "nestjs",
-        env: ".env",
-    },
+  app: {
+    framework: "nestjs",
+    env: ".env",
+  },
 })
 ```
 
@@ -187,7 +187,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite"
 import { nitro } from "nitro/vite"
 
 export default defineConfig({
-    plugins: [tanstackStart(), nitro(), viteReact()],
+  plugins: [tanstackStart(), nitro(), viteReact()],
 })
 ```
 
@@ -203,10 +203,10 @@ The build command is `vite build`. The build must produce `.output/server/index.
 
 ```json
 {
-    "scripts": {
-        "build": "vite build",
-        "start": "node .output/server/index.mjs"
-    }
+  "scripts": {
+    "build": "vite build",
+    "start": "node .output/server/index.mjs"
+  }
 }
 ```
 
@@ -226,10 +226,10 @@ Config shape:
 
 ```typescript
 export default defineComputeConfig({
-    app: {
-        framework: "nuxt",
-        env: ".env",
-    },
+  app: {
+    framework: "nuxt",
+    env: ".env",
+  },
 })
 ```
 
@@ -247,11 +247,11 @@ Config shape:
 
 ```typescript
 export default defineComputeConfig({
-    app: {
-        framework: "astro",
-        httpPort: 4321,
-        env: ".env",
-    },
+  app: {
+    framework: "astro",
+    httpPort: 4321,
+    env: ".env",
+  },
 })
 ```
 
@@ -262,9 +262,9 @@ import { defineConfig } from "astro/config"
 import node from "@astrojs/node"
 
 export default defineConfig({
-    output: "server",
-    adapter: node({ mode: "standalone" }),
-    server: { host: true },
+  output: "server",
+  adapter: node({ mode: "standalone" }),
+  server: { host: true },
 })
 ```
 
@@ -302,16 +302,16 @@ Use `framework: "custom"` when the app is already built, or when a custom comman
 
 ```typescript
 export default defineComputeConfig({
-    app: {
-        framework: "custom",
-        build: {
-            command: "npm run build",
-            outputDirectory: "build",
-            entrypoint: "handler.js",
-        },
-        httpPort: 3000,
-        env: ".env",
+  app: {
+    framework: "custom",
+    build: {
+      command: "npm run build",
+      outputDirectory: "build",
+      entrypoint: "handler.js",
     },
+    httpPort: 3000,
+    env: ".env",
+  },
 })
 ```
 
@@ -349,16 +349,16 @@ Example config:
 
 ```typescript
 export default defineComputeConfig({
-    apps: {
-        web: { root: "apps/web", framework: "nextjs" },
-        api: {
-            root: "apps/api",
-            framework: "bun",
-            entry: "src/index.ts",
-            httpPort: 3000,
-            env: "packages/db/.env",
-        },
+  apps: {
+    web: { root: "apps/web", framework: "nextjs" },
+    api: {
+      root: "apps/api",
+      framework: "bun",
+      entry: "src/index.ts",
+      httpPort: 3000,
+      env: "packages/db/.env",
     },
+  },
 })
 ```
 

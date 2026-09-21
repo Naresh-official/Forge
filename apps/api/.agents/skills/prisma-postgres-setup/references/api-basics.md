@@ -16,12 +16,12 @@ API documentation: https://api.prisma.io/v1/doc
 
 ```json
 {
-    "data": {
-        "id": "proj_clx7abc123def456",
-        "type": "project",
-        "name": "My Project",
-        "createdAt": "2025-06-15T10:30:00.000Z"
-    }
+  "data": {
+    "id": "proj_clx7abc123def456",
+    "type": "project",
+    "name": "My Project",
+    "createdAt": "2025-06-15T10:30:00.000Z"
+  }
 }
 ```
 
@@ -29,14 +29,14 @@ API documentation: https://api.prisma.io/v1/doc
 
 ```json
 {
-    "data": [
-        { "id": "proj_aaa", "type": "project", "name": "Alpha" },
-        { "id": "proj_bbb", "type": "project", "name": "Beta" }
-    ],
-    "pagination": {
-        "hasMore": true,
-        "nextCursor": "clx7cursor123"
-    }
+  "data": [
+    { "id": "proj_aaa", "type": "project", "name": "Alpha" },
+    { "id": "proj_bbb", "type": "project", "name": "Beta" }
+  ],
+  "pagination": {
+    "hasMore": true,
+    "nextCursor": "clx7cursor123"
+  }
 }
 ```
 
@@ -75,10 +75,10 @@ All errors follow this shape:
 
 ```json
 {
-    "error": {
-        "code": "resource-not-found",
-        "message": "database with id db_abc not found"
-    }
+  "error": {
+    "code": "resource-not-found",
+    "message": "database with id db_abc not found"
+  }
 }
 ```
 

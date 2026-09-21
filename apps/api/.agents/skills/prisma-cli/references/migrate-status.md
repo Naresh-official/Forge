@@ -14,10 +14,10 @@ prisma migrate status [options]
 - Checks the `_prisma_migrations` table
 - Compares applied migrations with local migration files
 - Reports:
-    - **Status**: Database is up-to-date or behind
-    - **Unapplied migrations**: Count of pending migrations
-    - **Missing migrations**: Migrations present in DB but missing locally
-    - **Failed migrations**: Any migrations that failed to apply
+  - **Status**: Database is up-to-date or behind
+  - **Unapplied migrations**: Count of pending migrations
+  - **Missing migrations**: Migrations present in DB but missing locally
+  - **Failed migrations**: Any migrations that failed to apply
 
 ## Options
 

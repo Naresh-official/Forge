@@ -23,10 +23,10 @@ import builderVal from "./builder"
 import deployerVal from "./deployer"
 
 const config = {
-    web: webVal,
-    api: apiVal,
-    builder: builderVal,
-    deployer: deployerVal,
+  web: webVal,
+  api: apiVal,
+  builder: builderVal,
+  deployer: deployerVal,
 }
 
 export default config

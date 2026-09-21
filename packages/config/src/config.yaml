@@ -1,41 +1,41 @@
 # Static configurations for web application
 web:
-    port: 3000
-    apiBaseRoute: "/api/v1"
+  port: 3000
+  apiBaseRoute: "/api/v1"
 
 # Static configurations for API application
 api:
-    port: 8000
-    grpcPort: 8001
+  port: 8000
+  grpcPort: 8001
 
 # Static configurations for Builder application
 builder:
-    grpcPort: 8002
-    tempDir: "/tmp/forge-builder"
-    defaultQueueOptions:
-        name: "forge-builder"
-        defaultJobOptions:
-            attempts: 2
-            backoff: 3000
-    workerCount: 2
-    storage:
-        endpoint: "http://localhost:9000"
-        accessKey: "minioadmin"
-        secretKey: "minioadmin"
-        bucket: "forge-artifacts"
-        region: "us-east-1"
-        useSSL: false
-    dockerRegistry:
-        url: "localhost:5000"
-        username: ""
-        password: ""
+  grpcPort: 8002
+  tempDir: "/tmp/forge-builder"
+  defaultQueueOptions:
+    name: "forge-builder"
+    defaultJobOptions:
+      attempts: 2
+      backoff: 3000
+  workerCount: 2
+  storage:
+    endpoint: "http://localhost:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin"
+    bucket: "forge-artifacts"
+    region: "us-east-1"
+    useSSL: false
+  dockerRegistry:
+    url: "localhost:5000"
+    username: ""
+    password: ""
 
 # Static configurations for Deployer application
 deployer:
-    grpcPort: 8003
-    defaultQueueOptions:
-        name: "forge-deployer"
-        defaultJobOptions:
-            attempts: 2
-            backoff: 3000
-    workerCount: 2
+  grpcPort: 8003
+  defaultQueueOptions:
+    name: "forge-deployer"
+    defaultJobOptions:
+      attempts: 2
+      backoff: 3000
+  workerCount: 2

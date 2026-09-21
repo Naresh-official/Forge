@@ -30,10 +30,10 @@ In `prisma.config.ts`:
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -63,27 +63,27 @@ Use a driver adapter for the standard SQL workflow.
 
 1. Install adapter and driver:
 
-    ```bash
-    npm install @prisma/adapter-mariadb mariadb
-    ```
+   ```bash
+   npm install @prisma/adapter-mariadb mariadb
+   ```
 
 2. Instantiate Prisma Client with the adapter:
-    ```typescript
-    import "dotenv/config"
-    import { PrismaClient } from "../generated/client"
-    import { PrismaMariaDb } from "@prisma/adapter-mariadb"
+   ```typescript
+   import "dotenv/config"
+   import { PrismaClient } from "../generated/client"
+   import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 
-    const adapter = new PrismaMariaDb({
-        host: "localhost",
-        port: 3306,
-        connectionLimit: 5,
-        user: process.env.MYSQL_USER,
-        password: process.env.MYSQL_PASSWORD,
-        database: process.env.MYSQL_DATABASE,
-    })
+   const adapter = new PrismaMariaDb({
+     host: "localhost",
+     port: 3306,
+     connectionLimit: 5,
+     user: process.env.MYSQL_USER,
+     password: process.env.MYSQL_PASSWORD,
+     database: process.env.MYSQL_DATABASE,
+   })
 
-    const prisma = new PrismaClient({ adapter })
-    ```
+   const prisma = new PrismaClient({ adapter })
+   ```
 
 ### Text protocol option
 
@@ -94,7 +94,7 @@ import { PrismaClient } from "../generated/client"
 import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL!, {
-    useTextProtocol: true,
+  useTextProtocol: true,
 })
 
 const prisma = new PrismaClient({ adapter })

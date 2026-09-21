@@ -7,12 +7,12 @@ Helpers for pushing built Docker images to a registry by driving the
 import { pushImage } from "@forge/registry"
 
 await pushImage({
-    config: {
-        url: "localhost:5000",
-    },
-    imageName: "forge-abc123",
-    repository: "octocat/hello-world",
-    tag: "main",
+  config: {
+    url: "localhost:5000",
+  },
+  imageName: "forge-abc123",
+  repository: "octocat/hello-world",
+  tag: "main",
 })
 ```
 

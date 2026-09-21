@@ -24,7 +24,7 @@ npm install @prisma/management-api-sdk
 import { createManagementApiClient } from "@prisma/management-api-sdk"
 
 const client = createManagementApiClient({
-    token: process.env.PRISMA_SERVICE_TOKEN!,
+  token: process.env.PRISMA_SERVICE_TOKEN!,
 })
 const { data: workspaces } = await client.GET("/v1/workspaces")
 ```
@@ -45,22 +45,22 @@ Creation accepts a display `name`. The response's `data.value` is the complete t
 
 ```typescript
 import {
-    createManagementApiSdk,
-    type TokenStorage,
+  createManagementApiSdk,
+  type TokenStorage,
 } from "@prisma/management-api-sdk"
 
 const tokenStorage: TokenStorage = {
-    async getTokens() {
-        return null
-    },
-    async setTokens(tokens) {},
-    async clearTokens() {},
+  async getTokens() {
+    return null
+  },
+  async setTokens(tokens) {},
+  async clearTokens() {},
 }
 
 const api = createManagementApiSdk({
-    clientId: process.env.PRISMA_CLIENT_ID!,
-    redirectUri: "https://your-app.com/auth/callback",
-    tokenStorage,
+  clientId: process.env.PRISMA_CLIENT_ID!,
+  redirectUri: "https://your-app.com/auth/callback",
+  tokenStorage,
 })
 ```
 

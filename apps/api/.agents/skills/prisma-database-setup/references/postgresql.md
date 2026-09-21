@@ -30,10 +30,10 @@ In `prisma.config.ts`:
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -64,19 +64,19 @@ Use a driver adapter for the standard SQL workflow.
 
 1. Install adapter and driver:
 
-    ```bash
-    npm install @prisma/adapter-pg pg
-    ```
+   ```bash
+   npm install @prisma/adapter-pg pg
+   ```
 
 2. Instantiate Prisma Client with the adapter:
-    ```typescript
-    import "dotenv/config"
-    import { PrismaClient } from "../generated/client"
-    import { PrismaPg } from "@prisma/adapter-pg"
+   ```typescript
+   import "dotenv/config"
+   import { PrismaClient } from "../generated/client"
+   import { PrismaPg } from "@prisma/adapter-pg"
 
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
-    const prisma = new PrismaClient({ adapter })
-    ```
+   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+   const prisma = new PrismaClient({ adapter })
+   ```
 
 ## Common Issues
 

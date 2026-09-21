@@ -4,11 +4,11 @@ import { defineConfig } from "prisma/config"
 import { apiConfig } from "@forge/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    migrations: {
-        path: "prisma/migrations",
-    },
-    datasource: {
-        url: apiConfig.directUrl,
-    },
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+  },
+  datasource: {
+    url: apiConfig.directUrl,
+  },
 })

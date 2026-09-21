@@ -45,15 +45,15 @@ await raw.users.aggregate([{ $match: { status: "active" } }])
 
 // Aggregation through the typed pipeline builder:
 const stats = await db.query
-    .from("users")
-    .group({ _id: "$role", n: { $count: {} } })
-    .build()
+  .from("users")
+  .group({ _id: "$role", n: { $count: {} } })
+  .build()
 
 // Multi-document atomicity today: the mongodb driver (a direct dependency of the
 // project) exposes sessions and transactions as usual:
 const session = mongoClient.startSession()
 await session.withTransaction(async () => {
-    // ...writes...
+  // ...writes...
 })
 ```
 

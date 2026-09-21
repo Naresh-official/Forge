@@ -30,10 +30,10 @@ In `prisma.config.ts`:
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -60,30 +60,30 @@ Use a driver adapter for the standard SQL workflow.
 
 1. Install adapter and driver:
 
-    ```bash
-    npm install @prisma/adapter-mssql mssql
-    ```
+   ```bash
+   npm install @prisma/adapter-mssql mssql
+   ```
 
 2. Instantiate Prisma Client with the adapter:
-    ```typescript
-    import "dotenv/config"
-    import { PrismaClient } from "../generated/client"
-    import { PrismaMssql } from "@prisma/adapter-mssql"
+   ```typescript
+   import "dotenv/config"
+   import { PrismaClient } from "../generated/client"
+   import { PrismaMssql } from "@prisma/adapter-mssql"
 
-    const adapter = new PrismaMssql({
-        server: "localhost",
-        port: 1433,
-        database: "mydb",
-        user: process.env.SQLSERVER_USER,
-        password: process.env.SQLSERVER_PASSWORD,
-        options: {
-            encrypt: true,
-            trustServerCertificate: true,
-        },
-    })
+   const adapter = new PrismaMssql({
+     server: "localhost",
+     port: 1433,
+     database: "mydb",
+     user: process.env.SQLSERVER_USER,
+     password: process.env.SQLSERVER_PASSWORD,
+     options: {
+       encrypt: true,
+       trustServerCertificate: true,
+     },
+   })
 
-    const prisma = new PrismaClient({ adapter })
-    ```
+   const prisma = new PrismaClient({ adapter })
+   ```
 
 ## Common Issues
 

@@ -68,7 +68,7 @@ import { PrismaClient } from "../generated/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -81,12 +81,12 @@ import { PrismaClient } from "../generated/client"
 import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 
 const adapter = new PrismaMariaDb({
-    host: "localhost",
-    port: 3306,
-    connectionLimit: 5,
-    user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DATABASE,
+  host: "localhost",
+  port: 3306,
+  connectionLimit: 5,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -99,7 +99,7 @@ import { PrismaClient } from "../generated/client"
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
 
 const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL || "file:./dev.db",
+  url: process.env.DATABASE_URL || "file:./dev.db",
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -112,7 +112,7 @@ import { PrismaClient } from "../generated/client"
 import { PrismaNeon } from "@prisma/adapter-neon"
 
 const adapter = new PrismaNeon({
-    connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -125,7 +125,7 @@ import { PrismaClient } from "../generated/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -138,9 +138,9 @@ import { PrismaClient } from "../generated/client"
 import { PrismaPostgresAdapter } from "@prisma/adapter-ppg"
 
 const prisma = new PrismaClient({
-    adapter: new PrismaPostgresAdapter({
-        connectionString: process.env.PRISMA_DIRECT_TCP_URL,
-    }),
+  adapter: new PrismaPostgresAdapter({
+    connectionString: process.env.PRISMA_DIRECT_TCP_URL,
+  }),
 })
 ```
 
@@ -151,15 +151,15 @@ import { PrismaClient } from "../generated/client"
 import { PrismaMssql } from "@prisma/adapter-mssql"
 
 const adapter = new PrismaMssql({
-    server: "localhost",
-    port: 1433,
-    database: "mydb",
-    user: process.env.SQLSERVER_USER,
-    password: process.env.SQLSERVER_PASSWORD,
-    options: {
-        encrypt: true,
-        trustServerCertificate: true,
-    },
+  server: "localhost",
+  port: 1433,
+  database: "mydb",
+  user: process.env.SQLSERVER_USER,
+  password: process.env.SQLSERVER_PASSWORD,
+  options: {
+    encrypt: true,
+    trustServerCertificate: true,
+  },
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -175,11 +175,11 @@ Driver adapters use the underlying driver's pool settings, which differ from v6 
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
-    // Pool configuration
-    max: 10, // Maximum connections
-    idleTimeoutMillis: 30000, // Close idle connections after 30s
-    connectionTimeoutMillis: 5000, // Connection timeout (v6 default was 5s)
+  connectionString: process.env.DATABASE_URL,
+  // Pool configuration
+  max: 10, // Maximum connections
+  idleTimeoutMillis: 30000, // Close idle connections after 30s
+  connectionTimeoutMillis: 5000, // Connection timeout (v6 default was 5s)
 })
 ```
 
@@ -187,8 +187,8 @@ const adapter = new PrismaPg({
 
 ```typescript
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 5000, // v6 used 5 second timeout
+  connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 5000, // v6 used 5 second timeout
 })
 ```
 
@@ -198,10 +198,10 @@ const adapter = new PrismaPg({
 
 ```typescript
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false, // Accept self-signed certs
-    },
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false, // Accept self-signed certs
+  },
 })
 ```
 
@@ -209,11 +209,11 @@ const adapter = new PrismaPg({
 
 ```typescript
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        ca: fs.readFileSync("/path/to/ca-cert.pem"),
-        rejectUnauthorized: true,
-    },
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    ca: fs.readFileSync("/path/to/ca-cert.pem"),
+    rejectUnauthorized: true,
+  },
 })
 ```
 
@@ -225,9 +225,9 @@ const adapter = new PrismaPg({
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient({
-    datasources: {
-        db: { url: process.env.DATABASE_URL },
-    },
+  datasources: {
+    db: { url: process.env.DATABASE_URL },
+  },
 })
 ```
 
@@ -238,7 +238,7 @@ import { PrismaClient } from "../generated/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -252,16 +252,16 @@ import { PrismaClient } from "../generated/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined
+  prisma: PrismaClient | undefined
 }
 
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL!,
+  connectionString: process.env.DATABASE_URL!,
 })
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
 
 if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = prisma
+  globalForPrisma.prisma = prisma
 }
 ```

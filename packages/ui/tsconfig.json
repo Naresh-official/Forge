@@ -1,10 +1,10 @@
 {
-    "extends": "@forge/typescript-config/react-library.json",
-    "compilerOptions": {
-        "paths": {
-            "@forge/ui/*": ["./src/*"]
-        }
-    },
-    "include": ["."],
-    "exclude": ["node_modules", "dist"]
+  "extends": "@forge/typescript-config/react-library.json",
+  "compilerOptions": {
+    "paths": {
+      "@forge/ui/*": ["./src/*"]
+    }
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
 }

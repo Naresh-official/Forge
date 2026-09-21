@@ -3,7 +3,7 @@ import { PrismaClient } from "../generated/prisma/client"
 import apiConfig from "@forge/config/api"
 
 const adapter = new PrismaPg({
-    connectionString: apiConfig.databaseUrl,
+  connectionString: apiConfig.databaseUrl,
 })
 
 const prisma = new PrismaClient({ adapter })

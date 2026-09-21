@@ -27,9 +27,9 @@ import "dotenv/config" // Must be first import
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -42,9 +42,9 @@ Bun automatically loads `.env` files. No additional setup needed:
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -58,10 +58,10 @@ npm install -D dotenv-cli
 
 ```json
 {
-    "scripts": {
-        "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
-        "db:push": "dotenv -e .env.development -- prisma db push"
-    }
+  "scripts": {
+    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "db:push": "dotenv -e .env.development -- prisma db push"
+  }
 }
 ```
 
@@ -78,9 +78,9 @@ config({ path: path.join(__dirname, ".env.local") })
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -98,7 +98,7 @@ import { PrismaClient } from "../generated/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL!,
+  connectionString: process.env.DATABASE_URL!,
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -152,10 +152,10 @@ Ensure environment variables are set in your CI environment:
 ```yaml
 # GitHub Actions
 env:
-    DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
 steps:
-    - run: npx prisma migrate deploy
+  - run: npx prisma migrate deploy
 ```
 
 No need for dotenv in CI if variables are set directly.

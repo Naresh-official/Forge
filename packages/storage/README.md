@@ -7,14 +7,14 @@ the MinIO client SDK. Works with MinIO locally and any S3-compatible provider.
 import { uploadDirectory } from "@forge/storage"
 
 await uploadDirectory({
-    config: {
-        endpoint: "http://localhost:9000",
-        accessKey: "minioadmin",
-        secretKey: "minioadmin",
-        bucket: "forge-artifacts",
-    },
-    directoryPath: "/tmp/repo/dist",
-    objectPrefix: "deployments/123",
+  config: {
+    endpoint: "http://localhost:9000",
+    accessKey: "minioadmin",
+    secretKey: "minioadmin",
+    bucket: "forge-artifacts",
+  },
+  directoryPath: "/tmp/repo/dist",
+  objectPrefix: "deployments/123",
 })
 ```
 

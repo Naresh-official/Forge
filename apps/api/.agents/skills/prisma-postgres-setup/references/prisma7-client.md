@@ -48,19 +48,19 @@ const prisma = new PrismaClient({ adapter })
 
 // Create
 const user = await prisma.user.create({
-    data: { email: "alice@example.com", name: "Alice" },
+  data: { email: "alice@example.com", name: "Alice" },
 })
 
 // Read with relations
 const posts = await prisma.post.findMany({
-    where: { published: true },
-    include: { author: true },
+  where: { published: true },
+  include: { author: true },
 })
 
 // Update
 await prisma.post.update({
-    where: { id: 1 },
-    data: { published: true },
+  where: { id: 1 },
+  data: { published: true },
 })
 
 // Delete

@@ -77,18 +77,18 @@ Create a database:
 import { create, isDatabaseSuccess, isDatabaseError } from "create-db"
 
 const result = await create({
-    region: "us-east-1",
-    userAgent: "my-app/1.0.0",
+  region: "us-east-1",
+  userAgent: "my-app/1.0.0",
 })
 
 if (isDatabaseSuccess(result)) {
-    console.log(result.connectionString)
-    console.log(result.claimUrl)
-    console.log(result.deletionDate)
+  console.log(result.connectionString)
+  console.log(result.claimUrl)
+  console.log(result.deletionDate)
 }
 
 if (isDatabaseError(result)) {
-    console.error(result.error, result.message)
+  console.error(result.error, result.message)
 }
 ```
 

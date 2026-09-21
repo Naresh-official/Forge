@@ -61,10 +61,10 @@ import "dotenv/config"
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -74,24 +74,24 @@ export default defineConfig({
 
 1. Initialize Prisma:
 
-    ```bash
-    prisma init
-    ```
+   ```bash
+   prisma init
+   ```
 
 2. Configure database URL
 
 3. Pull schema:
 
-    ```bash
-    prisma db pull
-    ```
+   ```bash
+   prisma db pull
+   ```
 
 4. Review and customize generated schema
 
 5. Generate client:
-    ```bash
-    prisma generate
-    ```
+   ```bash
+   prisma generate
+   ```
 
 ### Syncing changes from database
 
@@ -145,32 +145,32 @@ After `db pull`, consider:
 
 1. **Rename models** to PascalCase:
 
-    ```prisma
-    model User {  // Was: users
-      @@map("users")
-    }
-    ```
+   ```prisma
+   model User {  // Was: users
+     @@map("users")
+   }
+   ```
 
 2. **Rename fields** to camelCase:
 
-    ```prisma
-    authorId Int? @map("author_id")
-    ```
+   ```prisma
+   authorId Int? @map("author_id")
+   ```
 
 3. **Add relation names** for clarity:
 
-    ```prisma
-    author User? @relation("PostAuthor", fields: [authorId], references: [id])
-    ```
+   ```prisma
+   author User? @relation("PostAuthor", fields: [authorId], references: [id])
+   ```
 
 4. **Add documentation**:
-    ```prisma
-    /// User account information
-    model User {
-      /// Primary email for authentication
-      email String @unique
-    }
-    ```
+   ```prisma
+   /// User account information
+   model User {
+     /// Primary email for authentication
+     email String @unique
+   }
+   ```
 
 ## MongoDB Introspection
 

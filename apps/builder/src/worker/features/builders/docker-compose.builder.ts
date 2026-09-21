@@ -2,41 +2,37 @@ import { runCommand } from "../../process/run-command"
 import type { BuildLogger } from "../logs/build-logs"
 
 interface DockerComposeBuildInput {
-    projectPath: string
-    composeFile: string
-    logger: BuildLogger
+  projectPath: string
+  composeFile: string
+  logger: BuildLogger
 }
 
 interface DockerComposeBuildResult {
-    composeFile: string
+  composeFile: string
 }
 
 export async function buildDockerComposeProject(
-    input: DockerComposeBuildInput
+  input: DockerComposeBuildInput
 ): Promise<DockerComposeBuildResult> {
-    const { projectPath, composeFile, logger } = input
+  const { projectPath, composeFile, logger } = input
 
-    try {
-        await runCommand(
-            "docker",
-            ["compose", "--file", composeFile, "build"],
-            {
-                cwd: projectPath,
+  try {
+    await runCommand("docker", ["compose", "--file", composeFile, "build"], {
+      cwd: projectPath,
 
-                onStdout: (data) => {
-                    logger.stdout(data)
-                },
+      onStdout: (data) => {
+        logger.stdout(data)
+      },
 
-                onStderr: (data) => {
-                    logger.stderr(data)
-                },
-            }
-        )
+      onStderr: (data) => {
+        logger.stderr(data)
+      },
+    })
 
-        return {
-            composeFile,
-        }
-    } finally {
-        logger.close()
+    return {
+      composeFile,
     }
+  } finally {
+    logger.close()
+  }
 }

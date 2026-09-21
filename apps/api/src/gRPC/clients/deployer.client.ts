@@ -4,10 +4,10 @@ import { DeployerServiceClient } from "@forge/contracts"
 import apiConfig from "@forge/config/api"
 
 const deployerClient = new DeployerServiceClient(
-    apiConfig.deployerGRPCUrl,
-    grpc.credentials.createInsecure()
+  apiConfig.deployerGRPCUrl,
+  grpc.credentials.createInsecure()
 )
 
 export const deployer = {
-    deployerClient,
+  deployerClient,
 }

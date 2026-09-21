@@ -76,11 +76,11 @@ Minimal recovery config:
 import { defineComputeConfig } from "@prisma/compute-sdk/config"
 
 export default defineComputeConfig({
-    app: {
-        framework: "hono",
-        entry: "src/index.ts",
-        httpPort: 8080,
-    },
+  app: {
+    framework: "hono",
+    entry: "src/index.ts",
+    httpPort: 8080,
+  },
 })
 ```
 
@@ -270,7 +270,7 @@ Fix `next.config.ts`:
 
 ```typescript
 const nextConfig = {
-    output: "standalone",
+  output: "standalone",
 }
 
 export default nextConfig
@@ -329,7 +329,7 @@ Fix either:
 
 ```json
 {
-    "main": "src/index.ts"
+  "main": "src/index.ts"
 }
 ```
 

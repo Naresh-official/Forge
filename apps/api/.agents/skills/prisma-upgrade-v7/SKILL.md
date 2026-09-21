@@ -3,8 +3,8 @@ name: prisma-upgrade-v7
 description: Complete migration guide from Prisma ORM v6 to v7 covering all breaking changes. Use when upgrading Prisma versions, encountering v7 errors, or migrating existing projects. Triggers on "upgrade to prisma 7", "prisma 7 migration", "prisma-client generator", "driver adapter required".
 license: MIT
 metadata:
-    author: prisma
-    version: "7.6.0"
+  author: prisma
+  version: "7.6.0"
 ---
 
 # Upgrade to Prisma ORM 7
@@ -120,7 +120,7 @@ references/accelerate-users.md   - Special handling for Accelerate
 
 ```json
 {
-    "type": "module"
+  "type": "module"
 }
 ```
 
@@ -130,13 +130,13 @@ If you need to stay on CommonJS, keep your app as CJS and set `moduleFormat = "c
 
 ```json
 {
-    "compilerOptions": {
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "target": "ES2023",
-        "strict": true,
-        "esModuleInterop": true
-    }
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2023",
+    "strict": true,
+    "esModuleInterop": true
+  }
 }
 ```
 
@@ -164,13 +164,13 @@ import "dotenv/config"
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    migrations: {
-        path: "prisma/migrations",
-    },
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+  },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -210,7 +210,7 @@ import { PrismaClient } from "../generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
 
 const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 })
 
 const prisma = new PrismaClient({ adapter })
@@ -222,9 +222,9 @@ const prisma = new PrismaClient({ adapter })
 import { Prisma } from "../generated/prisma/client"
 
 const userSelect = {
-    id: true,
-    email: true,
-    name: true,
+  id: true,
+  email: true,
+  name: true,
 } satisfies Prisma.UserSelect
 ```
 

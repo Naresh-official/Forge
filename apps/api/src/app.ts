@@ -18,38 +18,38 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(
-    cors({
-        origin: apiConfig.allowedOrigins,
-        credentials: true,
-    })
+  cors({
+    origin: apiConfig.allowedOrigins,
+    credentials: true,
+  })
 )
 
 // Logger middleware
 
 app.use((req, res, next) => {
-    logger.info(
-        {
-            method: req.method,
-            url: req.originalUrl,
-            ip: req.ip,
-        },
-        "Incoming request"
+  logger.info(
+    {
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+    },
+    "Incoming request"
+  )
+
+  if (apiConfig.nodeEnv === "development") {
+    logger.debug(
+      {
+        body: req.body,
+      },
+      "Request body"
     )
+  }
 
-    if (apiConfig.nodeEnv === "development") {
-        logger.debug(
-            {
-                body: req.body,
-            },
-            "Request body"
-        )
-    }
-
-    next()
+  next()
 })
 
 app.get("/api/v1/health", (req, res) => {
-    res.status(200).json({ status: "ok" })
+  res.status(200).json({ status: "ok" })
 })
 
 app.use("/api/v1/auth", authRouter)

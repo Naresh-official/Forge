@@ -40,12 +40,12 @@ Import `defineComputeConfig` from `@prisma/compute-sdk/config`. The CLI aliases 
 import { defineComputeConfig } from "@prisma/compute-sdk/config"
 
 export default defineComputeConfig({
-    app: {
-        name: "api",
-        framework: "hono",
-        httpPort: 8080,
-        env: ".env",
-    },
+  app: {
+    name: "api",
+    framework: "hono",
+    httpPort: 8080,
+    env: ".env",
+  },
 })
 ```
 
@@ -77,15 +77,15 @@ Each app target accepts:
 
 ```typescript
 export default defineComputeConfig({
-    app: {
-        framework: "nextjs",
-        env: {
-            file: [".env", ".env.production"],
-            vars: {
-                NODE_ENV: "production",
-            },
-        },
+  app: {
+    framework: "nextjs",
+    env: {
+      file: [".env", ".env.production"],
+      vars: {
+        NODE_ENV: "production",
+      },
     },
+  },
 })
 ```
 
@@ -95,13 +95,13 @@ Do not put secrets directly in committed `vars`. Keep secret values in platform 
 
 ```typescript
 export default defineComputeConfig({
-    app: {
-        framework: "nextjs",
-        build: {
-            command: "pnpm build",
-            outputDirectory: ".next/standalone",
-        },
+  app: {
+    framework: "nextjs",
+    build: {
+      command: "pnpm build",
+      outputDirectory: ".next/standalone",
     },
+  },
 })
 ```
 
@@ -111,14 +111,14 @@ For a custom or prebuilt artifact, make the deploy target explicit:
 
 ```typescript
 export default defineComputeConfig({
-    app: {
-        framework: "custom",
-        build: {
-            command: "npm run build",
-            outputDirectory: "build",
-            entrypoint: "handler.js",
-        },
+  app: {
+    framework: "custom",
+    build: {
+      command: "npm run build",
+      outputDirectory: "build",
+      entrypoint: "handler.js",
     },
+  },
 })
 ```
 
@@ -134,34 +134,34 @@ For monorepos, put `prisma.compute.ts` at the repo or workspace root and use `ap
 import { defineComputeConfig } from "@prisma/compute-sdk/config"
 
 export default defineComputeConfig({
-    apps: {
-        web: {
-            root: "apps/web",
-            framework: "nextjs",
-            env: "apps/web/.env",
-        },
-        api: {
-            root: "apps/api",
-            framework: "hono",
-            entry: "src/index.ts",
-            httpPort: 8080,
-            env: {
-                file: "apps/api/.env",
-                vars: {
-                    LOG_LEVEL: "info",
-                },
-            },
-        },
-        frontend: {
-            root: "apps/frontend",
-            framework: "custom",
-            build: {
-                command: "pnpm --filter frontend build",
-                outputDirectory: "dist/server",
-                entrypoint: "index.mjs",
-            },
-        },
+  apps: {
+    web: {
+      root: "apps/web",
+      framework: "nextjs",
+      env: "apps/web/.env",
     },
+    api: {
+      root: "apps/api",
+      framework: "hono",
+      entry: "src/index.ts",
+      httpPort: 8080,
+      env: {
+        file: "apps/api/.env",
+        vars: {
+          LOG_LEVEL: "info",
+        },
+      },
+    },
+    frontend: {
+      root: "apps/frontend",
+      framework: "custom",
+      build: {
+        command: "pnpm --filter frontend build",
+        outputDirectory: "dist/server",
+        entrypoint: "index.mjs",
+      },
+    },
+  },
 })
 ```
 

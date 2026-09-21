@@ -3,8 +3,8 @@ name: prisma-mongodb-upgrade
 description: Decision and migration guide for Prisma ORM MongoDB projects on v6, which have no upgrade path to v7. Use when a MongoDB project asks about upgrading Prisma, when "upgrade to prisma 7" comes up in a project with provider = "mongodb", or when evaluating a move to Prisma Next. Triggers on "upgrade prisma mongodb", "prisma 7 mongodb", "mongodb prisma migration", "prisma next mongodb".
 license: MIT
 metadata:
-    author: prisma
-    version: "0.1.0"
+  author: prisma
+  version: "0.1.0"
 ---
 
 # Prisma MongoDB Upgrade Path

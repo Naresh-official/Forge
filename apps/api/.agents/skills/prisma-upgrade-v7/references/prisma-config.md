@@ -13,13 +13,13 @@ import "dotenv/config"
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    migrations: {
-        path: "prisma/migrations",
-    },
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+  },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -93,21 +93,21 @@ import "dotenv/config"
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    // Schema location
-    schema: "prisma/schema.prisma",
+  // Schema location
+  schema: "prisma/schema.prisma",
 
-    // Migration configuration
-    migrations: {
-        path: "prisma/migrations",
-        seed: "tsx prisma/seed.ts",
-    },
+  // Migration configuration
+  migrations: {
+    path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
+  },
 
-    // Database connection
-    datasource: {
-        url: env("DATABASE_URL"),
-        directUrl: env("DIRECT_DATABASE_URL"),
-        shadowDatabaseUrl: env("SHADOW_DATABASE_URL"),
-    },
+  // Database connection
+  datasource: {
+    url: env("DATABASE_URL"),
+    directUrl: env("DIRECT_DATABASE_URL"),
+    shadowDatabaseUrl: env("SHADOW_DATABASE_URL"),
+  },
 })
 ```
 
@@ -159,11 +159,11 @@ import "dotenv/config"
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    datasource: {
-        url: env("DATABASE_URL"),
-        directUrl: env("DIRECT_URL"),
-    },
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: env("DATABASE_URL"),
+    directUrl: env("DIRECT_URL"),
+  },
 })
 ```
 
@@ -192,12 +192,12 @@ import { defineConfig, env } from "prisma/config"
 import path from "path"
 
 export default defineConfig({
-    schema: path.join(__dirname, "packages/database/prisma/schema.prisma"),
-    migrations: {
-        path: path.join(__dirname, "packages/database/prisma/migrations"),
-    },
-    datasource: {
-        url: env("DATABASE_URL"),
-    },
+  schema: path.join(__dirname, "packages/database/prisma/schema.prisma"),
+  migrations: {
+    path: path.join(__dirname, "packages/database/prisma/migrations"),
+  },
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
 })
 ```

@@ -132,12 +132,12 @@ app/
 1. The main process (`src/index.ts`) starts a gRPC server and spawns N worker OS-processes (`src/worker/worker.ts`), one per CPU in production.
 2. Each worker picks jobs from the BullMQ queue.
 3. On each job the worker:
-    - Calls `ApiService.BuildStarted` → receives repo metadata + access token
-    - Clones the GitHub repo
-    - **Detects** the project type (`src/worker/features/detect.ts`)
-    - **Builds** using the matching strategy
-    - Calls `ApiService.BuildCompleted` with the result
-    - Cleans up the cloned directory and any generated Dockerfiles
+   - Calls `ApiService.BuildStarted` → receives repo metadata + access token
+   - Clones the GitHub repo
+   - **Detects** the project type (`src/worker/features/detect.ts`)
+   - **Builds** using the matching strategy
+   - Calls `ApiService.BuildCompleted` with the result
+   - Cleans up the cloned directory and any generated Dockerfiles
 
 **Build strategies:**
 
@@ -164,8 +164,8 @@ app/
 2. The gRPC server receives `Deploy` requests from the API and enqueues jobs onto the BullMQ queue (`forge-deployer`).
 3. Each worker picks jobs from the BullMQ queue.
 4. On each job the worker:
-    - Calls `DeployerApiService.DeploymentStarted` → updates deployment status to `DEPLOYING` in the API database
-    - Executes deployment tasks (target infrastructure orchestration)
+   - Calls `DeployerApiService.DeploymentStarted` → updates deployment status to `DEPLOYING` in the API database
+   - Executes deployment tasks (target infrastructure orchestration)
 
 ---
 

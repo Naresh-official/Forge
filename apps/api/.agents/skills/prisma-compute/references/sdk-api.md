@@ -32,7 +32,7 @@ Create an authenticated Management API client:
 import { createManagementApiClient } from "@prisma/management-api-sdk"
 
 const apiClient = createManagementApiClient({
-    token: process.env.PRISMA_API_TOKEN,
+  token: process.env.PRISMA_API_TOKEN,
 })
 ```
 
@@ -48,21 +48,21 @@ const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) throw new Error("DATABASE_URL is required")
 
 const result = await compute.deploy({
-    strategy: new PreBuilt({
-        appPath: "./dist",
-        entrypoint: "index.js",
-    }),
-    projectId: "proj_abc",
-    appName: "my-app",
-    // region: "us-east-1", // optional: explicit placement for a new app
-    envVars: { DATABASE_URL: databaseUrl },
-    portMapping: { http: 3000 },
+  strategy: new PreBuilt({
+    appPath: "./dist",
+    entrypoint: "index.js",
+  }),
+  projectId: "proj_abc",
+  appName: "my-app",
+  // region: "us-east-1", // optional: explicit placement for a new app
+  envVars: { DATABASE_URL: databaseUrl },
+  portMapping: { http: 3000 },
 })
 
 if (result.isOk()) {
-    console.log(result.value.deploymentEndpointDomain)
+  console.log(result.value.deploymentEndpointDomain)
 } else {
-    console.error(result.error.message)
+  console.error(result.error.message)
 }
 ```
 
@@ -107,13 +107,13 @@ Tooling that already has an in-memory repository tree can detect a deployable ap
 import { detectComputeApp } from "@prisma/compute-sdk/config"
 
 const detected = detectComputeApp({
-    root: "apps/api",
-    manifest: {
-        main: "src/index.ts",
-        scripts: { start: "bun src/index.ts" },
-        dependencies: { hono: "^4" },
-    },
-    filePaths: ["apps/api/package.json", "apps/api/src/index.ts"],
+  root: "apps/api",
+  manifest: {
+    main: "src/index.ts",
+    scripts: { start: "bun src/index.ts" },
+    dependencies: { hono: "^4" },
+  },
+  filePaths: ["apps/api/package.json", "apps/api/src/index.ts"],
 })
 ```
 

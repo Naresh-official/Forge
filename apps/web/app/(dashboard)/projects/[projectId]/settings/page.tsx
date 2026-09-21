@@ -1,10 +1,10 @@
 import { ProjectSettings } from "../components/project-settings"
 
 export default async function Page({
-    params,
+  params,
 }: {
-    params: Promise<{ projectId: string }>
+  params: Promise<{ projectId: string }>
 }) {
-    const { projectId } = await params
-    return <ProjectSettings projectId={projectId} />
+  const { projectId } = await params
+  return <ProjectSettings projectId={projectId} />
 }

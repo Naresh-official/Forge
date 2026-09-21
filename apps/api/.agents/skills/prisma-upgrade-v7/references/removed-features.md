@@ -9,11 +9,11 @@ Several features have been removed in Prisma v7. Here's how to migrate.
 ```typescript
 // ❌ No longer works in v7
 prisma.$use(async (params, next) => {
-    const before = Date.now()
-    const result = await next(params)
-    const after = Date.now()
-    console.log(`Query took ${after - before}ms`)
-    return result
+  const before = Date.now()
+  const result = await next(params)
+  const after = Date.now()
+  console.log(`Query took ${after - before}ms`)
+  return result
 })
 ```
 
@@ -22,17 +22,17 @@ prisma.$use(async (params, next) => {
 ```typescript
 // ✅ v7 approach
 const prisma = new PrismaClient({ adapter }).$extends({
-    query: {
-        $allModels: {
-            async $allOperations({ operation, model, args, query }) {
-                const before = Date.now()
-                const result = await query(args)
-                const after = Date.now()
-                console.log(`${model}.${operation} took ${after - before}ms`)
-                return result
-            },
-        },
+  query: {
+    $allModels: {
+      async $allOperations({ operation, model, args, query }) {
+        const before = Date.now()
+        const result = await query(args)
+        const after = Date.now()
+        console.log(`${model}.${operation} took ${after - before}ms`)
+        return result
+      },
     },
+  },
 })
 ```
 
@@ -42,22 +42,22 @@ const prisma = new PrismaClient({ adapter }).$extends({
 
 ```typescript
 const prisma = new PrismaClient({ adapter }).$extends({
-    query: {
-        user: {
-            async delete({ args, query }) {
-                // Convert delete to soft delete
-                return prisma.user.update({
-                    where: args.where,
-                    data: { deletedAt: new Date() },
-                })
-            },
-            async findMany({ args, query }) {
-                // Filter out soft-deleted records
-                args.where = { ...args.where, deletedAt: null }
-                return query(args)
-            },
-        },
+  query: {
+    user: {
+      async delete({ args, query }) {
+        // Convert delete to soft delete
+        return prisma.user.update({
+          where: args.where,
+          data: { deletedAt: new Date() },
+        })
+      },
+      async findMany({ args, query }) {
+        // Filter out soft-deleted records
+        args.where = { ...args.where, deletedAt: null }
+        return query(args)
+      },
     },
+  },
 })
 ```
 
@@ -65,14 +65,14 @@ const prisma = new PrismaClient({ adapter }).$extends({
 
 ```typescript
 const prisma = new PrismaClient({ adapter }).$extends({
-    query: {
-        $allModels: {
-            async $allOperations({ operation, model, args, query }) {
-                console.log(`${model}.${operation}`, JSON.stringify(args))
-                return query(args)
-            },
-        },
+  query: {
+    $allModels: {
+      async $allOperations({ operation, model, args, query }) {
+        console.log(`${model}.${operation}`, JSON.stringify(args))
+        return query(args)
+      },
     },
+  },
 })
 ```
 
@@ -95,19 +95,19 @@ const metrics = await prisma.$metrics.json()
 let totalQueries = 0
 
 const prisma = new PrismaClient({ adapter }).$extends({
-    client: {
-        async $totalQueries() {
-            return totalQueries
-        },
+  client: {
+    async $totalQueries() {
+      return totalQueries
     },
-    query: {
-        $allModels: {
-            async $allOperations({ query, args }) {
-                totalQueries += 1
-                return query(args)
-            },
-        },
+  },
+  query: {
+    $allModels: {
+      async $allOperations({ query, args }) {
+        totalQueries += 1
+        return query(args)
+      },
     },
+  },
 })
 
 // Usage
@@ -204,8 +204,8 @@ The `prisma-client` generator no longer exposes `Prisma.validator`. Use TypeScri
 import { Prisma } from "../generated/prisma/client"
 
 const userSelect = {
-    id: true,
-    email: true,
+  id: true,
+  email: true,
 } satisfies Prisma.UserSelect
 ```
 
@@ -216,15 +216,15 @@ Removed in v5.0.0 (already deprecated).
 ```typescript
 // ❌ Removed
 const prisma = new PrismaClient({
-    rejectOnNotFound: true,
+  rejectOnNotFound: true,
 })
 
 // ✅ Use OrThrow methods
 const user = await prisma.user.findUniqueOrThrow({
-    where: { id: 1 },
+  where: { id: 1 },
 })
 
 const user = await prisma.user.findFirstOrThrow({
-    where: { email: "test@example.com" },
+  where: { email: "test@example.com" },
 })
 ```

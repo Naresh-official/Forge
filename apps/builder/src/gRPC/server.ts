@@ -4,11 +4,11 @@ import { BuilderServiceService, HealthServiceService } from "@forge/contracts"
 import grpc from "@grpc/grpc-js"
 
 function createServer() {
-    const server = new grpc.Server()
-    server.addService(BuilderServiceService, builderService)
-    server.addService(HealthServiceService, healthService)
+  const server = new grpc.Server()
+  server.addService(BuilderServiceService, builderService)
+  server.addService(HealthServiceService, healthService)
 
-    return server
+  return server
 }
 
 export default createServer

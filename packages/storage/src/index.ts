@@ -1,6 +1,6 @@
 export { createStorageClient, uploadDirectory } from "./storage"
 export type {
-    StorageConfig,
-    UploadDirectoryInput,
-    UploadDirectoryResult,
+  StorageConfig,
+  UploadDirectoryInput,
+  UploadDirectoryResult,
 } from "./storage"

@@ -1,202 +1,227 @@
 import { spawn } from "child_process"
 
 export interface RegistryConfig {
-    /**
-     * Registry host, e.g. "localhost:5000" for a local
-     * docker registry container.
-     */
-    url: string
+  /**
+   * Registry host, e.g. "localhost:5000" for a local
+   * docker registry container.
+   */
+  url: string
 
-    username?: string
-    password?: string
+  username?: string
+  password?: string
 }
 
 export interface DockerOutputHandlers {
-    onStdout?: (data: string) => void
-    onStderr?: (data: string) => void
+  onStdout?: (data: string) => void
+  onStderr?: (data: string) => void
 }
 
 export interface PushImageInput extends DockerOutputHandlers {
-    config: RegistryConfig
+  config: RegistryConfig
 
-    /** Local image to push, e.g. "forge-<buildId>". */
-    imageName: string
+  /** Local image to push, e.g. "forge-<buildId>". */
+  imageName: string
 
-    /**
-     * Repository (path) under the registry, e.g. "octocat/hello-world".
-     * Defaults to the image name without a tag.
-     */
-    repository?: string
+  /**
+   * Repository (path) under the registry, e.g. "octocat/hello-world".
+   * Defaults to the image name without a tag.
+   */
+  repository?: string
 
-    /** Defaults to "latest". */
-    tag?: string
+  /** Defaults to "latest". */
+  tag?: string
 }
 
 export interface PushImageResult {
-    /** Fully qualified image reference, e.g. "localhost:5000/repo:tag". */
-    imageRef: string
+  /** Fully qualified image reference, e.g. "localhost:5000/repo:tag". */
+  imageRef: string
 }
 
 export interface PushComposeImagesInput extends DockerOutputHandlers {
-    config: RegistryConfig
+  config: RegistryConfig
 
-    /** Absolute path to the docker-compose file. */
-    composeFile: string
+  /** Absolute path to the docker-compose file. */
+  composeFile: string
 
-    /** Working directory for the compose command. */
-    cwd?: string
+  /** Working directory for the compose command. */
+  cwd?: string
 
-    /**
-     * Repository (path) under the registry that services are pushed to,
-     * e.g. "octocat/hello-world". Each service becomes
-     * "<url>/<repository>/<service>:<tag>".
-     */
-    repository: string
+  /**
+   * Repository (path) under the registry that services are pushed to,
+   * e.g. "octocat/hello-world". Each service becomes
+   * "<url>/<repository>/<service>:<tag>".
+   */
+  repository: string
 
-    /** Defaults to "latest". */
-    tag?: string
+  /** Defaults to "latest". */
+  tag?: string
 }
 
 export interface PushComposeImagesResult {
-    imageRefs: string[]
+  imageRefs: string[]
 }
 
 interface SpawnDockerOptions extends DockerOutputHandlers {
-    args: string[]
-    cwd?: string
-    /** When set, written to stdin (e.g. docker login --password-stdin). */
-    stdinInput?: string
+  args: string[]
+  cwd?: string
+  /** When set, written to stdin (e.g. docker login --password-stdin). */
+  stdinInput?: string
+}
+
+/*
+ * Docker repository names must be lowercase. GitHub repo full names
+ * ("Owner/repo") frequently contain uppercase characters, so every
+ * repository path we hand to docker is normalized here.
+ */
+function normalizeRepository(repository: string): string {
+  return repository.toLowerCase()
+}
+
+function formatDockerError(
+  args: string[],
+  code: number | null,
+  stderr: string
+): Error {
+  const details = stderr.trim()
+
+  return new Error(
+    `docker ${args.join(" ")} exited with code ${code}` +
+      (details ? `: ${details}` : "")
+  )
 }
 
 function spawnDocker(options: SpawnDockerOptions): Promise<void> {
-    const { args, cwd, stdinInput } = options
+  const { args, cwd, stdinInput } = options
 
-    return new Promise((resolve, reject) => {
-        const child = spawn("docker", args, {
-            cwd,
-            stdio: ["pipe", "pipe", "pipe"],
-        })
-
-        child.stdout.on("data", (data: Buffer) => {
-            options.onStdout?.(data.toString())
-        })
-
-        child.stderr.on("data", (data: Buffer) => {
-            options.onStderr?.(data.toString())
-        })
-
-        if (stdinInput !== undefined) {
-            child.stdin.write(stdinInput)
-            child.stdin.end()
-        } else {
-            child.stdin.end()
-        }
-
-        child.on("error", reject)
-
-        child.on("close", (code) => {
-            if (code === 0) {
-                resolve()
-                return
-            }
-
-            reject(
-                new Error(`docker ${args.join(" ")} exited with code ${code}`)
-            )
-        })
+  return new Promise((resolve, reject) => {
+    const child = spawn("docker", args, {
+      cwd,
+      stdio: ["pipe", "pipe", "pipe"],
     })
+
+    let stderr = ""
+
+    child.stdout.on("data", (data: Buffer) => {
+      options.onStdout?.(data.toString())
+    })
+
+    child.stderr.on("data", (data: Buffer) => {
+      stderr += data.toString()
+      options.onStderr?.(data.toString())
+    })
+
+    if (stdinInput !== undefined) {
+      child.stdin.write(stdinInput)
+      child.stdin.end()
+    } else {
+      child.stdin.end()
+    }
+
+    child.on("error", reject)
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve()
+        return
+      }
+
+      reject(formatDockerError(args, code, stderr))
+    })
+  })
 }
 
 function runDockerCaptured(options: SpawnDockerOptions): Promise<string> {
-    const { args, cwd } = options
+  const { args, cwd } = options
 
-    return new Promise((resolve, reject) => {
-        const child = spawn("docker", args, {
-            cwd,
-            stdio: ["ignore", "pipe", "pipe"],
-        })
-
-        let stdout = ""
-
-        child.stdout.on("data", (data: Buffer) => {
-            stdout += data.toString()
-            options.onStdout?.(data.toString())
-        })
-
-        child.stderr.on("data", (data: Buffer) => {
-            options.onStderr?.(data.toString())
-        })
-
-        child.on("error", reject)
-
-        child.on("close", (code) => {
-            if (code === 0) {
-                resolve(stdout)
-                return
-            }
-
-            reject(
-                new Error(`docker ${args.join(" ")} exited with code ${code}`)
-            )
-        })
+  return new Promise((resolve, reject) => {
+    const child = spawn("docker", args, {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
     })
+
+    let stdout = ""
+    let stderr = ""
+
+    child.stdout.on("data", (data: Buffer) => {
+      stdout += data.toString()
+      options.onStdout?.(data.toString())
+    })
+
+    child.stderr.on("data", (data: Buffer) => {
+      stderr += data.toString()
+      options.onStderr?.(data.toString())
+    })
+
+    child.on("error", reject)
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve(stdout)
+        return
+      }
+
+      reject(formatDockerError(args, code, stderr))
+    })
+  })
 }
 
 async function loginIfNeeded(
-    config: RegistryConfig,
-    handlers: DockerOutputHandlers
+  config: RegistryConfig,
+  handlers: DockerOutputHandlers
 ): Promise<void> {
-    if (!config.username) {
-        return
-    }
+  if (!config.username) {
+    return
+  }
 
-    await spawnDocker({
-        args: [
-            "login",
-            config.url,
-            "--username",
-            config.username,
-            "--password-stdin",
-        ],
-        stdinInput: config.password ?? "",
-        ...handlers,
-    })
+  await spawnDocker({
+    args: [
+      "login",
+      config.url,
+      "--username",
+      config.username,
+      "--password-stdin",
+    ],
+    stdinInput: config.password ?? "",
+    ...handlers,
+  })
 }
 
 export async function pushImage(
-    input: PushImageInput
+  input: PushImageInput
 ): Promise<PushImageResult> {
-    const { config, imageName } = input
+  const { config, imageName } = input
 
-    const repository = input.repository ?? imageName.split(":")[0] ?? imageName
-    const tag = input.tag ?? "latest"
-    const imageRef = `${config.url}/${repository}:${tag}`
+  const repository = normalizeRepository(
+    input.repository ?? imageName.split(":")[0] ?? imageName
+  )
+  const tag = input.tag ?? "latest"
+  const imageRef = `${config.url}/${repository}:${tag}`
 
-    await loginIfNeeded(config, input)
+  await loginIfNeeded(config, input)
 
-    await spawnDocker({
-        args: ["tag", imageName, imageRef],
-        ...input,
-    })
+  await spawnDocker({
+    args: ["tag", imageName, imageRef],
+    ...input,
+  })
 
-    await spawnDocker({
-        args: ["push", imageRef],
-        ...input,
-    })
+  await spawnDocker({
+    args: ["push", imageRef],
+    ...input,
+  })
 
-    return {
-        imageRef,
-    }
+  return {
+    imageRef,
+  }
 }
 
 interface ComposeService {
-    build?: unknown
-    image?: string
+  build?: unknown
+  image?: string
 }
 
 interface ResolvedComposeConfig {
-    name?: string
-    services?: Record<string, ComposeService>
+  name?: string
+  services?: Record<string, ComposeService>
 }
 
 /**
@@ -210,65 +235,65 @@ interface ResolvedComposeConfig {
  * registry are pushed as-is.
  */
 export async function pushComposeImages(
-    input: PushComposeImagesInput
+  input: PushComposeImagesInput
 ): Promise<PushComposeImagesResult> {
-    const { config, composeFile, cwd, repository, tag = "latest" } = input
+  const { config, composeFile, cwd, repository, tag = "latest" } = input
 
-    await loginIfNeeded(config, input)
+  await loginIfNeeded(config, input)
 
-    const stdout = await runDockerCaptured({
-        args: [
-            "compose",
-            "--file",
-            composeFile,
-            "config",
-            "--no-interpolate",
-            "--format",
-            "json",
-        ],
-        cwd,
-        ...input,
+  const stdout = await runDockerCaptured({
+    args: [
+      "compose",
+      "--file",
+      composeFile,
+      "config",
+      "--no-interpolate",
+      "--format",
+      "json",
+    ],
+    cwd,
+    ...input,
+  })
+
+  const resolved = JSON.parse(stdout) as ResolvedComposeConfig
+  const projectName = resolved.name ?? "forge"
+  const services = resolved.services ?? {}
+
+  const imageRefs: string[] = []
+
+  for (const [serviceName, service] of Object.entries(services)) {
+    if (!service.build) {
+      continue
+    }
+
+    const declaredImage = service.image
+
+    // Image name produced by "docker compose build".
+    const localImage = declaredImage ?? `${projectName}-${serviceName}`
+
+    // Push target: respect registry images declared in the compose
+    // file, otherwise route every service into our registry.
+    const targetImage =
+      declaredImage && declaredImage.startsWith(`${config.url}/`)
+        ? declaredImage
+        : `${config.url}/${normalizeRepository(repository)}/${normalizeRepository(serviceName)}:${tag}`
+
+    await spawnDocker({
+      args: ["tag", localImage, targetImage],
+      cwd,
+      ...input,
     })
 
-    const resolved = JSON.parse(stdout) as ResolvedComposeConfig
-    const projectName = resolved.name ?? "forge"
-    const services = resolved.services ?? {}
+    await spawnDocker({
+      args: ["push", targetImage],
+      cwd,
+      ...input,
+    })
 
-    const imageRefs: string[] = []
+    imageRefs.push(targetImage)
+  }
 
-    for (const [serviceName, service] of Object.entries(services)) {
-        if (!service.build) {
-            continue
-        }
-
-        const declaredImage = service.image
-
-        // Image name produced by "docker compose build".
-        const localImage = declaredImage ?? `${projectName}-${serviceName}`
-
-        // Push target: respect registry images declared in the compose
-        // file, otherwise route every service into our registry.
-        const targetImage =
-            declaredImage && declaredImage.startsWith(`${config.url}/`)
-                ? declaredImage
-                : `${config.url}/${repository}/${serviceName}:${tag}`
-
-        await spawnDocker({
-            args: ["tag", localImage, targetImage],
-            cwd,
-            ...input,
-        })
-
-        await spawnDocker({
-            args: ["push", targetImage],
-            cwd,
-            ...input,
-        })
-
-        imageRefs.push(targetImage)
-    }
-
-    return {
-        imageRefs,
-    }
+  return {
+    imageRefs,
+  }
 }

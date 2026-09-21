@@ -3,8 +3,8 @@ name: prisma-postgres-setup
 description: Set up a new Prisma Postgres database and connect it to a local project using the Management API. Use when asked to "set up a database", "create a Prisma Postgres project", "get a connection string", "connect my app to Prisma Postgres", or "provision a database".
 license: MIT
 metadata:
-    author: prisma
-    version: "1.1.0"
+  author: prisma
+  version: "1.1.0"
 ---
 
 # Prisma Postgres Setup
@@ -164,11 +164,11 @@ import { defineConfig } from "prisma/config"
 import "dotenv/config"
 
 export default defineConfig({
-    earlyAccess: true,
-    schema: path.join(import.meta.dirname, "prisma", "schema.prisma"),
-    datasource: {
-        url: process.env.DATABASE_URL!,
-    },
+  earlyAccess: true,
+  schema: path.join(import.meta.dirname, "prisma", "schema.prisma"),
+  datasource: {
+    url: process.env.DATABASE_URL!,
+  },
 })
 ```
 

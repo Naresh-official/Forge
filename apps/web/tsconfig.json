@@ -1,26 +1,26 @@
 {
-    "extends": "@forge/typescript-config/nextjs.json",
-    "compilerOptions": {
-        "paths": {
-            "@/*": ["./*"],
-            "@forge/ui/*": ["../../packages/ui/src/*"]
-        },
-        "plugins": [
-            {
-                "name": "next"
-            }
-        ],
-        "declaration": false,
-        "declarationMap": false
+  "extends": "@forge/typescript-config/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"],
+      "@forge/ui/*": ["../../packages/ui/src/*"]
     },
-    "include": [
-        "next-env.d.ts",
-        "next.config.ts",
-        "**/*.ts",
-        "**/*.tsx",
-        "**/*.mts",
-        ".next/types/**/*.ts",
-        ".next/dev/types/**/*.ts"
+    "plugins": [
+      {
+        "name": "next"
+      }
     ],
-    "exclude": ["node_modules"]
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "next.config.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
 }

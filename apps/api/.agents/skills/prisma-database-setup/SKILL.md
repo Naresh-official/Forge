@@ -3,8 +3,8 @@ name: prisma-database-setup
 description: Guides for configuring Prisma with different database providers (PostgreSQL, MySQL, SQLite, MongoDB, etc.). Use when setting up a new project, changing databases, or troubleshooting connection issues. Triggers on "configure postgres", "connect to mysql", "setup mongodb", "sqlite setup".
 license: MIT
 metadata:
-    author: prisma
-    version: "7.6.0"
+  author: prisma
+  version: "7.6.0"
 ---
 
 # Prisma Database Setup
@@ -93,35 +93,35 @@ Prisma Client must be installed and generated for any database.
 
 1. Install Prisma CLI and Prisma Client:
 
-    ```bash
-    npm install prisma --save-dev
-    npm install @prisma/client
-    ```
+   ```bash
+   npm install prisma --save-dev
+   npm install @prisma/client
+   ```
 
 1. Add a generator block (`prisma-client` requires an explicit output path):
 
-    ```prisma
-    generator client {
-      provider = "prisma-client"
-      output   = "../generated"
-    }
-    ```
+   ```prisma
+   generator client {
+     provider = "prisma-client"
+     output   = "../generated"
+   }
+   ```
 
 1. Generate Prisma Client:
 
-    ```bash
-    npx prisma generate
-    ```
+   ```bash
+   npx prisma generate
+   ```
 
 1. For SQL providers, instantiate Prisma Client with the database-specific driver adapter:
 
-    ```typescript
-    import { PrismaClient } from "../generated/client"
-    import { PrismaPg } from "@prisma/adapter-pg"
+   ```typescript
+   import { PrismaClient } from "../generated/client"
+   import { PrismaPg } from "@prisma/adapter-pg"
 
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
-    const prisma = new PrismaClient({ adapter })
-    ```
+   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+   const prisma = new PrismaClient({ adapter })
+   ```
 
 1. Re-run `prisma generate` after every schema change.
 

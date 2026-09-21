@@ -117,14 +117,14 @@ import "dotenv/config"
 import { defineConfig, env } from "prisma/config"
 
 export default defineConfig({
-    schema: "prisma/schema.prisma",
-    migrations: {
-        path: "prisma/migrations",
-    },
-    datasource: {
-        // Local Prisma Postgres URL (from prisma dev output)
-        url: env("DATABASE_URL"),
-    },
+  schema: "prisma/schema.prisma",
+  migrations: {
+    path: "prisma/migrations",
+  },
+  datasource: {
+    // Local Prisma Postgres URL (from prisma dev output)
+    url: env("DATABASE_URL"),
+  },
 })
 ```
 
@@ -132,21 +132,21 @@ export default defineConfig({
 
 1. Start local database:
 
-    ```bash
-    prisma dev
-    ```
+   ```bash
+   prisma dev
+   ```
 
 2. In another terminal, run migrations:
 
-    ```bash
-    prisma migrate dev
-    ```
+   ```bash
+   prisma migrate dev
+   ```
 
 3. Generate client:
 
-    ```bash
-    prisma generate
-    ```
+   ```bash
+   prisma generate
+   ```
 
 4. Run your application
 

@@ -19,6 +19,14 @@ export const deployerSchema = z.object({
   }),
   workerCount: z.int().positive(),
   apiGRPCUrl: z.string().default("localhost:8001"),
+  dockerRegistry: z.object({
+    registryId: z.string().min(1), // AWS account id
+    region: z.string().min(1),
+    accessKeyId: z.string().min(1),
+    secretAccessKey: z.string().min(1),
+    /** Single ECR repository all built images are pushed into. */
+    repository: z.string().min(1),
+  }),
 })
 
 // 3. Merge static yaml configs and env variables
@@ -27,6 +35,14 @@ const merged = {
   redisUrl: process.env.REDIS_URL || undefined,
   nodeEnv: process.env.NODE_ENV || "production",
   apiGRPCUrl: process.env.API_GRPC_URL || "localhost:8001",
+  dockerRegistry: {
+    ...(yamlConfig.deployer?.dockerRegistry ?? {}),
+    registryId: process.env.ECR_REGISTRY_ID || undefined,
+    region: process.env.AWS_REGION || undefined,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
+    repository: process.env.ECR_REPOSITORY || undefined,
+  },
 }
 
 // 4. Validate and export

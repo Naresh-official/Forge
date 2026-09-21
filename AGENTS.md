@@ -141,12 +141,12 @@ app/
 
 **Build strategies:**
 
-| Strategy                  | Detected by                                 | Output                 | Stored as                                        |
-| ------------------------- | ------------------------------------------- | ---------------------- | ------------------------------------------------ |
-| `node` (static framework) | `package.json` + static framework detection | Built output directory | MinIO object under `deployments/<id>/`           |
-| `node` (server framework) | `package.json` + server framework detection | Docker image           | Private registry `<registry>/<repo>:<commitSha>` |
-| `dockerfile`              | Presence of a `Dockerfile`                  | Docker image           | Private registry                                 |
-| `docker-compose`          | Presence of `docker-compose.yml`            | Multiple images        | Private registry                                 |
+| Strategy                  | Detected by                                 | Output                 | Stored as                                                 |
+| ------------------------- | ------------------------------------------- | ---------------------- | --------------------------------------------------------- |
+| `node` (static framework) | `package.json` + static framework detection | Built output directory | S3 under `<projectId>/<deploymentId>/<repo-name>/`        |
+| `node` (server framework) | `package.json` + server framework detection | Docker image           | ECR `forge-project:<projectId>.<deploymentId>.<repoName>` |
+| `dockerfile`              | Presence of a `Dockerfile`                  | Docker image           | ECR `forge-project` (same tag scheme)                     |
+| `docker-compose`          | Presence of `docker-compose.yml`            | Multiple images        | ECR `forge-project` (`<tag>.<service>` tags)              |
 
 ---
 

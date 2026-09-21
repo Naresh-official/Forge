@@ -49,6 +49,20 @@ export interface DeploymentStartedResponse {
   message: string
 }
 
+export interface DeploymentCompletedRequest {
+  deploymentId: string
+  /** READY | FAILED */
+  status: string
+  message: string
+  /** Final image reference that was deployed (optional) */
+  imageUrl: string
+}
+
+export interface DeploymentCompletedResponse {
+  success: boolean
+  message: string
+}
+
 function createBaseDeployRequest(): DeployRequest {
   return {
     deploymentId: "",
@@ -110,6 +124,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 10) {
             break
           }
+
           message.deploymentId = reader.string()
           continue
         }
@@ -117,6 +132,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 18) {
             break
           }
+
           message.projectId = reader.string()
           continue
         }
@@ -124,6 +140,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 26) {
             break
           }
+
           message.buildId = reader.string()
           continue
         }
@@ -131,6 +148,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 34) {
             break
           }
+
           message.imageUrl = reader.string()
           continue
         }
@@ -138,6 +156,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 42) {
             break
           }
+
           message.imageTag = reader.string()
           continue
         }
@@ -145,6 +164,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 50) {
             break
           }
+
           message.artifactBucket = reader.string()
           continue
         }
@@ -152,6 +172,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 58) {
             break
           }
+
           message.artifactKey = reader.string()
           continue
         }
@@ -159,6 +180,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 66) {
             break
           }
+
           message.strategy = reader.string()
           continue
         }
@@ -166,6 +188,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           if (tag !== 74) {
             break
           }
+
           message.framework = reader.string()
           continue
         }
@@ -182,23 +205,39 @@ export const DeployRequest: MessageFns<DeployRequest> = {
     return {
       deploymentId: isSet(object.deploymentId)
         ? globalThis.String(object.deploymentId)
-        : "",
+        : isSet(object.deployment_id)
+          ? globalThis.String(object.deployment_id)
+          : "",
       projectId: isSet(object.projectId)
         ? globalThis.String(object.projectId)
-        : "",
-      buildId: isSet(object.buildId) ? globalThis.String(object.buildId) : "",
+        : isSet(object.project_id)
+          ? globalThis.String(object.project_id)
+          : "",
+      buildId: isSet(object.buildId)
+        ? globalThis.String(object.buildId)
+        : isSet(object.build_id)
+          ? globalThis.String(object.build_id)
+          : "",
       imageUrl: isSet(object.imageUrl)
         ? globalThis.String(object.imageUrl)
-        : "",
+        : isSet(object.image_url)
+          ? globalThis.String(object.image_url)
+          : "",
       imageTag: isSet(object.imageTag)
         ? globalThis.String(object.imageTag)
-        : "",
+        : isSet(object.image_tag)
+          ? globalThis.String(object.image_tag)
+          : "",
       artifactBucket: isSet(object.artifactBucket)
         ? globalThis.String(object.artifactBucket)
-        : "",
+        : isSet(object.artifact_bucket)
+          ? globalThis.String(object.artifact_bucket)
+          : "",
       artifactKey: isSet(object.artifactKey)
         ? globalThis.String(object.artifactKey)
-        : "",
+        : isSet(object.artifact_key)
+          ? globalThis.String(object.artifact_key)
+          : "",
       strategy: isSet(object.strategy)
         ? globalThis.String(object.strategy)
         : "",
@@ -289,6 +328,7 @@ export const DeployResponse: MessageFns<DeployResponse> = {
           if (tag !== 10) {
             break
           }
+
           message.message = reader.string()
           continue
         }
@@ -359,6 +399,7 @@ export const DeploymentStartedRequest: MessageFns<DeploymentStartedRequest> = {
           if (tag !== 10) {
             break
           }
+
           message.deploymentId = reader.string()
           continue
         }
@@ -375,7 +416,9 @@ export const DeploymentStartedRequest: MessageFns<DeploymentStartedRequest> = {
     return {
       deploymentId: isSet(object.deploymentId)
         ? globalThis.String(object.deploymentId)
-        : "",
+        : isSet(object.deployment_id)
+          ? globalThis.String(object.deployment_id)
+          : "",
     }
   },
 
@@ -435,6 +478,7 @@ export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
             if (tag !== 8) {
               break
             }
+
             message.success = reader.bool()
             continue
           }
@@ -442,6 +486,7 @@ export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
             if (tag !== 18) {
               break
             }
+
             message.message = reader.string()
             continue
           }
@@ -489,7 +534,223 @@ export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
     },
   }
 
-// ─── DeployerService ────────────────────────────────────────────────────────
+function createBaseDeploymentCompletedRequest(): DeploymentCompletedRequest {
+  return { deploymentId: "", status: "", message: "", imageUrl: "" }
+}
+
+export const DeploymentCompletedRequest: MessageFns<DeploymentCompletedRequest> =
+  {
+    encode(
+      message: DeploymentCompletedRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.deploymentId !== "") {
+        writer.uint32(10).string(message.deploymentId)
+      }
+      if (message.status !== "") {
+        writer.uint32(18).string(message.status)
+      }
+      if (message.message !== "") {
+        writer.uint32(26).string(message.message)
+      }
+      if (message.imageUrl !== "") {
+        writer.uint32(34).string(message.imageUrl)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): DeploymentCompletedRequest {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseDeploymentCompletedRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.deploymentId = reader.string()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.status = reader.string()
+            continue
+          }
+          case 3: {
+            if (tag !== 26) {
+              break
+            }
+
+            message.message = reader.string()
+            continue
+          }
+          case 4: {
+            if (tag !== 34) {
+              break
+            }
+
+            message.imageUrl = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): DeploymentCompletedRequest {
+      return {
+        deploymentId: isSet(object.deploymentId)
+          ? globalThis.String(object.deploymentId)
+          : isSet(object.deployment_id)
+            ? globalThis.String(object.deployment_id)
+            : "",
+        status: isSet(object.status) ? globalThis.String(object.status) : "",
+        message: isSet(object.message) ? globalThis.String(object.message) : "",
+        imageUrl: isSet(object.imageUrl)
+          ? globalThis.String(object.imageUrl)
+          : isSet(object.image_url)
+            ? globalThis.String(object.image_url)
+            : "",
+      }
+    },
+
+    toJSON(message: DeploymentCompletedRequest): unknown {
+      const obj: any = {}
+      if (message.deploymentId !== "") {
+        obj.deploymentId = message.deploymentId
+      }
+      if (message.status !== "") {
+        obj.status = message.status
+      }
+      if (message.message !== "") {
+        obj.message = message.message
+      }
+      if (message.imageUrl !== "") {
+        obj.imageUrl = message.imageUrl
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<DeploymentCompletedRequest>, I>>(
+      base?: I
+    ): DeploymentCompletedRequest {
+      return DeploymentCompletedRequest.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<I extends Exact<DeepPartial<DeploymentCompletedRequest>, I>>(
+      object: I
+    ): DeploymentCompletedRequest {
+      const message = createBaseDeploymentCompletedRequest()
+      message.deploymentId = object.deploymentId ?? ""
+      message.status = object.status ?? ""
+      message.message = object.message ?? ""
+      message.imageUrl = object.imageUrl ?? ""
+      return message
+    },
+  }
+
+function createBaseDeploymentCompletedResponse(): DeploymentCompletedResponse {
+  return { success: false, message: "" }
+}
+
+export const DeploymentCompletedResponse: MessageFns<DeploymentCompletedResponse> =
+  {
+    encode(
+      message: DeploymentCompletedResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.success !== false) {
+        writer.uint32(8).bool(message.success)
+      }
+      if (message.message !== "") {
+        writer.uint32(18).string(message.message)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): DeploymentCompletedResponse {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseDeploymentCompletedResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break
+            }
+
+            message.success = reader.bool()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.message = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): DeploymentCompletedResponse {
+      return {
+        success: isSet(object.success)
+          ? globalThis.Boolean(object.success)
+          : false,
+        message: isSet(object.message) ? globalThis.String(object.message) : "",
+      }
+    },
+
+    toJSON(message: DeploymentCompletedResponse): unknown {
+      const obj: any = {}
+      if (message.success !== false) {
+        obj.success = message.success
+      }
+      if (message.message !== "") {
+        obj.message = message.message
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<DeploymentCompletedResponse>, I>>(
+      base?: I
+    ): DeploymentCompletedResponse {
+      return DeploymentCompletedResponse.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<I extends Exact<DeepPartial<DeploymentCompletedResponse>, I>>(
+      object: I
+    ): DeploymentCompletedResponse {
+      const message = createBaseDeploymentCompletedResponse()
+      message.success = object.success ?? false
+      message.message = object.message ?? ""
+      return message
+    },
+  }
 
 export type DeployerServiceService = typeof DeployerServiceService
 export const DeployerServiceService = {
@@ -543,8 +804,6 @@ export const DeployerServiceClient = makeGenericClientConstructor(
   serviceName: string
 }
 
-// ─── DeployerApiService ──────────────────────────────────────────────────────
-
 export type DeployerApiServiceService = typeof DeployerApiServiceService
 export const DeployerApiServiceService = {
   deploymentStarted: {
@@ -560,12 +819,29 @@ export const DeployerApiServiceService = {
     responseDeserialize: (value: Buffer): DeploymentStartedResponse =>
       DeploymentStartedResponse.decode(value),
   },
+  deploymentCompleted: {
+    path: "/deployer.DeployerApiService/DeploymentCompleted" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeploymentCompletedRequest): Buffer =>
+      Buffer.from(DeploymentCompletedRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeploymentCompletedRequest =>
+      DeploymentCompletedRequest.decode(value),
+    responseSerialize: (value: DeploymentCompletedResponse): Buffer =>
+      Buffer.from(DeploymentCompletedResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeploymentCompletedResponse =>
+      DeploymentCompletedResponse.decode(value),
+  },
 } as const
 
 export interface DeployerApiServiceServer extends UntypedServiceImplementation {
   deploymentStarted: handleUnaryCall<
     DeploymentStartedRequest,
     DeploymentStartedResponse
+  >
+  deploymentCompleted: handleUnaryCall<
+    DeploymentCompletedRequest,
+    DeploymentCompletedResponse
   >
 }
 
@@ -594,6 +870,30 @@ export interface DeployerApiServiceClient extends Client {
       response: DeploymentStartedResponse
     ) => void
   ): ClientUnaryCall
+  deploymentCompleted(
+    request: DeploymentCompletedRequest,
+    callback: (
+      error: ServiceError | null,
+      response: DeploymentCompletedResponse
+    ) => void
+  ): ClientUnaryCall
+  deploymentCompleted(
+    request: DeploymentCompletedRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: DeploymentCompletedResponse
+    ) => void
+  ): ClientUnaryCall
+  deploymentCompleted(
+    request: DeploymentCompletedRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: DeploymentCompletedResponse
+    ) => void
+  ): ClientUnaryCall
 }
 
 export const DeployerApiServiceClient = makeGenericClientConstructor(
@@ -608,8 +908,6 @@ export const DeployerApiServiceClient = makeGenericClientConstructor(
   service: typeof DeployerApiServiceService
   serviceName: string
 }
-
-// ─── Utility types ───────────────────────────────────────────────────────────
 
 type Builtin =
   Date | Function | Uint8Array | string | number | boolean | undefined

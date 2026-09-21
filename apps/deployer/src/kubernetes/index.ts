@@ -1,8 +1,12 @@
 export { KubernetesClient } from "./kubernetes.client"
-export { KubeHttpClient } from "./http/kube-http.client"
+export { KubeHttpClient, hasHttpStatus } from "./http/kube-http.client"
 export {
   sanitizeK8sName,
-  namespaceForBuild,
+  namespaceForDeployment,
   appNameForDeployment,
 } from "./naming"
-export type { DeployContainerParams, ContainerEnvVar } from "./types"
+export type {
+  DeployContainerParams,
+  ContainerEnvVar,
+  RegistryPullSecretParams,
+} from "./types"

@@ -4,6 +4,10 @@ import type { DeployContainerParams } from "../types"
 export function buildDeploymentManifest(params: DeployContainerParams) {
   const { namespace, name, image, containerPort, env = [] } = params
 
+  const imagePullSecrets = params.imagePullSecret
+    ? [{ name: params.imagePullSecret }]
+    : undefined
+
   return {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -30,6 +34,7 @@ export function buildDeploymentManifest(params: DeployContainerParams) {
           },
         },
         spec: {
+          ...(imagePullSecrets ? { imagePullSecrets } : {}),
           containers: [
             {
               name,

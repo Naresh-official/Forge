@@ -1,11 +1,15 @@
 import { Worker } from "bullmq"
 import { deployerConfig } from "@forge/config"
+import { getEcrAuthorizationToken } from "@forge/registry"
 import { connection, type DeployerQueueJob } from "@/queue/queue"
-import { deploymentStarted } from "@/gRPC/wrapper/api.wrapper"
+import {
+  deploymentStarted,
+  deploymentCompleted,
+} from "@/gRPC/wrapper/api.wrapper"
 import {
   KubernetesClient,
   appNameForDeployment,
-  namespaceForBuild,
+  namespaceForDeployment,
 } from "@/kubernetes"
 
 const workerId = process.env.WERKER_ID ?? process.env.WORKER_ID ?? "unknown"
@@ -17,6 +21,16 @@ const worker = new Worker<DeployerQueueJob>(
   async (job) => {
     const { deploymentId, projectId, buildId, imageUrl, imageTag, strategy } =
       job.data
+
+    /*
+     * Full image reference, hoisted so the failure handler can report which
+     * image the failed deployment was attempting to run.
+     */
+    let fullImage = imageUrl
+      ? imageTag
+        ? `${imageUrl}:${imageTag}`
+        : imageUrl
+      : ""
 
     console.log(
       `[Worker ${workerId}] Processing deployment ${deploymentId} for project ${projectId}`
@@ -40,6 +54,19 @@ const worker = new Worker<DeployerQueueJob>(
         console.log(
           `[Worker ${workerId}] Strategy "${strategy ?? "unknown"}" is not a container deployment — skipping K8s deploy`
         )
+
+        /*
+         * Static deployments have no Kubernetes resources to create — the
+         * artifact already lives in object storage. Mark them READY so they
+         * don't get stuck in BUILDING.
+         */
+        await deploymentCompleted({
+          deploymentId,
+          status: "READY",
+          message: `Static deployment (strategy: ${strategy ?? "unknown"}) — artifact ready`,
+          imageUrl: fullImage,
+        })
+
         return { success: true, deploymentId, skipped: true }
       }
 
@@ -49,34 +76,71 @@ const worker = new Worker<DeployerQueueJob>(
         )
       }
 
-      // 3. Build the full image reference
-      const fullImage = imageTag ? `${imageUrl}:${imageTag}` : imageUrl
-
-      // 4. Compute namespace and resource names
-      const namespace = namespaceForBuild(buildId)
+      // 3. Compute namespace and resource names
+      const namespace = namespaceForDeployment(projectId, deploymentId)
       const appName = appNameForDeployment(deploymentId)
 
       console.log(
         `[Worker ${workerId}] Deploying ${fullImage} to namespace ${namespace}`
       )
 
-      // 5. Deploy to Kubernetes
-      //    - Namespace: forge-project-<buildId>
+      /*
+       * 5. Fetch a short-lived ECR token so the cluster can pull the
+       *    private image. The token (12h validity) is embedded in a
+       *    docker-registry Secret created in the deployment namespace.
+       */
+      const token = await getEcrAuthorizationToken(
+        deployerConfig.dockerRegistry
+      )
+
+      // 6. Deploy to Kubernetes
+      //    - Namespace: forge-project-<projectId>-<deploymentId>
       //    - Resources: 0.5–1 CPU cores, 512 MB – 2 GB RAM
       //    - No autoscaling (replicas = 1)
-      await k8s.deployContainer({
+      const { rolloutReady } = await k8s.deployContainer({
         namespace,
         name: appName,
         image: fullImage,
         containerPort: 80,
+        imagePullSecret: "forge-ecr-pull",
+        pullSecretCredentials: {
+          registryHost: token.registryHost,
+          username: token.username,
+          password: token.password,
+        },
+      })
+
+      /*
+       * 7. Report the final deployment status (and image url) back to the
+       *    API so it is persisted in the database. READY only when the
+       *    Kubernetes rollout actually became available.
+       */
+      const completion = await deploymentCompleted({
+        deploymentId,
+        status: rolloutReady ? "READY" : "FAILED",
+        message: rolloutReady
+          ? "Deployment rollout is available"
+          : "Rollout did not become available in time",
+        imageUrl: fullImage,
       })
 
       console.log(
-        `[Worker ${workerId}] Successfully deployed ${deploymentId} to namespace ${namespace}`
+        `[Worker ${workerId}] Deployment ${deploymentId} marked ${
+          rolloutReady ? "READY" : "FAILED"
+        }:`,
+        completion
+      )
+
+      console.log(
+        `[Worker ${workerId}] ${
+          rolloutReady
+            ? "Successfully deployed"
+            : "Deployed but rollout not ready for"
+        } ${deploymentId} to namespace ${namespace}`
       )
 
       return {
-        success: true,
+        success: rolloutReady,
         deploymentId,
         namespace,
         appName,
@@ -87,6 +151,28 @@ const worker = new Worker<DeployerQueueJob>(
         `[Worker ${workerId}] Failed to process deployment ${deploymentId}:`,
         error
       )
+
+      /*
+       * Best-effort: tell the API the deployment failed so the DB reflects
+       * reality even when the worker itself blew up (bad image, k8s API
+       * down, etc.). Failures of this report call are logged and ignored —
+       * the original error is what gets rethrown for BullMQ.
+       */
+      try {
+        await deploymentCompleted({
+          deploymentId,
+          status: "FAILED",
+          message:
+            error instanceof Error ? error.message : "Unknown deployment error",
+          imageUrl: fullImage,
+        })
+      } catch (reportError) {
+        console.error(
+          `[Worker ${workerId}] Failed to report FAILED status for ${deploymentId}:`,
+          reportError
+        )
+      }
+
       throw error
     }
   },

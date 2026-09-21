@@ -1,23 +1,28 @@
 import fs from "fs"
 import path from "path"
-import { Client as MinioClient } from "minio"
+import {
+  S3Client,
+  HeadBucketCommand,
+  CreateBucketCommand,
+  PutObjectCommand,
+  type BucketLocationConstraint,
+} from "@aws-sdk/client-s3"
 
 export interface StorageConfig {
   /**
-   * Full endpoint URL of the S3-compatible server,
-   * e.g. "http://localhost:9000" for a local MinIO instance.
+   * AWS region for the bucket,
+   * e.g. "us-east-1".
    */
-  endpoint: string
+  region: string
 
-  accessKey: string
-  secretKey: string
+  /** AWS access key ID (IAM user credentials). */
+  accessKeyId: string
+
+  /** AWS secret access key. */
+  secretAccessKey: string
+
+  /** Name of the S3 bucket for build artifacts. */
   bucket: string
-
-  /** Defaults to "us-east-1". */
-  region?: string
-
-  /** Defaults to false (http). */
-  useSSL?: boolean
 }
 
 export interface UploadDirectoryInput {
@@ -28,7 +33,8 @@ export interface UploadDirectoryInput {
 
   /**
    * Optional prefix prepended to every object key,
-   * e.g. "deployments/123". Keys are otherwise relative to directoryPath.
+   * e.g. "<projectId>/<deploymentId>/<repo-name>". Keys are otherwise
+   * relative to directoryPath.
    */
   objectPrefix?: string
 }
@@ -43,29 +49,66 @@ export interface UploadDirectoryResult {
   totalBytes: number
 }
 
-export function createStorageClient(config: StorageConfig): MinioClient {
-  const url = new URL(config.endpoint)
-
-  return new MinioClient({
-    endPoint: url.hostname,
-    port: url.port ? Number(url.port) : config.useSSL ? 443 : 80,
-    useSSL: config.useSSL ?? false,
-    accessKey: config.accessKey,
-    secretKey: config.secretKey,
-    region: config.region ?? "us-east-1",
+export function createStorageClient(config: StorageConfig): S3Client {
+  return new S3Client({
+    region: config.region,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
   })
 }
 
+/**
+ * Returns the HTTP status code carried by an S3 error, if any.
+ */
+function statusCodeOf(error: unknown): number | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "$metadata" in error &&
+    typeof error.$metadata === "object" &&
+    error.$metadata !== null &&
+    "httpStatusCode" in error.$metadata
+  ) {
+    return (error.$metadata as { httpStatusCode?: number }).httpStatusCode
+  }
+
+  return undefined
+}
+
+/**
+ * Creates the bucket when it does not exist (404 from HeadBucket).
+ *
+ * us-east-1 is special-cased: it must NOT receive a
+ * CreateBucketConfiguration, while every other region requires one.
+ */
 async function ensureBucket(
-  client: MinioClient,
+  client: S3Client,
   bucket: string,
   region: string
 ): Promise<void> {
-  const exists = await client.bucketExists(bucket)
-
-  if (!exists) {
-    await client.makeBucket(bucket, region)
+  try {
+    await client.send(new HeadBucketCommand({ Bucket: bucket }))
+    return
+  } catch (error) {
+    if (statusCodeOf(error) !== 404) {
+      throw error
+    }
   }
+
+  await client.send(
+    new CreateBucketCommand({
+      Bucket: bucket,
+      ...(region === "us-east-1"
+        ? {}
+        : {
+            CreateBucketConfiguration: {
+              LocationConstraint: region as BucketLocationConstraint,
+            },
+          }),
+    })
+  )
 }
 
 function listFilesRecursive(directoryPath: string): string[] {
@@ -92,9 +135,8 @@ export async function uploadDirectory(
   const { config, directoryPath, objectPrefix } = input
 
   const client = createStorageClient(config)
-  const region = config.region ?? "us-east-1"
 
-  await ensureBucket(client, config.bucket, region)
+  await ensureBucket(client, config.bucket, config.region)
 
   const files = listFilesRecursive(directoryPath)
   const prefix = (objectPrefix ?? "").replace(/^\/+|\/+$/g, "")
@@ -110,9 +152,17 @@ export async function uploadDirectory(
 
     const objectKey = prefix ? `${prefix}/${relativeKey}` : relativeKey
 
-    await client.fPutObject(config.bucket, objectKey, file)
-
     const stat = await fs.promises.stat(file)
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: config.bucket,
+        Key: objectKey,
+        Body: fs.createReadStream(file),
+        ContentLength: stat.size,
+      })
+    )
+
     totalBytes += stat.size
     uploadedKeys.push(objectKey)
   }
@@ -124,6 +174,3 @@ export async function uploadDirectory(
     totalBytes,
   }
 }
-
-export { MinioClient }
-export type { BucketItem } from "minio"

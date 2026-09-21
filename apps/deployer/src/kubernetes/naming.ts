@@ -11,9 +11,18 @@ export function sanitizeK8sName(raw: string): string {
     .slice(0, 63)
 }
 
-/** Namespace that hosts a deployment — `forge-project-<buildId>`. */
-export function namespaceForBuild(buildId: string): string {
-  return `forge-project-${sanitizeK8sName(buildId)}`
+/**
+ * Namespace that hosts a deployment —
+ * `forge-project-<projectId>-<deploymentId>`.
+ *
+ * Note: K8s namespace names are capped at 63 chars, so with two full UUIDs
+ * the tail of the deploymentId gets truncated by `sanitizeK8sName`.
+ */
+export function namespaceForDeployment(
+  projectId: string,
+  deploymentId: string
+): string {
+  return sanitizeK8sName(`forge-project-${projectId}/${deploymentId}`)
 }
 
 /** Name of the Deployment + Service for a deployment — `app-<deploymentId>`. */

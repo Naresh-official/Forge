@@ -3,7 +3,7 @@ import path from "path"
 import { Worker } from "bullmq"
 import { builderConfig } from "@forge/config"
 import { uploadDirectory } from "@forge/storage"
-import { pushImage, pushComposeImages } from "@forge/registry"
+import { buildImageTag, pushImage, pushComposeImages } from "@forge/registry"
 import { connection, type BuilderQueueJob } from "@/queue/queue"
 import { buildStarted, buildCompleted } from "@/gRPC/wrapper/api.wrapper"
 import { cloneGitRepository } from "./features/git"
@@ -49,9 +49,24 @@ const worker = new Worker<BuilderQueueJob>(
         buildId,
       })
 
-      console.log(response)
-
       repoPath = await cloneGitRepository(response)
+
+      /*
+       * Images and artifacts are stored under
+       * "<projectId>/<deploymentId>/<repo-name>" in the "forge-project"
+       * S3 bucket / ECR repository. For ECR the structure is flattened
+       * into the tag (Docker tags cannot contain "/"), and dev builds
+       * get a "-dev" suffix.
+       */
+      const repoName = response.repoFullName.split("/").pop() ?? "repo"
+      const objectPrefix = `${response.projectId}/${response.deploymentId}/${repoName}`
+      const isDev = builderConfig.nodeEnv === "development"
+      const imageTag = buildImageTag(
+        response.projectId,
+        response.deploymentId,
+        repoName,
+        isDev
+      )
 
       /*
        * Each builder closes the logger it receives, so create a
@@ -92,13 +107,13 @@ const worker = new Worker<BuilderQueueJob>(
             const upload = await uploadDirectory({
               config: builderConfig.storage,
               directoryPath: output.outputDirectory,
-              objectPrefix: `deployments/${response.deploymentId}`,
+              objectPrefix,
             })
 
             console.log({ upload })
 
             report.artifactBucket = builderConfig.storage.bucket
-            report.artifactKey = `deployments/${response.deploymentId}/`
+            report.artifactKey = `${objectPrefix}/`
           } else {
             const container = await containerizeNodeProject({
               projectPath: repoPath,
@@ -116,19 +131,19 @@ const worker = new Worker<BuilderQueueJob>(
               const push = await pushImage({
                 config: builderConfig.dockerRegistry,
                 imageName: container.imageName,
-                repository: response.repoFullName,
-                tag: response.commitSha,
+                repository: builderConfig.dockerRegistry.repository,
+                tag: imageTag,
                 onStdout: (data) => pushLogger.stdout(data),
                 onStderr: (data) => pushLogger.stderr(data),
               })
 
               console.log({ push })
+
+              report.imageUrl = push.imageRef.split(":")[0]
+              report.imageTag = imageTag
             } finally {
               pushLogger.close()
             }
-
-            report.imageUrl = `${builderConfig.dockerRegistry.url}/${response.repoFullName.toLowerCase()}`
-            report.imageTag = response.commitSha
           }
 
           break
@@ -154,19 +169,19 @@ const worker = new Worker<BuilderQueueJob>(
             const push = await pushImage({
               config: builderConfig.dockerRegistry,
               imageName: output.imageName,
-              repository: response.repoFullName,
-              tag: response.commitSha,
+              repository: builderConfig.dockerRegistry.repository,
+              tag: imageTag,
               onStdout: (data) => pushLogger.stdout(data),
               onStderr: (data) => pushLogger.stderr(data),
             })
 
             console.log({ push })
+
+            report.imageUrl = push.imageRef.split(":")[0]
+            report.imageTag = imageTag
           } finally {
             pushLogger.close()
           }
-
-          report.imageUrl = `${builderConfig.dockerRegistry.url}/${response.repoFullName.toLowerCase()}`
-          report.imageTag = response.commitSha
 
           break
         }
@@ -191,19 +206,19 @@ const worker = new Worker<BuilderQueueJob>(
               config: builderConfig.dockerRegistry,
               composeFile: detection.composeFile,
               cwd: repoPath,
-              repository: response.repoFullName,
-              tag: response.commitSha,
+              repository: builderConfig.dockerRegistry.repository,
+              tag: imageTag,
               onStdout: (data) => pushLogger.stdout(data),
               onStderr: (data) => pushLogger.stderr(data),
             })
 
             console.log({ push })
+
+            report.imageUrl = push.imageRefs[0]?.split(":")[0] ?? ""
+            report.imageTag = imageTag
           } finally {
             pushLogger.close()
           }
-
-          report.imageUrl = `${builderConfig.dockerRegistry.url}/${response.repoFullName.toLowerCase()}`
-          report.imageTag = response.commitSha
 
           break
         }

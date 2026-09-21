@@ -19,16 +19,13 @@ builder:
       backoff: 3000
   workerCount: 2
   storage:
-    endpoint: "http://localhost:9000"
-    accessKey: "minioadmin"
-    secretKey: "minioadmin"
-    bucket: "forge-artifacts"
+    bucket: "forge-project"
     region: "us-east-1"
-    useSSL: false
   dockerRegistry:
-    url: "localhost:5000"
-    username: ""
-    password: ""
+    registryId: "123456789012"
+    region: "us-east-1"
+    # Single ECR repository all built images are pushed into.
+    repository: "forge-project"
 
 # Static configurations for Deployer application
 deployer:
@@ -39,3 +36,8 @@ deployer:
       attempts: 2
       backoff: 3000
   workerCount: 2
+  dockerRegistry:
+    registryId: "123456789012"
+    region: "us-east-1"
+    # Single ECR repository built images are pulled from.
+    repository: "forge-project"

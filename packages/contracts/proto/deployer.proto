@@ -30,6 +30,7 @@ message DeployResponse {
 
 service DeployerApiService {
   rpc DeploymentStarted(DeploymentStartedRequest) returns (DeploymentStartedResponse);
+  rpc DeploymentCompleted(DeploymentCompletedRequest) returns (DeploymentCompletedResponse);
 }
 
 message DeploymentStartedRequest {
@@ -37,6 +38,21 @@ message DeploymentStartedRequest {
 }
 
 message DeploymentStartedResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeploymentCompletedRequest {
+  string deployment_id = 1;
+  // READY | FAILED
+  string status = 2;
+  string message = 3;
+
+  // Final image reference that was deployed (optional)
+  string image_url = 4;
+}
+
+message DeploymentCompletedResponse {
   bool success = 1;
   string message = 2;
 }

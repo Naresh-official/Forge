@@ -2,13 +2,19 @@ import { spawn } from "child_process"
 
 export interface RegistryConfig {
   /**
-   * Registry host, e.g. "localhost:5000" for a local
-   * docker registry container.
+   * Public hostname of the ECR registry,
+   * e.g. "123456789012.dkr.ecr.us-east-1.amazonaws.com".
    */
-  url: string
+  registryId?: string
 
-  username?: string
-  password?: string
+  /** AWS region of the ECR registry. */
+  region: string
+
+  /** AWS access key ID (IAM user credentials). */
+  accessKeyId: string
+
+  /** AWS secret access key. */
+  secretAccessKey: string
 }
 
 export interface DockerOutputHandlers {
@@ -23,17 +29,45 @@ export interface PushImageInput extends DockerOutputHandlers {
   imageName: string
 
   /**
-   * Repository (path) under the registry, e.g. "octocat/hello-world".
+   * Repository (path) under the registry, e.g. "forge-project".
    * Defaults to the image name without a tag.
    */
   repository?: string
 
-  /** Defaults to "latest". */
+  /**
+   * Tag for the pushed image. Since Docker tags cannot contain slashes,
+   * namespaced identities such as "<projectId>/<deploymentId>/<repo-name>"
+   * must be joined with "." instead — see buildImageTag.
+   */
   tag?: string
 }
 
+/**
+ * Builds the tag identifying an image inside the single "forge-project"
+ * ECR repository: "<projectId>.<deploymentId>.<repoName>", with a "-dev"
+ * suffix appended when isDev is true.
+ *
+ * Docker tags cannot contain "/", so the path structure
+ * "<projectId>/<deploymentId>/<repoName>" is flattened with ".".
+ */
+export function buildImageTag(
+  projectId: string,
+  deploymentId: string,
+  repoName: string,
+  isDev: boolean
+): string {
+  const normalizedRepoName = normalizeRepository(repoName).replace(
+    /[^a-z0-9._-]/g,
+    "-"
+  )
+
+  const tag = `${projectId}.${deploymentId}.${normalizedRepoName}`
+
+  return isDev ? `${tag}-dev` : tag
+}
+
 export interface PushImageResult {
-  /** Fully qualified image reference, e.g. "localhost:5000/repo:tag". */
+  /** Fully qualified image reference, e.g. "123456789012.dkr.ecr.us-east-1.amazonaws.com/repo:tag". */
   imageRef: string
 }
 
@@ -47,9 +81,9 @@ export interface PushComposeImagesInput extends DockerOutputHandlers {
   cwd?: string
 
   /**
-   * Repository (path) under the registry that services are pushed to,
-   * e.g. "octocat/hello-world". Each service becomes
-   * "<url>/<repository>/<service>:<tag>".
+   * Single repository all service images are pushed into,
+   * e.g. "forge-project". Each service becomes
+   * "<registry>/<repository>:<tag>.<service>".
    */
   repository: string
 
@@ -66,6 +100,16 @@ interface SpawnDockerOptions extends DockerOutputHandlers {
   cwd?: string
   /** When set, written to stdin (e.g. docker login --password-stdin). */
   stdinInput?: string
+}
+
+interface ComposeService {
+  build?: unknown
+  image?: string
+}
+
+interface ResolvedComposeConfig {
+  name?: string
+  services?: Record<string, ComposeService>
 }
 
 /*
@@ -165,39 +209,185 @@ function runDockerCaptured(options: SpawnDockerOptions): Promise<string> {
   })
 }
 
+function decodeAuthorizationToken(authorizationToken: string): {
+  username: string
+  password: string
+} {
+  const decoded = Buffer.from(authorizationToken, "base64").toString("utf-8")
+
+  const separatorIndex = decoded.indexOf(":")
+
+  if (separatorIndex === -1) {
+    throw new Error("Malformed ECR authorization token")
+  }
+
+  return {
+    username: decoded.slice(0, separatorIndex),
+    password: decoded.slice(separatorIndex + 1),
+  }
+}
+
+export interface EcrAuthorizationToken {
+  /** Registry host, e.g. "123456789012.dkr.ecr.us-east-1.amazonaws.com". */
+  registryHost: string
+
+  /** Always "AWS" for ECR. */
+  username: string
+
+  /** Short-lived password decoded from the authorization token. */
+  password: string
+}
+
+/**
+ * Fetches a short-lived (12h) ECR authorization token via the ECR
+ * GetAuthorizationToken API and decodes it into docker login credentials.
+ *
+ * Used by pushImage/pushComposeImages for "docker login" and by the
+ * deployer to build Kubernetes imagePullSecrets.
+ */
+export async function getEcrAuthorizationToken(
+  config: RegistryConfig
+): Promise<EcrAuthorizationToken> {
+  const { ECRClient, GetAuthorizationTokenCommand } =
+    await import("@aws-sdk/client-ecr")
+
+  const ecr = new ECRClient({
+    region: config.region,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+  })
+
+  const response = await ecr.send(
+    new GetAuthorizationTokenCommand({
+      ...(config.registryId ? { registryIds: [config.registryId] } : {}),
+    })
+  )
+
+  const authorization = response.authorizationData?.[0]
+
+  if (!authorization?.authorizationToken || !authorization.proxyEndpoint) {
+    throw new Error("ECR returned no authorization data")
+  }
+
+  const { username, password } = decodeAuthorizationToken(
+    authorization.authorizationToken
+  )
+
+  const registryHost = authorization.proxyEndpoint.replace(/^https?:\/\//, "")
+
+  return {
+    registryHost,
+    username,
+    password,
+  }
+}
+
+/**
+ * Creates the ECR repository if it does not exist.
+ *
+ * Unlike a self-hosted registry, ECR refuses pushes to repositories that
+ * have not been created up-front, so this runs before every push.
+ * "RepositoryNotFoundException"/409 AlreadyExistsException races are
+ * treated as success.
+ */
+async function ensureEcrRepository(
+  config: RegistryConfig,
+  repository: string
+): Promise<void> {
+  const { ECRClient, DescribeRepositoriesCommand, CreateRepositoryCommand } =
+    await import("@aws-sdk/client-ecr")
+
+  const ecr = new ECRClient({
+    region: config.region,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+  })
+
+  try {
+    await ecr.send(
+      new DescribeRepositoriesCommand({
+        repositoryNames: [repository],
+        ...(config.registryId ? { registryId: config.registryId } : {}),
+      })
+    )
+  } catch (error) {
+    const name =
+      typeof error === "object" && error !== null && "name" in error
+        ? String((error as { name?: unknown }).name)
+        : ""
+
+    if (name !== "RepositoryNotFoundException") {
+      throw error
+    }
+
+    try {
+      await ecr.send(
+        new CreateRepositoryCommand({
+          repositoryName: repository,
+          imageTagMutability: "MUTABLE",
+          ...(config.registryId ? { registryId: config.registryId } : {}),
+        })
+      )
+    } catch (createError) {
+      const createName =
+        typeof createError === "object" &&
+        createError !== null &&
+        "name" in createError
+          ? String((createError as { name?: unknown }).name)
+          : ""
+
+      // Another worker created it first — fine.
+      if (createName !== "RepositoryAlreadyExistsException") {
+        throw createError
+      }
+    }
+  }
+}
+
+/*
+ * ECR requires an IAM-signed Docker login rather than static credentials.
+ * We fetch a short-lived token via GetAuthorizationToken (SDK, not the CLI,
+ * so no aws-cli dependency) and log in with it.
+ */
 async function loginIfNeeded(
   config: RegistryConfig,
   handlers: DockerOutputHandlers
 ): Promise<void> {
-  if (!config.username) {
-    return
-  }
+  const { registryHost, username, password } =
+    await getEcrAuthorizationToken(config)
 
   await spawnDocker({
-    args: [
-      "login",
-      config.url,
-      "--username",
-      config.username,
-      "--password-stdin",
-    ],
-    stdinInput: config.password ?? "",
+    args: ["login", registryHost, "--username", username, "--password-stdin"],
+    stdinInput: password,
     ...handlers,
   })
 }
 
+/**
+ * Builds the ECR repository name for an image.
+ *
+ * ECR repository names may contain lowercase alphanumerics, periods,
+ * dashes and underscores, and can be namespaced with slashes.
+ */
 export async function pushImage(
   input: PushImageInput
 ): Promise<PushImageResult> {
   const { config, imageName } = input
 
+  const registryHost = registryHostFrom(config)
+
   const repository = normalizeRepository(
     input.repository ?? imageName.split(":")[0] ?? imageName
   )
   const tag = input.tag ?? "latest"
-  const imageRef = `${config.url}/${repository}:${tag}`
+  const imageRef = `${registryHost}/${repository}:${tag}`
 
   await loginIfNeeded(config, input)
+  await ensureEcrRepository(config, repository)
 
   await spawnDocker({
     args: ["tag", imageName, imageRef],
@@ -214,22 +404,19 @@ export async function pushImage(
   }
 }
 
-interface ComposeService {
-  build?: unknown
-  image?: string
-}
-
-interface ResolvedComposeConfig {
-  name?: string
-  services?: Record<string, ComposeService>
+/**
+ * Derives the registry host from the AWS account id and region.
+ */
+function registryHostFrom(config: RegistryConfig): string {
+  return `${config.registryId}.dkr.ecr.${config.region}.amazonaws.com`
 }
 
 /**
  * Pushes every service in the compose file that has a build section,
  * including services that don't declare an `image:` name. Compose build
  * tags such images as "<project>-<service>:latest", so this resolves the
- * compose config, tags each built image under the configured registry
- * (as "<url>/<repository>/<service>:<tag>") and pushes it.
+ * compose config, tags each built image under the configured ECR registry
+ * (as "<registry>/<repository>:<tag>.<service>") and pushes it.
  *
  * Services that declare an image already pointing at the configured
  * registry are pushed as-is.
@@ -238,6 +425,8 @@ export async function pushComposeImages(
   input: PushComposeImagesInput
 ): Promise<PushComposeImagesResult> {
   const { config, composeFile, cwd, repository, tag = "latest" } = input
+
+  const registryHost = registryHostFrom(config)
 
   await loginIfNeeded(config, input)
 
@@ -274,9 +463,12 @@ export async function pushComposeImages(
     // Push target: respect registry images declared in the compose
     // file, otherwise route every service into our registry.
     const targetImage =
-      declaredImage && declaredImage.startsWith(`${config.url}/`)
+      declaredImage && declaredImage.startsWith(`${registryHost}/`)
         ? declaredImage
-        : `${config.url}/${normalizeRepository(repository)}/${normalizeRepository(serviceName)}:${tag}`
+        : `${registryHost}/${normalizeRepository(repository)}:${tag}.${normalizeRepository(serviceName)}`
+
+    // All services share the single repository.
+    await ensureEcrRepository(config, normalizeRepository(repository))
 
     await spawnDocker({
       args: ["tag", localImage, targetImage],

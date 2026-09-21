@@ -10,6 +10,8 @@ export {
   DeployResponse,
   DeploymentStartedRequest,
   DeploymentStartedResponse,
+  DeploymentCompletedRequest,
+  DeploymentCompletedResponse,
   DeployerServiceClient,
   DeployerServiceService,
   DeployerApiServiceClient,

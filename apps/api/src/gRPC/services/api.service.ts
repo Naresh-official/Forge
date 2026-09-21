@@ -119,6 +119,19 @@ export const apiService = {
           })
         } catch (deployError) {
           console.error("Failed to forward build to deployer:", deployError)
+
+          /*
+           * The deployer never received the job, so no one will report a
+           * final status — fail the deployment here instead of leaving it
+           * stuck in BUILDING.
+           */
+          await prisma.deployment.update({
+            where: { id: updatedBuild.deployment.id },
+            data: {
+              status: "FAILED",
+              completedAt: new Date(),
+            },
+          })
         }
       }
 

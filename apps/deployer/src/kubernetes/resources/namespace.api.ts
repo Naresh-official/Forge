@@ -1,4 +1,4 @@
-import { KubeHttpClient } from "../http/kube-http.client"
+import { KubeHttpClient, hasHttpStatus } from "../http/kube-http.client"
 import { buildNamespaceManifest } from "../manifests/namespace.manifest"
 
 export class NamespaceApi {
@@ -13,16 +13,18 @@ export class NamespaceApi {
 
   /**
    * Create the namespace if it does not already exist.
-   * Returns the namespace name.
+   * Returns the namespace name. Idempotent.
    */
   async ensure(name: string): Promise<string> {
-    const existing = await this.list()
-    if (existing.includes(name)) {
+    try {
+      await this.http.post("/api/v1/namespaces", buildNamespaceManifest(name))
       return name
+    } catch (error) {
+      // 409 AlreadyExists — nothing to do
+      if (hasHttpStatus(error, 409)) {
+        return name
+      }
+      throw error
     }
-
-    await this.http.post("/api/v1/namespaces", buildNamespaceManifest(name))
-
-    return name
   }
 }

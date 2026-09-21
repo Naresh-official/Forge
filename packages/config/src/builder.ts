@@ -21,17 +21,18 @@ export const builderSchema = z.object({
   workerCount: z.int().positive(),
   apiGRPCUrl: z.string().default("localhost:8001"),
   storage: z.object({
-    endpoint: z.string().default("http://localhost:9000"),
-    accessKey: z.string().default("minioadmin"),
-    secretKey: z.string().default("minioadmin"),
-    bucket: z.string().default("forge-artifacts"),
     region: z.string().default("us-east-1"),
-    useSSL: z.boolean().default(false),
+    accessKeyId: z.string().min(1),
+    secretAccessKey: z.string().min(1),
+    bucket: z.string().min(1),
   }),
   dockerRegistry: z.object({
-    url: z.string().default("localhost:5000"),
-    username: z.string().optional(),
-    password: z.string().optional(),
+    registryId: z.string().min(1), // AWS account id
+    region: z.string().min(1),
+    accessKeyId: z.string().min(1),
+    secretAccessKey: z.string().min(1),
+    /** Single ECR repository all built images are pushed into. */
+    repository: z.string().min(1),
   }),
 })
 
@@ -43,21 +44,18 @@ const merged = {
   apiGRPCUrl: process.env.API_GRPC_URL || "localhost:8001",
   storage: {
     ...(yamlConfig.builder?.storage ?? {}),
-    endpoint: process.env.MINIO_ENDPOINT || undefined,
-    accessKey: process.env.MINIO_ACCESS_KEY || undefined,
-    secretKey: process.env.MINIO_SECRET_KEY || undefined,
-    bucket: process.env.MINIO_BUCKET || undefined,
-    region: process.env.MINIO_REGION || undefined,
-    useSSL:
-      process.env.MINIO_USE_SSL !== undefined
-        ? process.env.MINIO_USE_SSL === "true"
-        : undefined,
+    region: process.env.AWS_REGION || undefined,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
+    bucket: process.env.S3_BUCKET || undefined,
   },
   dockerRegistry: {
     ...(yamlConfig.builder?.dockerRegistry ?? {}),
-    url: process.env.DOCKER_REGISTRY_URL || undefined,
-    username: process.env.DOCKER_REGISTRY_USERNAME || undefined,
-    password: process.env.DOCKER_REGISTRY_PASSWORD || undefined,
+    registryId: process.env.ECR_REGISTRY_ID || undefined,
+    region: process.env.AWS_REGION || undefined,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
+    repository: process.env.ECR_REPOSITORY || undefined,
   },
 }
 

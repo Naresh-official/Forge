@@ -1,19 +1,26 @@
-import type { RepositoryProvider } from "@/generated/prisma/enums"
+import type { OAuthProvider } from "@/generated/prisma/enums"
 import prisma from "../../utils/db"
 import type { CreateUserInput, FindUserByEmailInput } from "@forge/types/auth"
 
 export const createUserAndAccountService = async (input: CreateUserInput) => {
   const existingUser = await findUserByEmailService({ email: input.email })
+  const provider = input.provider.trim().toUpperCase() as OAuthProvider
 
   if (existingUser) {
-    await prisma.account.update({
+    await prisma.account.upsert({
       where: {
-        userId_provider: {
-          userId: existingUser.id,
-          provider: input.provider.trim().toUpperCase() as RepositoryProvider,
+        provider_providerAccountId: {
+          provider,
+          providerAccountId: input.providerAccountId,
         },
       },
-      data: {
+      update: {
+        accessToken: input.accessToken,
+      },
+      create: {
+        userId: existingUser.id,
+        provider,
+        providerAccountId: input.providerAccountId,
         accessToken: input.accessToken,
       },
     })
@@ -27,7 +34,7 @@ export const createUserAndAccountService = async (input: CreateUserInput) => {
       image: input.image,
       accounts: {
         create: {
-          provider: input.provider.trim().toUpperCase() as RepositoryProvider,
+          provider,
           providerAccountId: input.providerAccountId,
           accessToken: input.accessToken,
         },

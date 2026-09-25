@@ -56,6 +56,13 @@ export function createStorageClient(config: StorageConfig): S3Client {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    /*
+     * S3 requires every aws-chunked chunk except the last to be
+     * >= 8 KiB. Without this buffer the SDK does not coalesce small
+     * stream chunks, which S3 rejects with InvalidChunkSizeError or
+     * MalformedTrailerError (aws-sdk-js-v3#7509).
+     */
+    requestStreamBufferSize: 8 * 1024,
   })
 }
 
@@ -152,18 +159,25 @@ export async function uploadDirectory(
 
     const objectKey = prefix ? `${prefix}/${relativeKey}` : relativeKey
 
-    const stat = await fs.promises.stat(file)
+    /*
+     * Read the whole file into memory instead of streaming it.
+     * Bun's createReadStream yields small/empty chunks that break
+     * the SDK's aws-chunked encoding (MalformedTrailerError), and
+     * static build artifacts are small enough to buffer safely.
+     */
+    const body = await fs.promises.readFile(file)
 
     await client.send(
       new PutObjectCommand({
         Bucket: config.bucket,
         Key: objectKey,
-        Body: fs.createReadStream(file),
-        ContentLength: stat.size,
+        Body: body,
       })
     )
 
-    totalBytes += stat.size
+    const totalSize = body.byteLength
+
+    totalBytes += totalSize
     uploadedKeys.push(objectKey)
   }
 

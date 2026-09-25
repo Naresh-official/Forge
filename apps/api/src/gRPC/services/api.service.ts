@@ -37,6 +37,7 @@ export const apiService = {
         },
         data: {
           status: "BUILDING",
+          startedAt: new Date(),
           deployment: {
             update: {
               data: {

@@ -1,6 +1,6 @@
-import { builder } from "@/gRPC/clients/builder.client"
 import prisma from "@/utils/db"
 import { ApiError } from "@forge/types/apiResponses"
+import { DEFAULT_DEPLOYMENT_RESOURCES } from "@forge/types"
 import slugify from "slugify"
 import { githubApp } from "../github/github.client"
 import type { CreateRepositoryInput } from "@forge/types/deployment"
@@ -73,6 +73,11 @@ export const deployRepositoryService = async (
           branch: repository.defaultBranch,
           status: "QUEUED",
           createdByUserId: userId,
+          resources: {
+            create: {
+              ...DEFAULT_DEPLOYMENT_RESOURCES,
+            },
+          },
           build: {
             create: {
               status: "QUEUED",
@@ -91,9 +96,45 @@ export const deployRepositoryService = async (
     },
   })
 
-  const result = await startBuildWrapper({
-    buildId: project.deployments[0]?.build?.id || "",
-  })
+  const build = project.deployments[0]?.build
 
-  return project.deployments[0]?.build
+  if (!build) {
+    throw new Error("Deployment was created without a build")
+  }
+
+  try {
+    await startBuildWrapper({
+      buildId: build.id,
+    })
+  } catch (error) {
+    /*
+     * The builder never received the job, so no BuildStarted will ever
+     * arrive — fail the build AND deployment here instead of leaving
+     * them stuck in QUEUED forever.
+     */
+    console.error("Failed to forward build to builder:", error)
+
+    await prisma.build.update({
+      where: { id: build.id },
+      data: {
+        status: "FAILED",
+        completedAt: new Date(),
+        deployment: {
+          update: {
+            data: {
+              status: "FAILED",
+              completedAt: new Date(),
+            },
+          },
+        },
+      },
+    })
+
+    throw new ApiError(
+      502,
+      "Failed to queue the build — the builder is unreachable."
+    )
+  }
+
+  return build
 }

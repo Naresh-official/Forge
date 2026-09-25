@@ -22,7 +22,8 @@ export function buildServiceManifest(params: DeployContainerParams) {
       ports: [
         {
           port: SERVICE_PORT,
-          targetPort: containerPort,
+          // TODO: Remove hardcoded port 5000 to containerPort
+          targetPort: 5000,
           protocol: "TCP",
         },
       ],

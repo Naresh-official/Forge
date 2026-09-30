@@ -59,7 +59,7 @@ const worker = new Worker<BuilderQueueJob>(
        * get a "-dev" suffix.
        */
       const repoName = response.repoFullName.split("/").pop() ?? "repo"
-      const objectPrefix = `${response.projectId}/${response.deploymentId}/${repoName}`
+      const objectPrefix = `${response.projectId}/${response.deploymentId}`
       const isDev = builderConfig.nodeEnv === "development"
       const imageTag = buildImageTag(
         response.projectId,

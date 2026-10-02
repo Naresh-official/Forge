@@ -40,13 +40,6 @@ export function ProjectHeader({ project }: { project: Project }) {
         >
           Deploy <Rocket className="size-3.5" />
         </button>
-        <button
-          type="button"
-          onClick={() => router.push(`/projects/${project.id}/settings`)}
-          className="rounded-md border border-border bg-card px-3 py-2 text-[11px]"
-        >
-          Settings
-        </button>
       </div>
       <nav className="flex gap-5 overflow-x-auto">
         {projectTabs.map((tab) => {

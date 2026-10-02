@@ -1,7 +1,7 @@
 import { startBuildWrapper } from "./gRPC/wrapper/builder.wrapper"
 
 const result = await startBuildWrapper({
-  buildId: "536675be-3025-4aad-8e7a-9e296eb1ae74",
+  buildId: "66bd0690-6abd-49d7-a83a-6fa1c9b21b80",
 })
 
 console.log(result)

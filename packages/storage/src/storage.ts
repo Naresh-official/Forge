@@ -7,6 +7,7 @@ import {
   PutObjectCommand,
   type BucketLocationConstraint,
 } from "@aws-sdk/client-s3"
+import { lookup } from "mime-types"
 
 export interface StorageConfig {
   /**
@@ -167,11 +168,14 @@ export async function uploadDirectory(
      */
     const body = await fs.promises.readFile(file)
 
+    const contentType = lookup(file) || "application/octet-stream"
+
     await client.send(
       new PutObjectCommand({
         Bucket: config.bucket,
         Key: objectKey,
         Body: body,
+        ContentType: contentType,
       })
     )
 

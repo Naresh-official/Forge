@@ -2,12 +2,12 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client"
-    output   = "../src/generated/prisma"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 // ─────────────────────────────────────────────
@@ -15,47 +15,63 @@ datasource db {
 // ─────────────────────────────────────────────
 
 enum OAuthProvider {
-    GITHUB
-    GOOGLE
+  GITHUB
+  GOOGLE
 }
 
 enum RepositoryProvider {
-    GITHUB
-    GITLAB // TODO:
-    BITBUCKET // TODO:
+  GITHUB
+  GITLAB // TODO:
+  BITBUCKET // TODO:
 }
 
 enum DeploymentStatus {
-    QUEUED
-    BUILDING
-    DEPLOYING
-    READY
-    FAILED
-    CANCELLED
+  QUEUED
+  BUILDING
+  DEPLOYING
+  READY
+  FAILED
+  CANCELLED
 }
 
 enum DomainType {
-    CUSTOM
-    SYSTEM
+  CUSTOM
+  SYSTEM
 }
 
 enum DomainStatus {
-    PENDING
-    ACTIVE
-    FAILED
+  PENDING
+  ACTIVE
+  FAILED
 }
 
 enum BuildStatus {
-    QUEUED
-    BUILDING
-    SUCCEEDED
-    FAILED
-    CANCELLED
+  QUEUED
+  BUILDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
 }
 
 enum GitHubAccountType {
-    USER
-    ORGANIZATION
+  USER
+  ORGANIZATION
+}
+
+enum Framework {
+  NEXTJS
+  VITE
+  REACT
+  VUE
+  NUXT
+  SVELTE
+  SVELTEKIT
+  ASTRO
+  ANGULAR
+  REMIX
+  NESTJS
+  EXPRESS
+  UNKNOWN
 }
 
 // ─────────────────────────────────────────────
@@ -63,19 +79,19 @@ enum GitHubAccountType {
 // ─────────────────────────────────────────────
 
 model User {
-    id        String   @id @default(uuid()) @db.Uuid
-    name      String?
-    email     String   @unique
-    image     String?
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String?
+  email     String   @unique
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    accounts      Account[]
-    projects      Project[]
-    deployments   Deployment[]         @relation("DeploymentCreatedBy")
-    installations GitHubInstallation[]
+  accounts      Account[]
+  projects      Project[]
+  deployments   Deployment[]         @relation("DeploymentCreatedBy")
+  installations GitHubInstallation[]
 
-    @@map("users")
+  @@map("users")
 }
 
 // ─────────────────────────────────────────────
@@ -83,18 +99,18 @@ model User {
 // ─────────────────────────────────────────────
 
 model Account {
-    id                String        @id @default(uuid()) @db.Uuid
-    userId            String        @db.Uuid
-    provider          OAuthProvider
-    providerAccountId String
-    accessToken       String
-    createdAt         DateTime      @default(now())
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @db.Uuid
+  provider          OAuthProvider
+  providerAccountId String
+  accessToken       String
+  createdAt         DateTime      @default(now())
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([provider, providerAccountId])
-    @@index([userId])
-    @@map("accounts")
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
 }
 
 // ─────────────────────────────────────────────
@@ -102,23 +118,24 @@ model Account {
 // ─────────────────────────────────────────────
 
 model Project {
-    id        String   @id @default(uuid()) @db.Uuid
-    userId    String   @db.Uuid
-    name      String
-    slug      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @db.Uuid
+  name      String
+  slug      String
+  framework Framework?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    deployments          Deployment[]
-    domains              Domain[]
-    environmentVariables EnvironmentVariable[]
-    githubRepository     GitHubRepository?
+  deployments          Deployment[]
+  domains              Domain[]
+  environmentVariables EnvironmentVariable[]
+  githubRepository     GitHubRepository?
 
-    @@unique([userId, slug])
-    @@index([userId])
-    @@map("projects")
+  @@unique([userId, slug])
+  @@index([userId])
+  @@map("projects")
 }
 
 // ─────────────────────────────────────────────
@@ -126,40 +143,40 @@ model Project {
 // ─────────────────────────────────────────────
 
 model Deployment {
-    id               String           @id @default(uuid()) @db.Uuid
-    projectId        String           @db.Uuid
-    deploymentNumber Int
-    commitSha        String
-    commitMessage    String?
-    branch           String
-    status           DeploymentStatus
+  id               String           @id @default(uuid()) @db.Uuid
+  projectId        String           @db.Uuid
+  deploymentNumber Int
+  commitSha        String
+  commitMessage    String?
+  branch           String
+  status           DeploymentStatus
 
-    // Container deployment
-    imageUrl String?
-    imageTag String?
+  // Container deployment
+  imageUrl String?
+  imageTag String?
 
-    // Static deployment
-    artifactBucket String?
-    artifactKey    String?
+  // Static deployment
+  artifactBucket String?
+  artifactKey    String?
 
-    createdByUserId String    @db.Uuid
-    createdAt       DateTime  @default(now())
-    startedAt       DateTime?
-    completedAt     DateTime?
+  createdByUserId String    @db.Uuid
+  createdAt       DateTime  @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
 
-    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-    createdByUser User @relation("DeploymentCreatedBy", fields: [createdByUserId], references: [id])
+  createdByUser User @relation("DeploymentCreatedBy", fields: [createdByUserId], references: [id])
 
-    resources DeploymentResource?
-    domains   Domain[]
-    build     Build?
+  resources DeploymentResource?
+  domains   Domain[]
+  build     Build?
 
-    @@unique([projectId, deploymentNumber])
-    @@index([projectId])
-    @@index([createdByUserId])
-    @@index([status])
-    @@map("deployments")
+  @@unique([projectId, deploymentNumber])
+  @@index([projectId])
+  @@index([createdByUserId])
+  @@index([status])
+  @@map("deployments")
 }
 
 // ─────────────────────────────────────────────
@@ -167,16 +184,16 @@ model Deployment {
 // ─────────────────────────────────────────────
 
 model DeploymentResource {
-    id                 String  @id @default(uuid()) @db.Uuid
-    deploymentId       String  @unique @db.Uuid
-    cpuMillicores      Int
-    memoryMb           Int
-    ephemeralStorageMb Int
-    autoscalingEnabled Boolean
+  id                 String  @id @default(uuid()) @db.Uuid
+  deploymentId       String  @unique @db.Uuid
+  cpuMillicores      Int
+  memoryMb           Int
+  ephemeralStorageMb Int
+  autoscalingEnabled Boolean
 
-    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
 
-    @@map("deploymentResources")
+  @@map("deploymentResources")
 }
 
 // ─────────────────────────────────────────────
@@ -184,22 +201,22 @@ model DeploymentResource {
 // ─────────────────────────────────────────────
 
 model Domain {
-    id           String       @id @default(uuid()) @db.Uuid
-    projectId    String       @db.Uuid
-    deploymentId String?      @db.Uuid
-    hostname     String       @unique
-    type         DomainType
-    status       DomainStatus
-    isPrimary    Boolean      @default(false)
-    createdAt    DateTime     @default(now())
+  id           String       @id @default(uuid()) @db.Uuid
+  projectId    String       @db.Uuid
+  deploymentId String?      @db.Uuid
+  hostname     String       @unique
+  type         DomainType
+  status       DomainStatus
+  isPrimary    Boolean      @default(false)
+  createdAt    DateTime     @default(now())
 
-    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-    deployment Deployment? @relation(fields: [deploymentId], references: [id], onDelete: SetNull)
+  deployment Deployment? @relation(fields: [deploymentId], references: [id], onDelete: SetNull)
 
-    @@index([projectId])
-    @@index([deploymentId])
-    @@map("domains")
+  @@index([projectId])
+  @@index([deploymentId])
+  @@map("domains")
 }
 
 // ─────────────────────────────────────────────
@@ -207,19 +224,19 @@ model Domain {
 // ─────────────────────────────────────────────
 
 model EnvironmentVariable {
-    id             String   @id @default(uuid()) @db.Uuid
-    projectId      String   @db.Uuid
-    key            String
-    valueEncrypted String
-    isSecret       Boolean  @default(true)
-    createdAt      DateTime @default(now())
-    updatedAt      DateTime @updatedAt
+  id             String   @id @default(uuid()) @db.Uuid
+  projectId      String   @db.Uuid
+  key            String
+  valueEncrypted String
+  isSecret       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-    @@unique([projectId, key])
-    @@index([projectId])
-    @@map("environmentVariables")
+  @@unique([projectId, key])
+  @@index([projectId])
+  @@map("environmentVariables")
 }
 
 // ─────────────────────────────────────────────
@@ -227,17 +244,17 @@ model EnvironmentVariable {
 // ─────────────────────────────────────────────
 
 model Build {
-    id           String      @id @default(uuid()) @db.Uuid
-    deploymentId String      @unique @db.Uuid
-    status       BuildStatus
-    logsPath     String?
-    createdAt    DateTime    @default(now())
-    startedAt    DateTime?
-    completedAt  DateTime?
+  id           String      @id @default(uuid()) @db.Uuid
+  deploymentId String      @unique @db.Uuid
+  status       BuildStatus
+  logsPath     String?
+  createdAt    DateTime    @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
 
-    deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
 
-    @@map("builds")
+  @@map("builds")
 }
 
 // ─────────────────────────────────────────────
@@ -245,36 +262,36 @@ model Build {
 // ─────────────────────────────────────────────
 
 model GitHubInstallation {
-    id     Int    @id
-    userId String @db.Uuid
+  id     Int    @id
+  userId String @db.Uuid
 
-    accountLogin String
-    accountType  GitHubAccountType
+  accountLogin String
+  accountType  GitHubAccountType
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    repositories GitHubRepository[]
+  repositories GitHubRepository[]
 
-    @@index([userId])
-    @@map("githubInstallations")
+  @@index([userId])
+  @@map("githubInstallations")
 }
 
 model GitHubRepository {
-    id             Int      @id
-    installationId Int
-    projectId      String?  @unique @db.Uuid
-    fullName       String
-    defaultBranch  String   @default("main")
-    createdAt      DateTime @default(now())
+  id             Int      @id
+  installationId Int
+  projectId      String?  @unique @db.Uuid
+  fullName       String
+  defaultBranch  String   @default("main")
+  createdAt      DateTime @default(now())
 
-    installation GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  installation GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
 
-    project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-    @@unique([installationId, id])
-    @@index([installationId])
-    @@map("githubRepositories")
+  @@unique([installationId, id])
+  @@index([installationId])
+  @@map("githubRepositories")
 }

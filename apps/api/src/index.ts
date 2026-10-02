@@ -30,17 +30,21 @@ function startGrpcServer(): Promise<void> {
 
 async function startServer() {
   try {
+    const isStandalone = process.argv.includes("--standalone")
+
     await prisma.$connect()
 
     await prisma.$queryRaw`SELECT 1`
 
     logger.info("Database connected")
 
-    await healthCheckWrapper()
+    if (!isStandalone) {
+      await healthCheckWrapper()
 
-    logger.info("Builder connected")
+      logger.info("Builder connected")
 
-    await startGrpcServer()
+      await startGrpcServer()
+    }
 
     app.listen(PORT, () => {
       logger.info(`Server is running on port ${PORT}`)

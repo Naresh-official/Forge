@@ -11,6 +11,7 @@ import authRouter from "@/features/auth/auth.routes"
 import githubRouter from "@/features/github/github.routes"
 import repositoriesRouter from "@/features/repositories/repositories.routes"
 import deploymentRouter from "@/features/deployment/deployment.routes"
+import projectsRouter from "@/features/projects/projects.routes"
 
 const app: Express = express()
 
@@ -56,5 +57,6 @@ app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/github", githubRouter)
 app.use("/api/v1/repositories", repositoriesRouter)
 app.use("/api/v1/deployments", deploymentRouter)
+app.use("/api/v1/projects", projectsRouter)
 
 export default app

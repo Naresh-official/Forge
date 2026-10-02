@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/index.ts",
+    "dev-standalone": "bun run --watch src/index.ts --standalone",
     "start": "bun run src/index.ts",
     "build": "bun build src/index.ts --target bun --outdir dist",
     "studio": "prisma studio"

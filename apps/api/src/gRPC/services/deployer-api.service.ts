@@ -6,7 +6,7 @@ import type {
 } from "@forge/contracts"
 import type { sendUnaryData, ServerUnaryCall } from "@grpc/grpc-js"
 import prisma from "@/utils/db"
-import { completeDeploymentService } from "@/features/deployments/deployment.service"
+import { completeDeploymentService } from "@/features/deployment/deployment.service"
 
 export const deployerApiService = {
   async deploymentStarted(

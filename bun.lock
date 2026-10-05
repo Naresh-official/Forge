@@ -26,6 +26,8 @@
       "dependencies": {
         "@forge/config": "workspace:*",
         "@forge/contracts": "workspace:*",
+        "@forge/frameworks": "workspace:*",
+        "@forge/logger": "workspace:*",
         "@prisma/adapter-pg": "^7.9.1",
         "@prisma/client": "^7.10.0",
         "@types/express": "^5.0.6",
@@ -36,8 +38,6 @@
         "jsonwebtoken": "^9.0.3",
         "next-auth": "^5.0.0-beta.32",
         "octokit": "^5.0.5",
-        "pino": "^10.3.1",
-        "pino-pretty": "^13.1.3",
         "slugify": "^1.6.9",
       },
       "devDependencies": {
@@ -56,6 +56,8 @@
       "dependencies": {
         "@forge/config": "workspace:*",
         "@forge/contracts": "workspace:*",
+        "@forge/frameworks": "workspace:*",
+        "@forge/logger": "workspace:*",
         "@forge/registry": "workspace:*",
         "@forge/storage": "workspace:*",
         "bullmq": "^6.1.1",
@@ -73,6 +75,7 @@
       "dependencies": {
         "@forge/config": "workspace:*",
         "@forge/contracts": "workspace:*",
+        "@forge/logger": "workspace:*",
         "@forge/registry": "workspace:*",
         "@kubernetes/client-node": "^2.0.0",
         "axios": "^1.20.0",
@@ -90,6 +93,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@forge/api-client": "workspace:*",
+        "@forge/frameworks": "workspace:*",
         "@forge/ui": "workspace:*",
         "@tanstack/react-query": "^5.104.1",
         "@vercel/analytics": "^2.0.1",
@@ -169,6 +173,31 @@
         "globals": "^17.6.0",
         "typescript": "^5",
         "typescript-eslint": "^8.60.0",
+      },
+    },
+    "packages/frameworks": {
+      "name": "@forge/frameworks",
+      "version": "0.0.1",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "packages/logger": {
+      "name": "@forge/logger",
+      "version": "0.0.1",
+      "dependencies": {
+        "pino": "^10.3.1",
+        "pino-pretty": "^13.1.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^20.17.17",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
       },
     },
     "packages/registry": {
@@ -448,6 +477,10 @@
     "@forge/contracts": ["@forge/contracts@workspace:packages/contracts"],
 
     "@forge/eslint-config": ["@forge/eslint-config@workspace:packages/eslint-config"],
+
+    "@forge/frameworks": ["@forge/frameworks@workspace:packages/frameworks"],
+
+    "@forge/logger": ["@forge/logger@workspace:packages/logger"],
 
     "@forge/registry": ["@forge/registry@workspace:packages/registry"],
 
@@ -2251,8 +2284,6 @@
 
     "body-parser/content-type": ["content-type@2.1.0", "", {}, "sha512-mj7UPXE0jaqaOsukNZRUEfEi2AcL7C/vwmwcHV0O97eO1E1pxBZuyjlZrx5seTaNBg1U6+o35wpa35Qfcc+7ag=="],
 
-    "builder/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
-
     "bullmq/semver": ["semver@7.8.5", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA=="],
 
     "c12/dotenv": ["dotenv@17.4.2", "", {}, "sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw=="],
@@ -2400,8 +2431,6 @@
     "@typescript-eslint/typescript-estree/minimatch/brace-expansion": ["brace-expansion@5.0.9", "", { "dependencies": { "balanced-match": "^4.0.2" } }, "sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg=="],
 
     "ajv-formats/ajv/json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
-
-    "builder/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "cliui/strip-ansi/ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 

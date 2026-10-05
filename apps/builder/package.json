@@ -11,6 +11,8 @@
   "dependencies": {
     "@forge/config": "workspace:*",
     "@forge/contracts": "workspace:*",
+    "@forge/frameworks": "workspace:*",
+    "@forge/logger": "workspace:*",
     "@forge/registry": "workspace:*",
     "@forge/storage": "workspace:*",
     "bullmq": "^6.1.1",

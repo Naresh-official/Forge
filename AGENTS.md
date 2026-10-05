@@ -47,6 +47,8 @@ Forge/
     ├── config/             — Centralised env-var config (Zod-validated) + config.yaml
     ├── contracts/          — Protobuf definitions shared between api, builder & deployer
     ├── eslint-config/      — Shared ESLint config
+    ├── frameworks/         — Framework detection / static-vs-server classification
+    ├── logger/             — File + terminal pino logger factory
     ├── registry/           — Container registry helpers (AWS ECR)
     ├── storage/            — S3-compatible object storage helpers (AWS S3 / MinIO)
     ├── types/              — Shared TypeScript types / API response types
@@ -171,7 +173,7 @@ Every router except `POST /auth/github` is guarded by the `authenticate` middlew
 | `Domain`              | `CUSTOM` or `SYSTEM`; `PENDING → ACTIVE / FAILED`                    |
 | `EnvironmentVariable` | Encrypted at rest (`valueEncrypted`)                                 |
 | `GitHubInstallation`  | GitHub App installation per User; PK is the GitHub `installation.id` |
-| `GitHubRepository`    | Linked to Installation; `projectId` optional + unique                |
+| `GitHubRepository`    | Linked to Installation; `projectId` optional + unique; holds the detected `framework` (null = not detected yet) |
 | `DeploymentResource`  | CPU/memory/storage specs per Deployment                              |
 
 `BuildStatus` is `QUEUED → BUILDING → SUCCEEDED / FAILED / CANCELLED` — it is **not** the same lifecycle as `DeploymentStatus`. A build can stay `SUCCEEDED` even if the subsequent rollout fails.
@@ -203,7 +205,7 @@ src/
     ├── worker.ts            — BullMQ Worker
     ├── process/run-command.ts
     └── features/
-        ├── detect.ts        — project/framework/package-manager detection
+        ├── detect.ts        — build strategy + package-manager detection
         ├── git.ts           — clone
         ├── logs/build-logs.ts
         └── builders/

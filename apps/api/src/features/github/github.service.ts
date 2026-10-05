@@ -3,6 +3,57 @@ import { githubApp } from "./github.client"
 import type { GitHubAccountType } from "@/generated/prisma/enums"
 import { ApiError } from "@forge/types/apiResponses"
 
+/** The subset of a GitHub repository payload the sync actually needs. */
+export type AccessibleRepository = {
+  id: number
+  full_name: string
+  default_branch?: string | null
+}
+
+/**
+ * Mirrors the repositories GitHub reports for an installation into the
+ * database: new and renamed repositories are created/updated, and
+ * repositories the installation can no longer access are removed.
+ *
+ * Repositories that are already attached to a project are never removed —
+ * an import has to keep working even if the GitHub App loses access to the
+ * repository later.
+ */
+export const syncInstallationRepositories = async (
+  installationId: number,
+  repositories: AccessibleRepository[]
+) => {
+  await prisma.$transaction([
+    ...repositories.map((repo) =>
+      prisma.gitHubRepository.upsert({
+        where: {
+          installationId_id: {
+            installationId,
+            id: repo.id,
+          },
+        },
+        create: {
+          installationId,
+          id: repo.id,
+          fullName: repo.full_name,
+          defaultBranch: repo.default_branch ?? "main",
+        },
+        update: {
+          fullName: repo.full_name,
+          defaultBranch: repo.default_branch ?? "main",
+        },
+      })
+    ),
+    prisma.gitHubRepository.deleteMany({
+      where: {
+        installationId,
+        projectId: null,
+        id: { notIn: repositories.map((repo) => repo.id) },
+      },
+    }),
+  ])
+}
+
 export const setupGithubAppService = async (
   installationId: number,
   userId: string
@@ -58,27 +109,5 @@ export const setupGithubAppService = async (
     },
   })
 
-  // update all repositories for this installation or create new ones if not exist
-  await prisma.$transaction(
-    repositories.repositories.map((repo) =>
-      prisma.gitHubRepository.upsert({
-        where: {
-          installationId_id: {
-            installationId: installation.id,
-            id: repo.id,
-          },
-        },
-        create: {
-          installationId: installation.id,
-          id: repo.id,
-          fullName: repo.full_name,
-          defaultBranch: repo.default_branch ?? "main",
-        },
-        update: {
-          fullName: repo.full_name,
-          defaultBranch: repo.default_branch ?? "main",
-        },
-      })
-    )
-  )
+  await syncInstallationRepositories(installation.id, repositories.repositories)
 }

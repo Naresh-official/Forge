@@ -4,6 +4,7 @@ import { DeploymentApi } from "./resources/deployment.api"
 import { ServiceApi } from "./resources/service.api"
 import { SecretApi } from "./resources/secret.api"
 import type { DeployContainerParams, RegistryPullSecretParams } from "./types"
+import logger from "@/utils/logger"
 
 /** How long to wait for the Deployment rollout to become available. */
 const ROLLOUT_TIMEOUT_MS = 120_000
@@ -133,9 +134,10 @@ export class KubernetesClient {
         }
       } catch (error) {
         // Transient API errors shouldn't abort the wait loop
-        console.warn(
-          `[k8s] Transient error while polling rollout of ${namespace}/${name}:`,
-          error instanceof Error ? error.message : error
+        logger.warn(
+          `[k8s] Transient error while polling rollout of ${namespace}/${name}: ${
+            error instanceof Error ? error.message : error
+          }`
         )
       }
 

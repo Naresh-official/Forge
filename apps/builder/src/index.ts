@@ -3,6 +3,7 @@ import createServer from "./gRPC/server"
 import grpc from "@grpc/grpc-js"
 import { builderQueue, rawClient } from "./queue/queue"
 import { spawn, type Subprocess } from "bun"
+import logger from "@/utils/logger"
 
 const grpcServer = createServer()
 
@@ -18,13 +19,13 @@ async function checkQueue() {
 
     await builderQueue.getJobCounts()
 
-    console.log("Builder queue is healthy")
+    logger.info("Builder queue is healthy")
 
     await builderQueue.obliterate({
       force: true,
     })
   } catch (error) {
-    console.error("Builder queue health check failed:", error)
+    logger.error(error, "Builder queue health check failed")
     throw error
   }
 }
@@ -40,7 +41,7 @@ function startGrpcServer(): Promise<void> {
           return
         }
 
-        console.log(`Builder listening on :${port}`)
+        logger.info(`Builder listening on :${port}`)
         resolve()
       }
     )
@@ -51,7 +52,7 @@ function startWorkers() {
   const workerCount =
     builderConfig.nodeEnv === "development" ? 1 : builderConfig.workerCount
 
-  console.log(`Starting ${workerCount} builder workers`)
+  logger.info(`Starting ${workerCount} builder workers`)
 
   for (let i = 0; i < workerCount; i++) {
     // start workers as independent os process
@@ -65,10 +66,10 @@ function startWorkers() {
 
     workerProcesses.push(worker)
 
-    console.log(`Started worker ${i} (PID: ${worker.pid})`)
+    logger.info(`Started worker ${i} (PID: ${worker.pid})`)
 
     worker.exited.then((exitCode) => {
-      console.log(
+      logger.info(
         `Worker ${i} (PID: ${worker.pid}) exited with code ${exitCode}`
       )
     })
@@ -76,12 +77,12 @@ function startWorkers() {
 }
 
 async function shutdown(signal: string) {
-  console.log(`Received ${signal}, shutting down Builder...`)
+  logger.info(`Received ${signal}, shutting down Builder...`)
 
   // Stop accepting new gRPC requests
   grpcServer.tryShutdown((error) => {
     if (error) {
-      console.error("Failed to shutdown gRPC server:", error)
+      logger.error(error, "Failed to shutdown gRPC server")
     }
   })
 
@@ -90,7 +91,7 @@ async function shutdown(signal: string) {
     try {
       worker.kill("SIGTERM")
     } catch (error) {
-      console.error(`Failed to stop worker ${worker.pid}:`, error)
+      logger.error(error, `Failed to stop worker ${worker.pid}`)
     }
   }
 
@@ -100,7 +101,7 @@ async function shutdown(signal: string) {
   // Close BullMQ queue connection
   await builderQueue.close()
 
-  console.log("Builder shutdown complete")
+  logger.info("Builder shutdown complete")
 
   process.exit(0)
 }
@@ -120,7 +121,7 @@ async function start() {
 
     startWorkers()
   } catch (error) {
-    console.error("Failed to start Builder:", error)
+    logger.error(error, "Failed to start Builder")
     process.exit(1)
   }
 }

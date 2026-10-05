@@ -24,6 +24,9 @@ dist
 # turbo
 .turbo
 
+# runtime logs
+/logs/
+
 # misc
 .DS_Store
 *.pem

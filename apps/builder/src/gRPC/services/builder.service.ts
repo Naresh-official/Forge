@@ -2,6 +2,7 @@ import type { ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js"
 
 import type { BuildRequest, BuildResponse } from "@forge/contracts"
 import { builderQueue } from "@/queue/queue"
+import logger from "@/utils/logger"
 
 export const builderService = {
   async build(
@@ -10,7 +11,7 @@ export const builderService = {
   ) {
     try {
       const request = call.request
-      console.log("Received build request", request)
+      logger.info({ request }, "Received build request")
       builderQueue.add("build", {
         buildId: request.buildId,
       })

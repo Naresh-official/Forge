@@ -13,3 +13,20 @@ export type GithubSetUpBody = {
     },
   ]
 }
+
+/**
+ * A repository made available to the user through their GitHub App
+ * installation. Mirrors the `GitHubRepository` Prisma model.
+ */
+export type GithubRepository = {
+  id: number
+  installationId: number
+  /** Set once the repository has been imported as a project. */
+  projectId: string | null
+  fullName: string
+  defaultBranch: string
+  /** ISO timestamp — serialised over HTTP, not a Date instance. */
+  createdAt: string
+}
+
+export type ListRepositoriesResponse = GithubRepository[]

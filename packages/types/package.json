@@ -11,7 +11,8 @@
     "./apiResponses": "./src/apiResponses.ts",
     "./user": "./src/user.ts",
     "./github": "./src/github.ts",
-    "./deployment": "./src/deployment.ts"
+    "./deployment": "./src/deployment.ts",
+    "./project": "./src/project.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

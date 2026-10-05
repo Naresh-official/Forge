@@ -20,3 +20,23 @@ export const DEFAULT_DEPLOYMENT_RESOURCES = {
   ephemeralStorageMb: 1024,
   autoscalingEnabled: false,
 } as const
+
+export type DeploymentStatus =
+  "QUEUED" | "BUILDING" | "DEPLOYING" | "READY" | "FAILED" | "CANCELLED"
+
+export type BuildStatus =
+  "QUEUED" | "BUILDING" | "SUCCEEDED" | "FAILED" | "CANCELLED"
+
+/**
+ * The build returned when a deployment is started. Mirrors the `Build`
+ * Prisma model, which is what `POST /deployments/new` responds with.
+ */
+export type StartDeploymentResponse = {
+  id: string
+  deploymentId: string
+  status: BuildStatus
+  logsPath: string | null
+  createdAt: string
+  startedAt: string | null
+  completedAt: string | null
+}

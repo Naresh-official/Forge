@@ -1,6 +1,10 @@
 import fs from "fs"
 import path from "path"
-import type { Framework, PackageRunner } from "../detect"
+import {
+  isStaticFramework,
+  type Framework,
+  type PackageRunner,
+} from "@forge/frameworks"
 import { runCommand } from "../../process/run-command"
 import type { BuildLogger } from "../logs/build-logs"
 
@@ -13,25 +17,6 @@ interface NodeBuildInput {
 
 interface NodeBuildResult {
   outputDirectory?: string
-}
-
-/*
- * Frameworks whose build output is a static site that can be
- * uploaded to object storage. Everything else runs a server
- * and is containerized instead.
- */
-const STATIC_FRAMEWORKS: Framework[] = [
-  "vite",
-  "react",
-  "vue",
-  "svelte",
-  "sveltekit",
-  "astro",
-  "angular",
-]
-
-export function isStaticFramework(framework: Framework): boolean {
-  return STATIC_FRAMEWORKS.includes(framework)
 }
 
 interface PackageJson {

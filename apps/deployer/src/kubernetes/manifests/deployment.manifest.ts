@@ -1,4 +1,4 @@
-import { CONTAINER_RESOURCES, FORGE_MANAGED_BY_LABELS } from "../constants"
+import { buildContainerResources, FORGE_MANAGED_BY_LABELS } from "../constants"
 import type { DeployContainerParams } from "../types"
 
 export function buildDeploymentManifest(params: DeployContainerParams) {
@@ -46,7 +46,7 @@ export function buildDeploymentManifest(params: DeployContainerParams) {
                 },
               ],
               env,
-              resources: CONTAINER_RESOURCES,
+              resources: buildContainerResources(params.resources),
             },
           ],
         },

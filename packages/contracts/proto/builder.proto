@@ -31,6 +31,8 @@ message BuildStartedResponse {
   string commit_sha = 5;
   string access_token = 6;
   string build_id = 7;
+  // Framework detected when the repository was imported (lowercase, e.g. "nextjs").
+  string framework = 8;
 }
 
 message BuildCompletedRequest {

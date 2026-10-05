@@ -11,6 +11,7 @@ import {
   appNameForDeployment,
   namespaceForDeployment,
 } from "@/kubernetes"
+import logger from "@/utils/logger"
 
 const workerId = process.env.WERKER_ID ?? process.env.WORKER_ID ?? "unknown"
 
@@ -19,8 +20,17 @@ const k8s = new KubernetesClient()
 const worker = new Worker<DeployerQueueJob>(
   deployerConfig.defaultQueueOptions.name,
   async (job) => {
-    const { deploymentId, projectId, buildId, imageUrl, imageTag, strategy } =
-      job.data
+    const {
+      deploymentId,
+      projectId,
+      buildId,
+      imageUrl,
+      imageTag,
+      strategy,
+      cpuMillicores,
+      memoryMb,
+      ephemeralStorageMb,
+    } = job.data
 
     /*
      * Full image reference, hoisted so the failure handler can report which
@@ -32,16 +42,16 @@ const worker = new Worker<DeployerQueueJob>(
         : imageUrl
       : ""
 
-    console.log(
+    logger.info(
       `[Worker ${workerId}] Processing deployment ${deploymentId} for project ${projectId}`
     )
 
     try {
       // 1. Notify the API that deployment has started
       const response = await deploymentStarted({ deploymentId })
-      console.log(
-        `[Worker ${workerId}] Deployment ${deploymentId} status updated to DEPLOYING:`,
-        response
+      logger.info(
+        { response },
+        `[Worker ${workerId}] Deployment ${deploymentId} status updated to DEPLOYING`
       )
 
       // 2. Only container strategies can be deployed to Kubernetes
@@ -51,7 +61,7 @@ const worker = new Worker<DeployerQueueJob>(
         (strategy === "node" && imageUrl)
 
       if (!isContainer) {
-        console.log(
+        logger.info(
           `[Worker ${workerId}] Strategy "${strategy ?? "unknown"}" is not a container deployment — skipping K8s deploy`
         )
 
@@ -80,7 +90,7 @@ const worker = new Worker<DeployerQueueJob>(
       const namespace = namespaceForDeployment(projectId, deploymentId)
       const appName = appNameForDeployment(deploymentId)
 
-      console.log(
+      logger.info(
         `[Worker ${workerId}] Deploying ${fullImage} to namespace ${namespace}`
       )
 
@@ -108,6 +118,11 @@ const worker = new Worker<DeployerQueueJob>(
           username: token.username,
           password: token.password,
         },
+        resources: {
+          cpuMillicores: cpuMillicores ?? 0,
+          memoryMb: memoryMb ?? 0,
+          ephemeralStorageMb: ephemeralStorageMb ?? 0,
+        },
       })
 
       /*
@@ -124,14 +139,14 @@ const worker = new Worker<DeployerQueueJob>(
         imageUrl: fullImage,
       })
 
-      console.log(
+      logger.info(
+        { completion },
         `[Worker ${workerId}] Deployment ${deploymentId} marked ${
           rolloutReady ? "READY" : "FAILED"
-        }:`,
-        completion
+        }`
       )
 
-      console.log(
+      logger.info(
         `[Worker ${workerId}] ${
           rolloutReady
             ? "Successfully deployed"
@@ -147,9 +162,9 @@ const worker = new Worker<DeployerQueueJob>(
         image: fullImage,
       }
     } catch (error) {
-      console.error(
-        `[Worker ${workerId}] Failed to process deployment ${deploymentId}:`,
-        error
+      logger.error(
+        error,
+        `[Worker ${workerId}] Failed to process deployment ${deploymentId}`
       )
 
       /*
@@ -167,9 +182,9 @@ const worker = new Worker<DeployerQueueJob>(
           imageUrl: fullImage,
         })
       } catch (reportError) {
-        console.error(
-          `[Worker ${workerId}] Failed to report FAILED status for ${deploymentId}:`,
-          reportError
+        logger.error(
+          reportError,
+          `[Worker ${workerId}] Failed to report FAILED status for ${deploymentId}`
         )
       }
 
@@ -182,27 +197,27 @@ const worker = new Worker<DeployerQueueJob>(
 )
 
 worker.on("ready", () => {
-  console.log(`[Worker ${workerId}] Ready`)
+  logger.info(`[Worker ${workerId}] Ready`)
 })
 
 worker.on("error", (error) => {
-  console.error(`[Worker ${workerId}] Error:`, error)
+  logger.error(error, `[Worker ${workerId}] Error`)
 })
 
 worker.on("failed", (job, error) => {
-  console.error(`[Worker ${workerId}] Job ${job?.id} failed:`, error)
+  logger.error(error, `[Worker ${workerId}] Job ${job?.id} failed`)
 })
 
 worker.on("completed", (job, result) => {
-  console.log(`[Worker ${workerId}] Job ${job?.id} completed:`, result)
+  logger.info({ result }, `[Worker ${workerId}] Job ${job?.id} completed`)
 })
 
 async function shutdown(signal: string) {
-  console.log(`[Worker ${workerId}] Received ${signal}, shutting down...`)
+  logger.info(`[Worker ${workerId}] Received ${signal}, shutting down...`)
 
   await worker.close()
 
-  console.log(`[Worker ${workerId}] Shutdown complete`)
+  logger.info(`[Worker ${workerId}] Shutdown complete`)
 
   process.exit(0)
 }

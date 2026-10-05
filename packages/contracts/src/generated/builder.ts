@@ -41,6 +41,8 @@ export interface BuildStartedResponse {
   commitSha: string
   accessToken: string
   buildId: string
+  /** Framework detected when the repository was imported (lowercase, e.g. "nextjs"). */
+  framework: string
 }
 
 export interface BuildCompletedRequest {
@@ -289,6 +291,7 @@ function createBaseBuildStartedResponse(): BuildStartedResponse {
     commitSha: "",
     accessToken: "",
     buildId: "",
+    framework: "",
   }
 }
 
@@ -317,6 +320,9 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
     }
     if (message.buildId !== "") {
       writer.uint32(58).string(message.buildId)
+    }
+    if (message.framework !== "") {
+      writer.uint32(66).string(message.framework)
     }
     return writer
   },
@@ -388,6 +394,14 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
           message.buildId = reader.string()
           continue
         }
+        case 8: {
+          if (tag !== 66) {
+            break
+          }
+
+          message.framework = reader.string()
+          continue
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break
@@ -430,6 +444,9 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
         : isSet(object.build_id)
           ? globalThis.String(object.build_id)
           : "",
+      framework: isSet(object.framework)
+        ? globalThis.String(object.framework)
+        : "",
     }
   },
 
@@ -456,6 +473,9 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
     if (message.buildId !== "") {
       obj.buildId = message.buildId
     }
+    if (message.framework !== "") {
+      obj.framework = message.framework
+    }
     return obj
   },
 
@@ -475,6 +495,7 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
     message.commitSha = object.commitSha ?? ""
     message.accessToken = object.accessToken ?? ""
     message.buildId = object.buildId ?? ""
+    message.framework = object.framework ?? ""
     return message
   },
 }

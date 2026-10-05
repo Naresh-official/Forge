@@ -3,6 +3,13 @@ export interface ContainerEnvVar {
   value: string
 }
 
+/** CPU/memory/storage the container is granted (requests equal limits). */
+export interface ContainerResources {
+  cpuMillicores: number
+  memoryMb: number
+  ephemeralStorageMb: number
+}
+
 /**
  * Credentials for a docker-registry imagePullSecret (e.g. Amazon ECR).
  */
@@ -33,4 +40,6 @@ export interface DeployContainerParams {
   imagePullSecret?: string
   /** Credentials used to create the imagePullSecret (ECR token). */
   pullSecretCredentials?: RegistryPullSecretParams
+  /** Resource plan for the container. Falls back to Basic when omitted. */
+  resources?: ContainerResources
 }

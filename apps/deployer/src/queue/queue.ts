@@ -16,6 +16,10 @@ export type DeployerQueueJob = {
   artifactKey?: string
   strategy?: string
   framework?: string
+  // Resource plan (MiB / millicores), passed through from DeployRequest.
+  cpuMillicores?: number
+  memoryMb?: number
+  ephemeralStorageMb?: number
 }
 
 export const deployerQueue = new Queue<DeployerQueueJob>(

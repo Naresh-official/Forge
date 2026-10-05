@@ -8,14 +8,13 @@ import { connection, type BuilderQueueJob } from "@/queue/queue"
 import { buildStarted, buildCompleted } from "@/gRPC/wrapper/api.wrapper"
 import { cloneGitRepository } from "./features/git"
 import { detectProject } from "./features/detect"
-import {
-  buildNodeProject,
-  isStaticFramework,
-} from "./features/builders/node.builder"
+import { buildNodeProject } from "./features/builders/node.builder"
+import { isStaticFramework, normalizeFramework } from "@forge/frameworks"
 import { containerizeNodeProject } from "./features/builders/node.container"
 import { buildDockerfileProject } from "./features/builders/dockerfile.builder"
 import { buildDockerComposeProject } from "./features/builders/docker-compose.builder"
 import { createBuildLogger } from "./features/logs/build-logs"
+import logger from "@/utils/logger"
 
 const workerId = process.env.WORKER_ID ?? "unknown"
 
@@ -36,7 +35,7 @@ const worker = new Worker<BuilderQueueJob>(
   async (job) => {
     const { buildId } = job.data
 
-    console.log(`[Worker ${workerId}] Processing build ${buildId}`)
+    logger.info(`[Worker ${workerId}] Processing build ${buildId}`)
 
     const report: BuildReport = {
       status: "FAILED",
@@ -75,9 +74,12 @@ const worker = new Worker<BuilderQueueJob>(
       const createLogger = () => createBuildLogger(repoPath!, buildId)
 
       const detection = detectProject(repoPath)
+      // Framework is detected once, at repository import time, and handed to
+      // the builder by the API — it is never detected here.
+      const framework = normalizeFramework(response.framework)
 
       report.strategy = detection.strategy
-      report.framework = detection.framework
+      report.framework = framework
       report.packageRunner = detection.packageRunner
 
       switch (detection.strategy) {
@@ -86,20 +88,16 @@ const worker = new Worker<BuilderQueueJob>(
             throw new Error("Package runner is undefined")
           }
 
-          if (detection.framework === undefined) {
-            throw new Error("Framework is undefined")
-          }
-
           const output = await buildNodeProject({
             projectPath: repoPath,
             packageRunner: detection.packageRunner,
-            framework: detection.framework,
+            framework,
             logger: createLogger(),
           })
 
-          console.log({ output })
+          logger.info({ output }, "Build output")
 
-          if (isStaticFramework(detection.framework)) {
+          if (isStaticFramework(framework)) {
             if (output.outputDirectory === undefined) {
               throw new Error("Static build produced no output directory")
             }
@@ -110,7 +108,7 @@ const worker = new Worker<BuilderQueueJob>(
               objectPrefix,
             })
 
-            console.log({ upload })
+            logger.info({ upload }, "Artifact upload complete")
 
             report.artifactBucket = builderConfig.storage.bucket
             report.artifactKey = `${objectPrefix}/`
@@ -118,12 +116,12 @@ const worker = new Worker<BuilderQueueJob>(
             const container = await containerizeNodeProject({
               projectPath: repoPath,
               packageRunner: detection.packageRunner,
-              framework: detection.framework,
+              framework,
               buildId,
               logger: createLogger(),
             })
 
-            console.log({ container })
+            logger.info({ container }, "Container image built")
 
             const pushLogger = createLogger()
 
@@ -137,7 +135,7 @@ const worker = new Worker<BuilderQueueJob>(
                 onStderr: (data) => pushLogger.stderr(data),
               })
 
-              console.log({ push })
+              logger.info({ push }, "Image pushed")
 
               report.imageUrl = push.imageRef.split(":")[0]
               report.imageTag = imageTag
@@ -161,7 +159,7 @@ const worker = new Worker<BuilderQueueJob>(
             logger: createLogger(),
           })
 
-          console.log({ output })
+          logger.info({ output }, "Build output")
 
           const pushLogger = createLogger()
 
@@ -175,7 +173,7 @@ const worker = new Worker<BuilderQueueJob>(
               onStderr: (data) => pushLogger.stderr(data),
             })
 
-            console.log({ push })
+            logger.info({ push }, "Image pushed")
 
             report.imageUrl = push.imageRef.split(":")[0]
             report.imageTag = imageTag
@@ -197,7 +195,7 @@ const worker = new Worker<BuilderQueueJob>(
             logger: createLogger(),
           })
 
-          console.log({ output })
+          logger.info({ output }, "Build output")
 
           const pushLogger = createLogger()
 
@@ -212,7 +210,7 @@ const worker = new Worker<BuilderQueueJob>(
               onStderr: (data) => pushLogger.stderr(data),
             })
 
-            console.log({ push })
+            logger.info({ push }, "Image pushed")
 
             report.imageUrl = push.imageRefs[0]?.split(":")[0] ?? ""
             report.imageTag = imageTag
@@ -253,9 +251,9 @@ const worker = new Worker<BuilderQueueJob>(
           packageRunner: report.packageRunner ?? "",
         })
       } catch (reportError) {
-        console.error(
-          `[Worker ${workerId}] Failed to report build ${buildId}:`,
-          reportError
+        logger.error(
+          reportError,
+          `[Worker ${workerId}] Failed to report build ${buildId}`
         )
       }
 
@@ -288,27 +286,27 @@ const worker = new Worker<BuilderQueueJob>(
 )
 
 worker.on("ready", () => {
-  console.log(`[Worker ${workerId}] Ready`)
+  logger.info(`[Worker ${workerId}] Ready`)
 })
 
 worker.on("error", (error) => {
-  console.error(`[Worker ${workerId}] Error:`, error)
+  logger.error(error, `[Worker ${workerId}] Error`)
 })
 
 worker.on("failed", (job, error) => {
-  console.error(`[Worker ${workerId}] Job ${job?.id} failed:`, error)
+  logger.error(error, `[Worker ${workerId}] Job ${job?.id} failed`)
 })
 
 worker.on("completed", (job, result) => {
-  console.log(`[Worker ${workerId}] Job ${job.id} completed:`, result)
+  logger.info({ result }, `[Worker ${workerId}] Job ${job.id} completed`)
 })
 
 async function shutdown(signal: string) {
-  console.log(`[Worker ${workerId}] Received ${signal}, shutting down...`)
+  logger.info(`[Worker ${workerId}] Received ${signal}, shutting down...`)
 
   await worker.close()
 
-  console.log(`[Worker ${workerId}] Shutdown complete`)
+  logger.info(`[Worker ${workerId}] Shutdown complete`)
 
   process.exit(0)
 }

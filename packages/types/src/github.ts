@@ -1,3 +1,5 @@
+import type { ProjectFramework } from "./project"
+
 export type GithubSetUpBody = {
   installation: {
     id: string
@@ -25,6 +27,11 @@ export type GithubRepository = {
   projectId: string | null
   fullName: string
   defaultBranch: string
+  /**
+   * Detected from package.json when the repository is first synced.
+   * null = not detected yet; "UNKNOWN" = detected, unsupported framework.
+   */
+  framework: ProjectFramework | null
   /** ISO timestamp — serialised over HTTP, not a Date instance. */
   createdAt: string
 }

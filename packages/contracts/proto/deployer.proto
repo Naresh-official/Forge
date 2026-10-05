@@ -22,6 +22,11 @@ message DeployRequest {
   // Detection details
   string strategy = 8;
   string framework = 9;
+
+  // Resource plan (MiB / millicores). Requests equal limits.
+  int32 cpu_millicores = 10;
+  int32 memory_mb = 11;
+  int32 ephemeral_storage_mb = 12;
 }
 
 message DeployResponse {

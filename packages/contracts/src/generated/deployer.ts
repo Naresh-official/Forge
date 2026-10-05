@@ -34,6 +34,10 @@ export interface DeployRequest {
   /** Detection details */
   strategy: string
   framework: string
+  /** Resource plan (MiB / millicores). Requests equal limits. */
+  cpuMillicores: number
+  memoryMb: number
+  ephemeralStorageMb: number
 }
 
 export interface DeployResponse {
@@ -74,6 +78,9 @@ function createBaseDeployRequest(): DeployRequest {
     artifactKey: "",
     strategy: "",
     framework: "",
+    cpuMillicores: 0,
+    memoryMb: 0,
+    ephemeralStorageMb: 0,
   }
 }
 
@@ -108,6 +115,15 @@ export const DeployRequest: MessageFns<DeployRequest> = {
     }
     if (message.framework !== "") {
       writer.uint32(74).string(message.framework)
+    }
+    if (message.cpuMillicores !== 0) {
+      writer.uint32(80).int32(message.cpuMillicores)
+    }
+    if (message.memoryMb !== 0) {
+      writer.uint32(88).int32(message.memoryMb)
+    }
+    if (message.ephemeralStorageMb !== 0) {
+      writer.uint32(96).int32(message.ephemeralStorageMb)
     }
     return writer
   },
@@ -192,6 +208,30 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           message.framework = reader.string()
           continue
         }
+        case 10: {
+          if (tag !== 80) {
+            break
+          }
+
+          message.cpuMillicores = reader.int32()
+          continue
+        }
+        case 11: {
+          if (tag !== 88) {
+            break
+          }
+
+          message.memoryMb = reader.int32()
+          continue
+        }
+        case 12: {
+          if (tag !== 96) {
+            break
+          }
+
+          message.ephemeralStorageMb = reader.int32()
+          continue
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break
@@ -244,6 +284,21 @@ export const DeployRequest: MessageFns<DeployRequest> = {
       framework: isSet(object.framework)
         ? globalThis.String(object.framework)
         : "",
+      cpuMillicores: isSet(object.cpuMillicores)
+        ? globalThis.Number(object.cpuMillicores)
+        : isSet(object.cpu_millicores)
+          ? globalThis.Number(object.cpu_millicores)
+          : 0,
+      memoryMb: isSet(object.memoryMb)
+        ? globalThis.Number(object.memoryMb)
+        : isSet(object.memory_mb)
+          ? globalThis.Number(object.memory_mb)
+          : 0,
+      ephemeralStorageMb: isSet(object.ephemeralStorageMb)
+        ? globalThis.Number(object.ephemeralStorageMb)
+        : isSet(object.ephemeral_storage_mb)
+          ? globalThis.Number(object.ephemeral_storage_mb)
+          : 0,
     }
   },
 
@@ -276,6 +331,15 @@ export const DeployRequest: MessageFns<DeployRequest> = {
     if (message.framework !== "") {
       obj.framework = message.framework
     }
+    if (message.cpuMillicores !== 0) {
+      obj.cpuMillicores = Math.round(message.cpuMillicores)
+    }
+    if (message.memoryMb !== 0) {
+      obj.memoryMb = Math.round(message.memoryMb)
+    }
+    if (message.ephemeralStorageMb !== 0) {
+      obj.ephemeralStorageMb = Math.round(message.ephemeralStorageMb)
+    }
     return obj
   },
 
@@ -297,6 +361,9 @@ export const DeployRequest: MessageFns<DeployRequest> = {
     message.artifactKey = object.artifactKey ?? ""
     message.strategy = object.strategy ?? ""
     message.framework = object.framework ?? ""
+    message.cpuMillicores = object.cpuMillicores ?? 0
+    message.memoryMb = object.memoryMb ?? 0
+    message.ephemeralStorageMb = object.ephemeralStorageMb ?? 0
     return message
   },
 }

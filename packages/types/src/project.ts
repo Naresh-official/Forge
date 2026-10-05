@@ -32,7 +32,8 @@ export type ProjectListItem = {
   id: string
   name: string
   slug: string
-  framework: ProjectFramework
+  /** Detected from the linked repository; null when no repository is linked. */
+  framework: ProjectFramework | null
   createdAt: Date
   updatedAt: Date
   deployments: ProjectDeployment

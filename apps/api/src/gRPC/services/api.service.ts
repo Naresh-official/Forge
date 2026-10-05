@@ -9,6 +9,7 @@ import type {
   BuildCompletedResponse,
 } from "@forge/contracts"
 import type { sendUnaryData, ServerUnaryCall } from "@grpc/grpc-js"
+import { normalizeFramework } from "@forge/frameworks"
 
 export const apiService = {
   async buildStarted(
@@ -74,6 +75,9 @@ export const apiService = {
         branch: build.deployment.branch,
         commitSha: build.deployment.commitSha,
         buildId: build.id,
+        framework: normalizeFramework(
+          build.deployment.project.githubRepository.framework
+        ),
       })
     } catch (error) {
       callback(error as Error, null)
@@ -107,6 +111,10 @@ export const apiService = {
 
       if (request.status === "SUCCEEDED" && updatedBuild.deployment) {
         try {
+          const resources = await prisma.deploymentResource.findUnique({
+            where: { deploymentId: updatedBuild.deployment.id },
+          })
+
           await deployWrapper({
             deploymentId: updatedBuild.deployment.id,
             projectId: updatedBuild.deployment.projectId,
@@ -117,6 +125,9 @@ export const apiService = {
             artifactKey: request.artifactKey || "",
             strategy: request.strategy || "",
             framework: request.framework || "",
+            cpuMillicores: resources?.cpuMillicores ?? 0,
+            memoryMb: resources?.memoryMb ?? 0,
+            ephemeralStorageMb: resources?.ephemeralStorageMb ?? 0,
           })
         } catch (deployError) {
           console.error("Failed to forward build to deployer:", deployError)

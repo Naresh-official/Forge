@@ -1,22 +1,9 @@
 import fs from "fs"
 import path from "path"
 
-export type PackageRunner = "npm" | "pnpm" | "yarn" | "bun" | "unknown"
+import type { PackageRunner } from "@forge/frameworks"
 
-export type Framework =
-  | "nextjs"
-  | "vite"
-  | "react"
-  | "vue"
-  | "nuxt"
-  | "svelte"
-  | "sveltekit"
-  | "astro"
-  | "angular"
-  | "remix"
-  | "nestjs"
-  | "express"
-  | "unknown"
+export type { Framework, PackageRunner } from "@forge/frameworks"
 
 export type BuildStrategy = "dockerfile" | "docker-compose" | "node" | "unknown"
 
@@ -25,8 +12,6 @@ export interface ProjectDetection {
 
   packageRunner?: PackageRunner
   packageManagerVersion?: string
-
-  framework?: Framework
 
   dockerfile?: string
   composeFile?: string
@@ -153,82 +138,6 @@ function detectPackageRunner(
   }
 }
 
-function detectFramework(packageJson: PackageJson): Framework {
-  const dependencies = {
-    ...packageJson.dependencies,
-    ...packageJson.devDependencies,
-  }
-
-  /*
-   * Full-stack frameworks first.
-   */
-  if (dependencies["next"]) {
-    return "nextjs"
-  }
-
-  if (dependencies["@remix-run/react"]) {
-    return "remix"
-  }
-
-  if (dependencies["nuxt"]) {
-    return "nuxt"
-  }
-
-  if (dependencies["@sveltejs/kit"]) {
-    return "sveltekit"
-  }
-
-  if (dependencies["astro"]) {
-    return "astro"
-  }
-
-  if (dependencies["@angular/core"]) {
-    return "angular"
-  }
-
-  if (dependencies["@nestjs/core"]) {
-    return "nestjs"
-  }
-
-  /*
-   * Backend frameworks.
-   */
-  if (dependencies["express"]) {
-    return "express"
-  }
-
-  /*
-   * Frontend frameworks.
-   */
-  if (dependencies["svelte"]) {
-    return "svelte"
-  }
-
-  if (dependencies["react"]) {
-    /*
-     * Vite + React is still a React project.
-     */
-    return "react"
-  }
-
-  if (dependencies["vue"]) {
-    /*
-     * Nuxt was checked above, so this is
-     * a plain Vue project.
-     */
-    return "vue"
-  }
-
-  /*
-   * Vite without React/Vue/Svelte/etc.
-   */
-  if (dependencies["vite"]) {
-    return "vite"
-  }
-
-  return "unknown"
-}
-
 export function detectProject(projectPath: string): ProjectDetection {
   const dockerfile = findDockerfile(projectPath)
   const composeFile = findComposeFile(projectPath)
@@ -265,13 +174,10 @@ export function detectProject(projectPath: string): ProjectDetection {
   if (packageJson) {
     const packageRunner = detectPackageRunner(projectPath, packageJson)
 
-    const framework = detectFramework(packageJson)
-
     return {
       strategy: "node",
       packageRunner: packageRunner.runner,
       packageManagerVersion: packageRunner.version,
-      framework,
     }
   }
 

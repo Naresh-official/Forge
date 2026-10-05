@@ -118,13 +118,12 @@ model Account {
 // ─────────────────────────────────────────────
 
 model Project {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
   name      String
   slug      String
-  framework Framework @default(UNKNOWN)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -280,12 +279,16 @@ model GitHubInstallation {
 }
 
 model GitHubRepository {
-  id             Int      @id
+  id             Int       @id
   installationId Int
-  projectId      String?  @unique @db.Uuid
+  projectId      String?   @unique @db.Uuid
   fullName       String
-  defaultBranch  String   @default("main")
-  createdAt      DateTime @default(now())
+  defaultBranch  String    @default("main")
+  // Detected once from the repository's package.json when it is first
+  // synced. null means "not detected yet" (e.g. a transient GitHub error),
+  // UNKNOWN means detected but no supported framework was found.
+  framework      Framework?
+  createdAt      DateTime  @default(now())
 
   installation GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
 

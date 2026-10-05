@@ -1,6 +1,7 @@
 import type { ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js"
 import type { DeployRequest, DeployResponse } from "@forge/contracts"
 import { deployerQueue } from "@/queue/queue"
+import logger from "@/utils/logger"
 
 export const deployerService = {
   async deploy(
@@ -9,7 +10,7 @@ export const deployerService = {
   ) {
     try {
       const request = call.request
-      console.log("Received deploy request", request)
+      logger.info({ request }, "Received deploy request")
       await deployerQueue.add("deploy", {
         deploymentId: request.deploymentId,
         projectId: request.projectId,
@@ -20,6 +21,9 @@ export const deployerService = {
         artifactKey: request.artifactKey,
         strategy: request.strategy,
         framework: request.framework,
+        cpuMillicores: request.cpuMillicores,
+        memoryMb: request.memoryMb,
+        ephemeralStorageMb: request.ephemeralStorageMb,
       })
       callback(null, {
         message: "Deployment Queued",

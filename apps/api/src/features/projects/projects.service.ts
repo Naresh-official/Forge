@@ -21,6 +21,7 @@ export const listAllProjectsService = async (userId: string) => {
         select: {
           fullName: true,
           defaultBranch: true,
+          framework: true,
         },
       },
     },
@@ -30,6 +31,9 @@ export const listAllProjectsService = async (userId: string) => {
     const githubRepository = project.githubRepository || null
     return {
       ...project,
+      // The framework lives on the repository now — surface it at the
+      // project level for the existing UI.
+      framework: githubRepository?.framework ?? null,
       deployments: {
         branch: deployment?.branch as string,
         status: deployment?.status as DeploymentStatus,

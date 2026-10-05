@@ -1,23 +1,70 @@
 import z from "zod"
 
+export const deploymentPlanSchema = z.enum(["basic", "standard", "pro"])
+
+export type DeploymentPlanId = z.infer<typeof deploymentPlanSchema>
+
+export interface DeploymentPlan {
+  id: DeploymentPlanId
+  label: string
+  /** CPU request/limit in millicores. */
+  cpuMillicores: number
+  /** Memory request/limit in MiB. */
+  memoryMb: number
+  /** Ephemeral storage request/limit in MiB. */
+  ephemeralStorageMb: number
+}
+
+/**
+ * Selectable resource tiers. Each tier doubles the previous one.
+ * Requests equal limits (Kubernetes Guaranteed QoS).
+ */
+export const DEPLOYMENT_PLANS: Record<DeploymentPlanId, DeploymentPlan> = {
+  basic: {
+    id: "basic",
+    label: "Basic",
+    cpuMillicores: 500,
+    memoryMb: 512,
+    ephemeralStorageMb: 2048,
+  },
+  standard: {
+    id: "standard",
+    label: "Standard",
+    cpuMillicores: 1000,
+    memoryMb: 1024,
+    ephemeralStorageMb: 4096,
+  },
+  pro: {
+    id: "pro",
+    label: "Pro",
+    cpuMillicores: 2000,
+    memoryMb: 2048,
+    ephemeralStorageMb: 8192,
+  },
+}
+
+export const deploymentPlanIds: DeploymentPlanId[] = [
+  "basic",
+  "standard",
+  "pro",
+]
+
 export const createRepositorySchema = z.object({
   repositoryId: z.int(),
   projectName: z.string().optional(),
+  /** Resource tier for non-static (containerized) projects. */
+  plan: deploymentPlanSchema.optional(),
 })
 
 export type CreateRepositoryInput = z.infer<typeof createRepositorySchema>
 
 /**
- * Default resources assigned to every deployment.
- *
- * Mirrors CONTAINER_RESOURCES in apps/deployer Kubernetes constants:
- * - CPU:    500 m request / 1000 m limit
- * - Memory: 512 Mi request / 2048 Mi limit
+ * Default resources assigned to every deployment (the Basic plan).
  */
 export const DEFAULT_DEPLOYMENT_RESOURCES = {
-  cpuMillicores: 500,
-  memoryMb: 512,
-  ephemeralStorageMb: 1024,
+  cpuMillicores: DEPLOYMENT_PLANS.basic.cpuMillicores,
+  memoryMb: DEPLOYMENT_PLANS.basic.memoryMb,
+  ephemeralStorageMb: DEPLOYMENT_PLANS.basic.ephemeralStorageMb,
   autoscalingEnabled: false,
 } as const
 

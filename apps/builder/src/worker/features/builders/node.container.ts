@@ -1,7 +1,7 @@
 import fs from "fs"
 import path from "path"
 import { builderConfig } from "@forge/config"
-import type { Framework, PackageRunner } from "../detect"
+import type { Framework, PackageRunner } from "@forge/frameworks"
 import type { BuildLogger } from "../logs/build-logs"
 import { buildDockerfileProject } from "./dockerfile.builder"
 

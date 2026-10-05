@@ -11,84 +11,13 @@ import {
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import type { IconType } from "react-icons"
-import { SiAstro } from "react-icons/si"
-import { SiAngular } from "react-icons/si"
-import { SiExpress } from "react-icons/si"
-import { SiNestjs } from "react-icons/si"
-import { SiNextdotjs } from "react-icons/si"
-import { SiNodedotjs } from "react-icons/si"
-import { SiNuxt } from "react-icons/si"
-import { SiReact } from "react-icons/si"
-import { SiRemix } from "react-icons/si"
-import { SiSvelte } from "react-icons/si"
-import { SiVite } from "react-icons/si"
-import { SiVuedotjs } from "react-icons/si"
 import { listProjects } from "@forge/api-client/project"
 import { EmptyState, PageHeader, StatusBadge } from "../../_components/ui"
+import {
+  FrameworkLogo,
+  formatFramework,
+} from "../../_components/framework-logo"
 import type { ProjectListItem } from "@forge/types"
-
-const FRAMEWORK_LABELS: Record<string, string> = {
-  NEXTJS: "Next.js",
-  VITE: "Vite",
-  REACT: "React",
-  VUE: "Vue",
-  NUXT: "Nuxt",
-  SVELTE: "Svelte",
-  SVELTEKIT: "SvelteKit",
-  ASTRO: "Astro",
-  ANGULAR: "Angular",
-  REMIX: "Remix",
-  NESTJS: "NestJS",
-  EXPRESS: "Express",
-  UNKNOWN: "Node.js",
-}
-
-function formatFramework(framework?: string) {
-  if (!framework) return "Node.js"
-  return FRAMEWORK_LABELS[framework.toUpperCase()] ?? framework
-}
-
-type FrameworkIcon = { icon: IconType; color: string }
-
-const DEFAULT_FRAMEWORK_ICON: FrameworkIcon = {
-  icon: SiNodedotjs,
-  color: "text-lime-500",
-}
-
-const FRAMEWORK_ICONS: Record<string, FrameworkIcon> = {
-  NEXTJS: { icon: SiNextdotjs, color: "text-foreground" },
-  VITE: { icon: SiVite, color: "text-violet-400" },
-  REACT: { icon: SiReact, color: "text-cyan-400" },
-  VUE: { icon: SiVuedotjs, color: "text-emerald-400" },
-  NUXT: { icon: SiNuxt, color: "text-emerald-400" },
-  SVELTE: { icon: SiSvelte, color: "text-orange-500" },
-  SVELTEKIT: { icon: SiSvelte, color: "text-orange-500" },
-  ASTRO: { icon: SiAstro, color: "text-fuchsia-500" },
-  ANGULAR: { icon: SiAngular, color: "text-rose-500" },
-  REMIX: { icon: SiRemix, color: "text-sky-400" },
-  NESTJS: { icon: SiNestjs, color: "text-rose-500" },
-  EXPRESS: { icon: SiExpress, color: "text-foreground" },
-  UNKNOWN: DEFAULT_FRAMEWORK_ICON,
-}
-
-function FrameworkLogo({ framework }: { framework?: string }) {
-  const { icon: Icon, color } =
-    FRAMEWORK_ICONS[(framework ?? "UNKNOWN").toUpperCase()] ??
-    DEFAULT_FRAMEWORK_ICON
-
-  return (
-    <span
-      title={formatFramework(framework)}
-      className={[
-        "flex size-4 shrink-0 items-center justify-center",
-        color,
-      ].join(" ")}
-    >
-      <Icon className="size-4" aria-hidden />
-    </span>
-  )
-}
 
 function formatRelativeTime(dateInput?: Date | string) {
   if (!dateInput) return "Recently"

@@ -1,7 +1,7 @@
 import { $Enums } from "@/generated/prisma/client"
 import prisma from "@/utils/db"
 import { ApiError } from "@forge/types/apiResponses"
-import { DEFAULT_DEPLOYMENT_RESOURCES } from "@forge/types"
+import { DEPLOYMENT_PLANS } from "@forge/types"
 import slugify from "slugify"
 import { githubApp } from "../github/github.client"
 import type { CreateRepositoryInput } from "@forge/types/deployment"
@@ -52,6 +52,8 @@ export const deployRepositoryService = async (
     throw new ApiError(404, "No commits found in the repository.")
   }
 
+  const plan = DEPLOYMENT_PLANS[input.plan ?? "basic"]
+
   const project = await prisma.project.create({
     data: {
       userId,
@@ -76,7 +78,10 @@ export const deployRepositoryService = async (
           createdByUserId: userId,
           resources: {
             create: {
-              ...DEFAULT_DEPLOYMENT_RESOURCES,
+              cpuMillicores: plan.cpuMillicores,
+              memoryMb: plan.memoryMb,
+              ephemeralStorageMb: plan.ephemeralStorageMb,
+              autoscalingEnabled: false,
             },
           },
           build: {

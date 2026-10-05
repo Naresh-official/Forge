@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowUpRight,
   Check,
+  Cpu,
   ExternalLink,
   GitBranch,
   Loader2,
@@ -19,11 +20,29 @@ import { createDeployment } from "@forge/api-client/deployment"
 import { getGithubInstallUrl } from "@forge/api-client/github"
 import { listRepositories } from "@forge/api-client/repositories"
 import type { GithubRepository } from "@forge/types/github"
+import { isStaticFramework, normalizeFramework } from "@forge/frameworks"
+import {
+  DEPLOYMENT_PLANS,
+  deploymentPlanIds,
+  type DeploymentPlanId,
+} from "@forge/types"
+import { FrameworkLogo } from "@/app/(dashboard)/_components/framework-logo"
 import { useToast } from "@/app/(dashboard)/_components/toast-provider"
 
-const STEPS = ["Repository", "Deploy"] as const
+/**
+ * The Resources step is only shown for non-static (server/container)
+ * projects — static sites need no Kubernetes resources.
+ */
+const STATIC_STEPS = [
+  { label: "Repository", description: "Import a repository" },
+  { label: "Deploy", description: "Review and deploy" },
+] as const
 
-const STEP_DESCRIPTIONS = ["Import a repository", "Review and deploy"] as const
+const CONTAINER_STEPS = [
+  { label: "Repository", description: "Import a repository" },
+  { label: "Resources", description: "Configure resources" },
+  { label: "Deploy", description: "Review and deploy" },
+] as const
 
 function repoShortName(repo: GithubRepository) {
   return repo.fullName.split("/")[1] ?? repo.fullName
@@ -38,6 +57,14 @@ export function CreateProjectWizard() {
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<GithubRepository | null>(null)
   const [projectName, setProjectName] = useState("")
+  const [plan, setPlan] = useState<DeploymentPlanId>("basic")
+
+  const selectedIsStatic = selected
+    ? isStaticFramework(normalizeFramework(selected.framework))
+    : true
+
+  const steps = selectedIsStatic ? STATIC_STEPS : CONTAINER_STEPS
+  const isLastStep = step === steps.length
 
   const repositoriesQuery = useQuery({
     queryKey: ["repositories"],
@@ -77,6 +104,7 @@ export function CreateProjectWizard() {
     deployment.mutate({
       repositoryId: selected.id,
       ...(name ? { projectName: name } : {}),
+      ...(selectedIsStatic ? {} : { plan }),
     })
   }
 
@@ -95,13 +123,13 @@ export function CreateProjectWizard() {
           Create a project
         </h1>
         <p className="mt-2 text-xs text-muted-foreground">
-          Step {step} of {STEPS.length} · {STEP_DESCRIPTIONS[step - 1]}
+          Step {step} of {steps.length} · {steps[step - 1]?.description}
         </p>
       </div>
 
       <div className="max-w-4xl">
         <div className="mb-3 flex gap-6 max-sm:justify-between max-sm:gap-2">
-          {STEPS.map((label, i) => (
+          {steps.map(({ label }, i) => (
             <button
               key={label}
               type="button"
@@ -251,8 +279,8 @@ export function CreateProjectWizard() {
                             : "hover:border-primary/50",
                         ].join(" ")}
                       >
-                        <span className="grid size-7 shrink-0 place-items-center rounded-md bg-secondary text-xs text-primary">
-                          {repoShortName(repo)[0]?.toUpperCase()}
+                        <span className="grid size-7 shrink-0 place-items-center rounded-md bg-secondary">
+                          <FrameworkLogo framework={repo.framework} />
                         </span>
                         <span className="flex min-w-0 flex-1 flex-col gap-1">
                           <strong className="truncate text-[11px]">
@@ -290,7 +318,71 @@ export function CreateProjectWizard() {
             </>
           )}
 
-          {step === 2 && selected && (
+          {step === 2 && !selectedIsStatic && selected && (
+            <>
+              <StepTitle
+                icon={<Cpu className="size-5" />}
+                title="Configure resources"
+                description="Choose how much CPU, memory and storage your service gets."
+              />
+
+              <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-5 max-sm:grid-cols-1">
+                {deploymentPlanIds.map((id) => {
+                  const planOption = DEPLOYMENT_PLANS[id]
+                  const active = plan === id
+
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPlan(id)}
+                      className={[
+                        "flex flex-col gap-1.5 rounded-md border p-3 text-left",
+                        active
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50",
+                      ].join(" ")}
+                    >
+                      <span className="flex items-center justify-between">
+                        <strong className="text-[12px] font-semibold">
+                          {planOption.label}
+                        </strong>
+                        {active && <Check className="size-3.5 text-primary" />}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {planOption.cpuMillicores} m CPU
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {planOption.memoryMb} MB memory
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {planOption.ephemeralStorageMb} MB storage
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <Actions>
+                <button
+                  type="button"
+                  onClick={() => goToStep(1)}
+                  className="rounded-md border border-border bg-card px-3 py-2 text-[11px]"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToStep(3)}
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground"
+                >
+                  Continue <ArrowUpRight className="size-3.5" />
+                </button>
+              </Actions>
+            </>
+          )}
+
+          {isLastStep && selected && (
             <>
               <StepTitle
                 icon={<Rocket className="size-5" />}
@@ -301,6 +393,12 @@ export function CreateProjectWizard() {
               <div className="mt-5 grid grid-cols-2 gap-5 border-t border-border pt-5 max-sm:grid-cols-1">
                 <Summary label="Repository" value={selected.fullName} />
                 <Summary label="Branch" value={selected.defaultBranch} />
+                {!selectedIsStatic && (
+                  <Summary
+                    label="Resources"
+                    value={`${DEPLOYMENT_PLANS[plan].label} · ${DEPLOYMENT_PLANS[plan].cpuMillicores}m / ${DEPLOYMENT_PLANS[plan].memoryMb}MB`}
+                  />
+                )}
               </div>
 
               <label className="mt-5 flex flex-col gap-1.5 text-sm text-muted-foreground">
@@ -332,7 +430,7 @@ export function CreateProjectWizard() {
                 <button
                   type="button"
                   disabled={deployment.isPending}
-                  onClick={() => goToStep(1)}
+                  onClick={() => goToStep(step - 1)}
                   className="rounded-md border border-border bg-card px-3 py-2 text-[11px] disabled:opacity-50"
                 >
                   Back

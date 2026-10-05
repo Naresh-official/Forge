@@ -23,7 +23,7 @@ export const getAvailableRepositoriesService = async (userId: string) => {
         { per_page: 100 }
       )
 
-      await syncInstallationRepositories(installation.id, repositories)
+      await syncInstallationRepositories(installation.id, repositories, octokit)
     } catch (error) {
       /*
        * One unusable installation (revoked, suspended, …) should not take

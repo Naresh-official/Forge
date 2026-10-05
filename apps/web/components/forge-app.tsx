@@ -196,8 +196,6 @@ export default function ForgeApp() {
             <button className="mobile-menu" onClick={() => setMobileNav(true)}>
               <Menu size={17} />
             </button>
-            <span>Acme Cloud</span>
-            <span>/</span>
             <strong>{project?.name ?? routeTitle(pathname)}</strong>
           </div>
           <div className="top-actions">

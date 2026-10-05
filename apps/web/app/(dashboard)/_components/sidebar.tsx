@@ -2,7 +2,6 @@
 
 import {
   Box,
-  ChevronDown,
   Globe2,
   LayoutDashboard,
   LifeBuoy,
@@ -14,7 +13,9 @@ import {
   X,
 } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
-import { projects } from "@/lib/forge-data"
+import { useQuery } from "@tanstack/react-query"
+import { listProjectNames } from "@forge/api-client/project"
+import { UserAvatar, displayNameFor, type SessionUser } from "./user-avatar"
 
 const navigation = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -25,14 +26,22 @@ const navigation = [
 ]
 
 export function Sidebar({
+  user,
   mobile,
   onClose,
 }: {
+  user: SessionUser
   mobile: boolean
   onClose: () => void
 }) {
   const pathname = usePathname()
   const router = useRouter()
+
+  const projectsQuery = useQuery({
+    queryKey: ["project-names"],
+    queryFn: listProjectNames,
+  })
+  const projectNames = projectsQuery.data?.data ?? []
 
   const go = (href: string) => {
     onClose()
@@ -58,22 +67,6 @@ export function Sidebar({
           <X className="size-4 text-muted-foreground" />
         </button>
       </div>
-
-      <button
-        type="button"
-        className="mt-5 flex w-full items-center gap-2 rounded-lg border border-border bg-card p-2.5 text-left"
-      >
-        <span className="grid size-6 place-items-center rounded-md bg-secondary text-sm font-bold text-primary">
-          AC
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <strong className="text-[11px] font-semibold">Acme Cloud</strong>
-          <small className="text-sm text-muted-foreground">
-            Personal workspace
-          </small>
-        </span>
-        <ChevronDown className="size-3.5 text-muted-foreground" />
-      </button>
 
       <p className="mt-6 mb-2 px-2.5 text-[9px] font-bold tracking-[0.14em] text-muted-foreground uppercase">
         Workspace
@@ -114,15 +107,34 @@ export function Sidebar({
       </div>
 
       <div className="flex flex-col gap-0.5">
-        {projects.map((project) => (
+        {projectsQuery.isLoading &&
+          Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex animate-pulse items-center gap-2 px-3 py-2"
+            >
+              <span className="size-1.5 shrink-0 rounded-full bg-muted" />
+              <span className="h-2.5 w-24 rounded bg-muted" />
+            </div>
+          ))}
+
+        {!projectsQuery.isLoading &&
+          !projectsQuery.isError &&
+          projectNames.length === 0 && (
+            <p className="px-3 py-2 text-[11px] text-muted-foreground">
+              No projects yet.
+            </p>
+          )}
+
+        {projectNames.map((project) => (
           <button
             key={project.id}
             type="button"
             onClick={() => go(`/projects/${project.id}`)}
             className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground"
           >
-            <span className="size-1.5 rounded-full bg-primary" />
-            {project.name}
+            <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+            <span className="truncate">{project.name}</span>
           </button>
         ))}
       </div>
@@ -145,13 +157,13 @@ export function Sidebar({
           Settings
         </button>
         <div className="mt-2 flex items-center gap-2 border-t border-border px-2 py-3">
-          <div className="grid size-7 place-items-center rounded-md bg-secondary text-sm font-bold text-primary">
-            JD
-          </div>
-          <span className="flex flex-col gap-0.5">
-            <strong className="text-[11px]">Jordan Davis</strong>
-            <small className="text-sm text-muted-foreground">
-              jordan@acme.co
+          <UserAvatar user={user} className="size-7 text-sm" />
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <strong className="truncate text-[11px]">
+              {displayNameFor(user)}
+            </strong>
+            <small className="truncate text-sm text-muted-foreground">
+              {user.email ?? ""}
             </small>
           </span>
         </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import "@forge/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { QueryProvider } from "@/components/query-provider"
 
 export const metadata: Metadata = {
   title: "Forge",
@@ -13,7 +14,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider forcedTheme="dark">{children}</ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider forcedTheme="dark">{children}</ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

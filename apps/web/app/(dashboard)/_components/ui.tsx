@@ -3,16 +3,30 @@
 import { Check, Copy, Plus, X } from "lucide-react"
 import { useState } from "react"
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status }: { status?: string }) {
+  const norm = (status ?? "").toUpperCase()
   const good = [
-    "Ready",
-    "Production",
-    "Configured",
-    "Active",
-    "Operational",
-    "Connected",
-  ].includes(status)
-  const warn = ["Building", "Preview", "Verifying", "Pending"].includes(status)
+    "READY",
+    "PRODUCTION",
+    "CONFIGURED",
+    "ACTIVE",
+    "OPERATIONAL",
+    "CONNECTED",
+    "SUCCESS",
+  ].includes(norm)
+  const warn = [
+    "BUILDING",
+    "DEPLOYING",
+    "PREVIEW",
+    "VERIFYING",
+    "PENDING",
+    "QUEUED",
+  ].includes(norm)
+
+  const formattedStatus =
+    status && status.length > 0
+      ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+      : "Unknown"
 
   return (
     <span
@@ -27,7 +41,7 @@ export function StatusBadge({ status }: { status: string }) {
           good ? "bg-emerald-400" : warn ? "bg-amber-400" : "bg-rose-400",
         ].join(" ")}
       />
-      {status}
+      {formattedStatus}
     </span>
   )
 }

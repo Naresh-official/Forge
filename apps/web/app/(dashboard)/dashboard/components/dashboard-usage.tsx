@@ -147,9 +147,24 @@ const USAGE_METRICS: UsageMetric[] = [
 ]
 
 const PROJECT_DISTRIBUTION = [
-  { name: "atlas-console", type: "Next.js SSR", share: 44, color: "bg-primary" },
-  { name: "signal-api", type: "Node Server", share: 32, color: "bg-emerald-500" },
-  { name: "northstar-web", type: "Astro Static", share: 16, color: "bg-sky-500" },
+  {
+    name: "atlas-console",
+    type: "Next.js SSR",
+    share: 44,
+    color: "bg-primary",
+  },
+  {
+    name: "signal-api",
+    type: "Node Server",
+    share: 32,
+    color: "bg-emerald-500",
+  },
+  {
+    name: "northstar-web",
+    type: "Astro Static",
+    share: 16,
+    color: "bg-sky-500",
+  },
   { name: "forge-docs", type: "Static Docs", share: 8, color: "bg-amber-500" },
 ]
 
@@ -336,19 +351,19 @@ export function DashboardUsage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h3 className="text-xs font-semibold text-foreground leading-tight">
+                        <h3 className="text-xs leading-tight font-semibold text-foreground">
                           {metric.name}
                         </h3>
                         <span
                           className={[
-                            "rounded px-1 py-0.2 text-[9px] font-mono",
+                            "py-0.2 rounded px-1 font-mono text-[9px]",
                             metric.typeBadge === "Static"
-                              ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                              ? "border border-sky-500/20 bg-sky-500/10 text-sky-400"
                               : metric.typeBadge === "Server"
-                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
                                 : metric.typeBadge === "Pipeline"
-                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                  : "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+                                  ? "border border-amber-500/20 bg-amber-500/10 text-amber-400"
+                                  : "border border-purple-500/20 bg-purple-500/10 text-purple-400",
                           ].join(" ")}
                         >
                           {metric.typeBadge}

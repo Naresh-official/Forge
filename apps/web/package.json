@@ -12,9 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vercel/analytics": "^2.0.1",
-    "@forge/ui": "workspace:*",
     "@forge/api-client": "workspace:*",
+    "@forge/ui": "workspace:*",
+    "@tanstack/react-query": "^5.104.1",
+    "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.30.0",
     "next": "16.2.6",

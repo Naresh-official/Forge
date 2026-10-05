@@ -4,9 +4,16 @@ import { useEffect, useState } from "react"
 import { CommandPalette } from "./command-palette"
 import { Sidebar } from "./sidebar"
 import { Topbar } from "./topbar"
+import type { SessionUser } from "./user-avatar"
 import { ToastProvider } from "./toast-provider"
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  user,
+  children,
+}: {
+  user: SessionUser
+  children: React.ReactNode
+}) {
   const [mobileNav, setMobileNav] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -26,12 +33,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ToastProvider>
       <div className="min-h-screen bg-background text-foreground">
         <div className="flex min-h-screen">
-          <Sidebar mobile={mobileNav} onClose={() => setMobileNav(false)} />
+          <Sidebar
+            user={user}
+            mobile={mobileNav}
+            onClose={() => setMobileNav(false)}
+          />
           <main className="min-w-0 flex-1">
-            <Topbar
-              onMenu={() => setMobileNav(true)}
-              onSearch={() => setSearchOpen(true)}
-            />
+            <Topbar user={user} onMenu={() => setMobileNav(true)} />
             <div className="mx-auto max-w-[1440px] px-[clamp(17px,4vw,50px)] py-10 max-sm:py-7">
               {children}
             </div>

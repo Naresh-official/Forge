@@ -14,14 +14,14 @@ is split into a **control plane** and asynchronous infrastructure
 workers so that application management, builds, and deployments can
 evolve independently.
 
-------------------------------------------------------------------------
+---
 
 ## 1. What Forge Does
 
 Forge provides the infrastructure and control plane needed to take an
 application from:
 
-``` text
+```text
 GitHub Repository
        │
        ▼
@@ -42,33 +42,33 @@ Build Artifact / Container Image
 
 The platform is designed around several core capabilities:
 
--   GitHub-based project creation
--   GitHub App integration for repository access
--   User authentication
--   Project and deployment management
--   Automated source-code detection
--   Automated application builds
--   Build logs and build lifecycle state
--   Artifact/object storage
--   Container image registry integration
--   Kubernetes-based deployment
--   Environment variable management
--   Domain management
--   Deployment/resource visibility
--   A web dashboard for operating projects
--   Shared TypeScript contracts and types between services
+- GitHub-based project creation
+- GitHub App integration for repository access
+- User authentication
+- Project and deployment management
+- Automated source-code detection
+- Automated application builds
+- Build logs and build lifecycle state
+- Artifact/object storage
+- Container image registry integration
+- Kubernetes-based deployment
+- Environment variable management
+- Domain management
+- Deployment/resource visibility
+- A web dashboard for operating projects
+- Shared TypeScript contracts and types between services
 
 The current repository shows the implementation moving toward a
 production-style platform architecture with separate API, Builder,
 Deployer, and Web applications.
 
-------------------------------------------------------------------------
+---
 
 # 2. High-Level Architecture
 
 At a high level, Forge is divided into four applications:
 
-``` text
+```text
                          ┌──────────────────────┐
                          │       Forge Web      │
                          │  Next.js Dashboard   │
@@ -107,24 +107,26 @@ At a high level, Forge is divided into four applications:
 
 ### Architectural responsibilities
 
-  Component      Responsibility
-  -------------- -----------------------------------------------------------
-  Web            User-facing dashboard and project management UI
-  API            Control plane, authentication, persistence, orchestration
-  Builder        Clone source and produce deployable output
-  Deployer       Convert deployment requests into Kubernetes resources
-  PostgreSQL     Persistent platform state
-  Redis/BullMQ   Asynchronous job execution
-  GitHub         Source-code provider
-  Storage        Build artifacts and object storage
-  Registry       Container image storage
-  Kubernetes     Runtime environment for deployed applications
+Component Responsibility
+
+---
+
+Web User-facing dashboard and project management UI
+API Control plane, authentication, persistence, orchestration
+Builder Clone source and produce deployable output
+Deployer Convert deployment requests into Kubernetes resources
+PostgreSQL Persistent platform state
+Redis/BullMQ Asynchronous job execution
+GitHub Source-code provider
+Storage Build artifacts and object storage
+Registry Container image storage
+Kubernetes Runtime environment for deployed applications
 
 The API is the central coordinator. It owns the platform state and
 communicates with infrastructure workers rather than performing
 expensive build/deployment work itself.
 
-------------------------------------------------------------------------
+---
 
 # 3. Core Request Flow
 
@@ -135,7 +137,7 @@ GitHub as the primary integration.
 
 The general flow is:
 
-``` text
+```text
 User
  │
  ▼
@@ -154,7 +156,7 @@ Forge API
 The API contains authentication middleware and authentication services,
 while GitHub-specific functionality is separated into its own feature.
 
-------------------------------------------------------------------------
+---
 
 # 4. GitHub Integration
 
@@ -172,7 +174,7 @@ The GitHub integration allows Forge to:
 
 The API contains:
 
-``` text
+```text
 features/github/
 ├── github.client.ts
 ├── github.controller.ts
@@ -182,7 +184,7 @@ features/github/
 
 Repository management is handled separately under:
 
-``` text
+```text
 features/repositories/
 ├── repositories.controller.ts
 ├── repositories.routes.ts
@@ -192,7 +194,7 @@ features/repositories/
 This separation keeps GitHub-provider functionality distinct from
 Forge's project/repository domain logic.
 
-------------------------------------------------------------------------
+---
 
 # 5. Project Creation
 
@@ -200,7 +202,7 @@ A Forge project represents an application managed by the platform.
 
 Conceptually:
 
-``` text
+```text
 User
  │
  ▼
@@ -225,18 +227,18 @@ project lifecycle operations.
 
 The database currently contains models for entities such as:
 
--   User
--   GitHubInstallation
--   GitHubRepository
--   Project
--   Deployment
--   Build
--   DeploymentResource
--   Domain
--   EnvironmentVariable
--   Account
+- User
+- GitHubInstallation
+- GitHubRepository
+- Project
+- Deployment
+- Build
+- DeploymentResource
+- Domain
+- EnvironmentVariable
+- Account
 
-------------------------------------------------------------------------
+---
 
 # 6. Build Pipeline
 
@@ -245,7 +247,7 @@ can be deployed.
 
 The intended pipeline is:
 
-``` text
+```text
 Build Request
      │
      ▼
@@ -283,7 +285,7 @@ Builder Worker
 
 The current Builder contains dedicated modules for:
 
-``` text
+```text
 worker/features/
 ├── builders/
 │   ├── docker-compose.builder.ts
@@ -302,7 +304,7 @@ build strategies rather than hard-coding one framework.
 The current implementation has specifically worked with Node/React-style
 projects and includes project detection and package-runner detection.
 
-------------------------------------------------------------------------
+---
 
 # 7. Builder Architecture
 
@@ -310,7 +312,7 @@ The Builder is an independent application.
 
 It has three important layers:
 
-``` text
+```text
 gRPC Server
      │
      ▼
@@ -335,8 +337,8 @@ The API communicates with the Builder using gRPC.
 
 The Builder exposes services such as:
 
--   `BuilderService`
--   `HealthService`
+- `BuilderService`
+- `HealthService`
 
 The Builder also contains an API client/wrapper for sending lifecycle
 information back toward the API.
@@ -347,15 +349,15 @@ BullMQ is used for asynchronous build execution.
 
 This is important because building a project is:
 
--   CPU intensive
--   potentially long running
--   failure prone
--   unsuitable for a synchronous HTTP request
+- CPU intensive
+- potentially long running
+- failure prone
+- unsuitable for a synchronous HTTP request
 
 The API therefore initiates/co-ordinates the build while the Builder
 performs the actual work asynchronously.
 
-------------------------------------------------------------------------
+---
 
 # 8. Artifact and Registry Flow
 
@@ -366,8 +368,8 @@ Forge has two distinct concepts:
 The storage package abstracts object storage and currently contains
 support for:
 
--   AWS S3
--   MinIO
+- AWS S3
+- MinIO
 
 This is useful for build artifacts and other objects produced during the
 build/deployment lifecycle.
@@ -379,7 +381,7 @@ currently uses the AWS ECR SDK.
 
 The overall direction is:
 
-``` text
+```text
 Build
  │
  ├── Static/build artifact ──────► S3 / MinIO
@@ -392,7 +394,7 @@ Build
 
 The exact output depends on the selected build strategy.
 
-------------------------------------------------------------------------
+---
 
 # 9. Deployment Pipeline
 
@@ -401,7 +403,7 @@ to the Deployer.
 
 The flow is:
 
-``` text
+```text
 Build Complete
      │
      ▼
@@ -433,13 +435,13 @@ The Deployer is intentionally separate from the API and Builder.
 
 This gives Forge a clean separation:
 
-``` text
+```text
 API       → What should happen?
 Builder   → How do we build it?
 Deployer  → How do we run it?
 ```
 
-------------------------------------------------------------------------
+---
 
 # 10. Kubernetes Deployment
 
@@ -448,7 +450,7 @@ Kubernetes.
 
 The repository contains abstractions for:
 
-``` text
+```text
 apps/deployer/src/kubernetes/
 ├── constants.ts
 ├── http/
@@ -471,22 +473,22 @@ apps/deployer/src/kubernetes/
 
 The Kubernetes layer therefore separates:
 
--   Kubernetes connection/client handling
--   Resource naming
--   Manifest generation
--   Resource APIs
--   Shared Kubernetes types
+- Kubernetes connection/client handling
+- Resource naming
+- Manifest generation
+- Resource APIs
+- Shared Kubernetes types
 
 The platform has been tested against local Kubernetes/kind environments
 and is intended to work with AWS EKS for cloud deployment.
 
-------------------------------------------------------------------------
+---
 
 # 11. Deployment Resources
 
 A Forge deployment can result in Kubernetes resources such as:
 
-``` text
+```text
 Namespace
    │
    ├── Deployment
@@ -507,7 +509,7 @@ The service provides networking to the workload.
 The registry secret allows Kubernetes to pull private images when
 required.
 
-------------------------------------------------------------------------
+---
 
 # 12. Web Dashboard
 
@@ -517,25 +519,25 @@ It acts as the operational interface for Forge.
 
 The dashboard currently contains areas for:
 
--   Overview/dashboard
--   Projects
--   Project deployments
--   Deployment details
--   Domains
--   Environment variables
--   Logs
--   Resources
--   Project settings
--   Global settings
--   Profile
--   Preferences
--   Notifications
--   Documentation
--   Login
+- Overview/dashboard
+- Projects
+- Project deployments
+- Deployment details
+- Domains
+- Environment variables
+- Logs
+- Resources
+- Project settings
+- Global settings
+- Profile
+- Preferences
+- Notifications
+- Documentation
+- Login
 
 The current route organization is roughly:
 
-``` text
+```text
 app/
 ├── (dashboard)/
 │   ├── dashboard/
@@ -565,13 +567,13 @@ app/
 The UI is built using shared Forge UI components and
 Tailwind/shadcn-style primitives.
 
-------------------------------------------------------------------------
+---
 
 # 13. Web Data Layer
 
 The Web application consumes the Forge API through the dedicated:
 
-``` text
+```text
 @forge/api-client
 ```
 
@@ -579,7 +581,7 @@ package.
 
 The API client contains domain-specific modules:
 
-``` text
+```text
 packages/api-client/src/
 ├── auth.ts
 ├── client.ts
@@ -597,16 +599,16 @@ management.
 
 This gives the frontend:
 
--   Request caching
--   Loading states
--   Error states
--   Query invalidation
--   Refetching
--   Server-state synchronization
+- Request caching
+- Loading states
+- Error states
+- Query invalidation
+- Refetching
+- Server-state synchronization
 
 The architectural separation is therefore:
 
-``` text
+```text
 React Component
       │
       ▼
@@ -622,7 +624,7 @@ Forge HTTP API
 This keeps transport concerns separate from UI state and makes API usage
 consistent throughout the dashboard.
 
-------------------------------------------------------------------------
+---
 
 # 14. API / Control Plane
 
@@ -630,34 +632,34 @@ The API is the central control-plane application.
 
 Technology:
 
--   Bun
--   TypeScript
--   Express 5
--   Prisma
--   PostgreSQL
--   NextAuth integration
--   GitHub App/Octokit
--   gRPC clients/server
+- Bun
+- TypeScript
+- Express 5
+- Prisma
+- PostgreSQL
+- NextAuth integration
+- GitHub App/Octokit
+- gRPC clients/server
 
 Its responsibilities include:
 
--   Authentication
--   Users
--   GitHub installations
--   Repositories
--   Projects
--   Builds
--   Deployments
--   Domains
--   Environment variables
--   Infrastructure orchestration
--   Persistent platform state
--   Communication with Builder
--   Communication with Deployer
+- Authentication
+- Users
+- GitHub installations
+- Repositories
+- Projects
+- Builds
+- Deployments
+- Domains
+- Environment variables
+- Infrastructure orchestration
+- Persistent platform state
+- Communication with Builder
+- Communication with Deployer
 
 The API is organized around feature modules:
 
-``` text
+```text
 features/
 ├── auth/
 ├── builds/
@@ -670,7 +672,7 @@ features/
 Each major domain generally contains controllers, routes, and services
 where applicable.
 
-------------------------------------------------------------------------
+---
 
 # 15. API → Builder → Deployer Coordination
 
@@ -678,7 +680,7 @@ The API acts as the coordinator for the build/deployment lifecycle.
 
 A simplified sequence is:
 
-``` text
+```text
 User
  │
  │ Create deployment
@@ -728,7 +730,7 @@ perform the actual build or Kubernetes work.
 It records and coordinates the lifecycle while specialized services
 execute infrastructure operations.
 
-------------------------------------------------------------------------
+---
 
 # 16. Database
 
@@ -738,7 +740,7 @@ Prisma is used as the ORM and schema management layer.
 
 The API currently contains:
 
-``` text
+```text
 apps/api/prisma/
 ├── schema.prisma
 └── migrations/
@@ -746,7 +748,7 @@ apps/api/prisma/
 
 The database models include concepts such as:
 
-``` text
+```text
 User
  │
  ├── Account
@@ -769,7 +771,7 @@ PostgreSQL is the source of truth for Forge's platform state.
 Transient execution state belongs in the worker/queue systems, while
 durable lifecycle state belongs in PostgreSQL.
 
-------------------------------------------------------------------------
+---
 
 # 17. Redis and BullMQ
 
@@ -779,12 +781,12 @@ The current applications use BullMQ.
 
 Queues are used by:
 
--   Builder
--   Deployer
+- Builder
+- Deployer
 
 Conceptually:
 
-``` text
+```text
 API
  │
  ├──────────────► Builder Queue ───► Builder Worker
@@ -794,13 +796,13 @@ API
 
 This gives Forge:
 
--   Asynchronous execution
--   Retry capabilities
--   Worker isolation
--   Better API responsiveness
--   Independent scaling of infrastructure workers
+- Asynchronous execution
+- Retry capabilities
+- Worker isolation
+- Better API responsiveness
+- Independent scaling of infrastructure workers
 
-------------------------------------------------------------------------
+---
 
 # 18. gRPC
 
@@ -808,7 +810,7 @@ gRPC is used for internal service-to-service communication.
 
 The contracts are stored in:
 
-``` text
+```text
 packages/contracts/proto/
 ├── builder.proto
 ├── deployer.proto
@@ -817,7 +819,7 @@ packages/contracts/proto/
 
 Generated TypeScript code lives under:
 
-``` text
+```text
 packages/contracts/src/generated/
 ├── builder.ts
 ├── deployer.ts
@@ -826,7 +828,7 @@ packages/contracts/src/generated/
 
 The main internal communication paths are:
 
-``` text
+```text
 API ─────gRPC────► Builder
 API ─────gRPC────► Deployer
 ```
@@ -834,7 +836,7 @@ API ─────gRPC────► Deployer
 This separates internal infrastructure RPC from the public HTTP API
 consumed by the Web application.
 
-------------------------------------------------------------------------
+---
 
 # 19. Storage Architecture
 
@@ -842,16 +844,16 @@ The `@forge/storage` package abstracts object storage.
 
 Current dependencies indicate support for:
 
--   AWS S3
--   MinIO
--   MIME type detection
+- AWS S3
+- MinIO
+- MIME type detection
 
 This abstraction allows the same application-level storage API to be
 used with local infrastructure and cloud infrastructure.
 
 A typical artifact path can conceptually be organized by:
 
-``` text
+```text
 project/
   deployment/
     build/
@@ -865,7 +867,7 @@ The broader serving architecture is intended to avoid creating a
 separate CDN distribution for every deployment and instead use a shared
 CDN/storage setup with deployment/project prefixes.
 
-------------------------------------------------------------------------
+---
 
 # 20. Registry Architecture
 
@@ -879,7 +881,7 @@ Forge.
 
 The desired abstraction is:
 
-``` text
+```text
 Builder
    │
    ▼
@@ -892,7 +894,7 @@ ECR / Container Registry
 The Deployer can then use the resulting image reference when creating
 Kubernetes deployments.
 
-------------------------------------------------------------------------
+---
 
 # 21. Shared Types
 
@@ -901,7 +903,7 @@ shared between applications.
 
 Current modules include:
 
-``` text
+```text
 packages/types/src/
 ├── apiResponses.ts
 ├── auth.ts
@@ -915,7 +917,7 @@ packages/types/src/
 The goal is to avoid duplicating domain models and API response shapes
 across the Web and API applications.
 
-------------------------------------------------------------------------
+---
 
 # 22. Contracts vs Types
 
@@ -926,7 +928,7 @@ Forge intentionally separates **internal service contracts** from
 
 Used for service-to-service contracts, particularly gRPC:
 
-``` text
+```text
 .proto
    │
    ▼
@@ -940,7 +942,7 @@ API / Builder / Deployer
 
 Used for shared application-level TypeScript types:
 
-``` text
+```text
 API domain
    │
    ├── Project types
@@ -953,7 +955,7 @@ API domain
 This prevents the gRPC protocol definitions from becoming the frontend's
 domain model.
 
-------------------------------------------------------------------------
+---
 
 # 23. Configuration Package
 
@@ -961,7 +963,7 @@ domain model.
 
 Current modules include:
 
-``` text
+```text
 packages/config/src/
 ├── api.ts
 ├── builder.ts
@@ -975,7 +977,7 @@ packages/config/src/
 The package allows each application to obtain its environment-specific
 configuration while keeping common configuration logic in one place.
 
-------------------------------------------------------------------------
+---
 
 # 24. UI Package
 
@@ -984,7 +986,7 @@ infrastructure.
 
 Current structure includes:
 
-``` text
+```text
 packages/ui/
 ├── src/
 │   ├── components/
@@ -997,18 +999,18 @@ packages/ui/
 
 It is based around:
 
--   React
--   Tailwind CSS
--   shadcn-style components
--   Base UI
--   class-variance-authority
--   tailwind-merge
--   Lucide icons
+- React
+- Tailwind CSS
+- shadcn-style components
+- Base UI
+- class-variance-authority
+- tailwind-merge
+- Lucide icons
 
 The purpose is to prevent the Web application from becoming a collection
 of completely independent UI implementations.
 
-------------------------------------------------------------------------
+---
 
 # 25. TypeScript Configuration
 
@@ -1016,7 +1018,7 @@ of completely independent UI implementations.
 
 Current presets include:
 
-``` text
+```text
 base.json
 nextjs.json
 react-library.json
@@ -1025,7 +1027,7 @@ react-library.json
 Applications and packages can extend these configurations rather than
 maintaining unrelated compiler settings.
 
-------------------------------------------------------------------------
+---
 
 # 26. ESLint Configuration
 
@@ -1033,22 +1035,22 @@ maintaining unrelated compiler settings.
 
 It includes separate configuration concerns for:
 
--   Base JavaScript/TypeScript
--   Next.js
--   React
--   React hooks
--   Turbo
--   TypeScript ESLint
+- Base JavaScript/TypeScript
+- Next.js
+- React
+- React hooks
+- Turbo
+- TypeScript ESLint
 
 This keeps linting behavior consistent across the monorepo.
 
-------------------------------------------------------------------------
+---
 
 # 27. Complete Monorepo Structure
 
 The important source structure is:
 
-``` text
+```text
 forge/
 │
 ├── apps/
@@ -1078,7 +1080,7 @@ forge/
 
 The repository is managed as a **Turborepo monorepo** with Bun.
 
-------------------------------------------------------------------------
+---
 
 # 28. Application Summary
 
@@ -1088,29 +1090,29 @@ The repository is managed as a **Turborepo monorepo** with Bun.
 
 **Responsibilities:**
 
--   Authentication
--   User management
--   GitHub integration
--   Repository management
--   Project management
--   Build orchestration
--   Deployment orchestration
--   Domain/environment management
--   PostgreSQL persistence
--   Internal gRPC communication
+- Authentication
+- User management
+- GitHub integration
+- Repository management
+- Project management
+- Build orchestration
+- Deployment orchestration
+- Domain/environment management
+- PostgreSQL persistence
+- Internal gRPC communication
 
 **Key technologies:**
 
--   Bun
--   TypeScript
--   Express
--   Prisma
--   PostgreSQL
--   Octokit
--   gRPC
--   NextAuth
+- Bun
+- TypeScript
+- Express
+- Prisma
+- PostgreSQL
+- Octokit
+- gRPC
+- NextAuth
 
-------------------------------------------------------------------------
+---
 
 ## `apps/builder`
 
@@ -1118,28 +1120,28 @@ The repository is managed as a **Turborepo monorepo** with Bun.
 
 **Responsibilities:**
 
--   Receive build commands
--   Queue builds
--   Clone GitHub repositories
--   Detect project/framework/package manager
--   Execute builds
--   Build Docker-based projects
--   Produce deployable output
--   Store/publish artifacts
--   Emit build lifecycle information
+- Receive build commands
+- Queue builds
+- Clone GitHub repositories
+- Detect project/framework/package manager
+- Execute builds
+- Build Docker-based projects
+- Produce deployable output
+- Store/publish artifacts
+- Emit build lifecycle information
 
 **Key technologies:**
 
--   Bun
--   TypeScript
--   BullMQ
--   Redis
--   simple-git
--   Docker
--   gRPC
--   Forge storage/registry packages
+- Bun
+- TypeScript
+- BullMQ
+- Redis
+- simple-git
+- Docker
+- gRPC
+- Forge storage/registry packages
 
-------------------------------------------------------------------------
+---
 
 ## `apps/deployer`
 
@@ -1147,26 +1149,26 @@ The repository is managed as a **Turborepo monorepo** with Bun.
 
 **Responsibilities:**
 
--   Receive deployment commands
--   Queue deployments
--   Manage Kubernetes resources
--   Create namespaces
--   Create deployments
--   Create services
--   Configure registry credentials
--   Communicate with Kubernetes clusters
+- Receive deployment commands
+- Queue deployments
+- Manage Kubernetes resources
+- Create namespaces
+- Create deployments
+- Create services
+- Configure registry credentials
+- Communicate with Kubernetes clusters
 
 **Key technologies:**
 
--   Bun
--   TypeScript
--   BullMQ
--   Redis
--   gRPC
--   `@kubernetes/client-node`
--   Kubernetes
+- Bun
+- TypeScript
+- BullMQ
+- Redis
+- gRPC
+- `@kubernetes/client-node`
+- Kubernetes
 
-------------------------------------------------------------------------
+---
 
 ## `apps/web`
 
@@ -1174,31 +1176,31 @@ The repository is managed as a **Turborepo monorepo** with Bun.
 
 **Responsibilities:**
 
--   Authentication UI
--   Project creation
--   Project management
--   Deployment management
--   Deployment details
--   Build/deployment logs
--   Domains
--   Environment variables
--   Resource views
--   Settings
--   Documentation
+- Authentication UI
+- Project creation
+- Project management
+- Deployment management
+- Deployment details
+- Build/deployment logs
+- Domains
+- Environment variables
+- Resource views
+- Settings
+- Documentation
 
 **Key technologies:**
 
--   Next.js 16
--   React 19
--   TypeScript
--   Tailwind CSS
--   shadcn-style UI
--   NextAuth
--   TanStack Query
--   `@forge/api-client`
--   `@forge/ui`
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS
+- shadcn-style UI
+- NextAuth
+- TanStack Query
+- `@forge/api-client`
+- `@forge/ui`
 
-------------------------------------------------------------------------
+---
 
 # 29. Package Summary
 
@@ -1209,22 +1211,22 @@ Forge API.
 
 Contains domain-specific clients for:
 
--   Authentication
--   Projects
--   Deployments
--   GitHub
--   Repositories
+- Authentication
+- Projects
+- Deployments
+- GitHub
+- Repositories
 
 It is the transport boundary between the frontend and backend.
 
-------------------------------------------------------------------------
+---
 
 ## `packages/config`
 
 Central configuration package for API, Builder, Deployer, Web, and
 shared settings.
 
-------------------------------------------------------------------------
+---
 
 ## `packages/contracts`
 
@@ -1232,17 +1234,17 @@ Defines internal gRPC contracts and generated TypeScript code.
 
 Contains:
 
--   Builder protocol
--   Deployer protocol
--   Health protocol
+- Builder protocol
+- Deployer protocol
+- Health protocol
 
-------------------------------------------------------------------------
+---
 
 ## `packages/eslint-config`
 
 Shared ESLint configuration used across Forge packages and applications.
 
-------------------------------------------------------------------------
+---
 
 ## `packages/registry`
 
@@ -1252,7 +1254,7 @@ Currently backed by the AWS ECR SDK.
 
 Used by the build/deployment pipeline to work with container images.
 
-------------------------------------------------------------------------
+---
 
 ## `packages/storage`
 
@@ -1260,12 +1262,12 @@ Object storage abstraction.
 
 Currently supports:
 
--   AWS S3
--   MinIO
+- AWS S3
+- MinIO
 
 Used for build artifacts and object storage.
 
-------------------------------------------------------------------------
+---
 
 ## `packages/types`
 
@@ -1273,17 +1275,17 @@ Shared TypeScript domain and API types.
 
 Used to keep frontend/backend type definitions consistent.
 
-------------------------------------------------------------------------
+---
 
 ## `packages/typescript-config`
 
 Shared TypeScript compiler configurations for:
 
--   Base packages
--   Next.js applications
--   React libraries
+- Base packages
+- Next.js applications
+- React libraries
 
-------------------------------------------------------------------------
+---
 
 ## `packages/ui`
 
@@ -1292,7 +1294,7 @@ Shared React component library and styling utilities.
 Used by the Web application and intended to provide consistent Forge UI
 primitives.
 
-------------------------------------------------------------------------
+---
 
 # 30. Infrastructure Model
 
@@ -1301,7 +1303,7 @@ responsibilities.
 
 A representative deployment topology is:
 
-``` text
+```text
                          Internet
                             │
                             ▼
@@ -1342,26 +1344,26 @@ separation remains:
 
 **Control plane → Build plane → Deployment plane → Runtime plane**
 
-------------------------------------------------------------------------
+---
 
 # 31. Local Development
 
 Forge has been developed and tested against local infrastructure
 including:
 
--   Bun
--   Docker
--   PostgreSQL
--   Redis
--   MinIO
--   kind/Kubernetes
+- Bun
+- Docker
+- PostgreSQL
+- Redis
+- MinIO
+- kind/Kubernetes
 
 The Kubernetes deployment layer has also been tested with AWS EKS.
 
 The same conceptual pipeline is intended to work locally and in cloud
 environments.
 
-------------------------------------------------------------------------
+---
 
 # 32. Production Direction
 
@@ -1370,24 +1372,24 @@ architecture.
 
 The intended production characteristics include:
 
--   Separate infrastructure workers
--   Persistent PostgreSQL state
--   Redis-backed asynchronous queues
--   Container image registry
--   Kubernetes runtime
--   Object storage
--   CDN-backed static asset serving
--   GitHub App based repository access
--   Internal gRPC service communication
--   Typed API clients
--   Shared contracts/types
--   Centralized logging and lifecycle state
--   Project/deployment/domain/environment abstractions
+- Separate infrastructure workers
+- Persistent PostgreSQL state
+- Redis-backed asynchronous queues
+- Container image registry
+- Kubernetes runtime
+- Object storage
+- CDN-backed static asset serving
+- GitHub App based repository access
+- Internal gRPC service communication
+- Typed API clients
+- Shared contracts/types
+- Centralized logging and lifecycle state
+- Project/deployment/domain/environment abstractions
 
 A key design principle is to avoid coupling the user-facing API to
 expensive infrastructure operations.
 
-------------------------------------------------------------------------
+---
 
 # 33. Important Architectural Decisions
 
@@ -1435,7 +1437,7 @@ duplicating them across applications.
 The Web application uses the API client as the transport layer and
 TanStack Query for caching/loading/refetching server state.
 
-------------------------------------------------------------------------
+---
 
 # 34. End-to-End Example
 
@@ -1445,7 +1447,7 @@ Consider a developer deploying a React application.
 
 The developer authenticates and connects GitHub.
 
-``` text
+```text
 GitHub
    │
    ▼
@@ -1461,7 +1463,7 @@ Forge records the installation and available repositories.
 
 The developer selects:
 
-``` text
+```text
 my-react-app
 ```
 
@@ -1471,7 +1473,7 @@ Forge creates a Project and associates it with the repository.
 
 The Web application calls the API through:
 
-``` text
+```text
 TanStack Query
       ↓
 @forge/api-client
@@ -1483,7 +1485,7 @@ Forge API
 
 The API sends a build request to the Builder through gRPC.
 
-``` text
+```text
 API
  │
  ▼
@@ -1511,7 +1513,7 @@ The worker:
 
 After a successful build:
 
-``` text
+```text
 API
  │
  ▼
@@ -1536,28 +1538,28 @@ configured networking/domain layer.
 
 The Web dashboard can then display:
 
--   Deployment status
--   Logs
--   Domains
--   Environment variables
--   Resources
--   Deployment history
+- Deployment status
+- Logs
+- Domains
+- Environment variables
+- Resources
+- Deployment history
 
-------------------------------------------------------------------------
+---
 
 # 35. Repository Design Philosophy
 
 Forge is intentionally structured as a monorepo because the platform
 contains multiple closely related services that need to share:
 
--   Types
--   Contracts
--   Configuration
--   UI components
--   API client behavior
--   Storage abstractions
--   Registry abstractions
--   Build tooling
+- Types
+- Contracts
+- Configuration
+- UI components
+- API client behavior
+- Storage abstractions
+- Registry abstractions
+- Build tooling
 
 The monorepo makes it possible to change a domain model or internal
 contract and update all affected consumers in one codebase.
@@ -1565,43 +1567,43 @@ contract and update all affected consumers in one codebase.
 At the same time, the `apps/` boundary keeps runtime responsibilities
 isolated.
 
-``` text
+```text
 apps/       → Runtime services/applications
 packages/   → Reusable libraries and contracts
 ```
 
 This is the main organizational principle of the repository.
 
-------------------------------------------------------------------------
+---
 
 # 36. Current Project State
 
 The repository currently contains working foundations for:
 
--   Forge API
--   GitHub integration
--   Project/repository management
--   PostgreSQL/Prisma persistence
--   Builder service
--   BullMQ build workers
--   Project detection
--   Node/React build strategies
--   Storage abstraction
--   Registry abstraction
--   Deployer service
--   Kubernetes client/resource abstractions
--   Next.js dashboard
--   API client
--   TanStack Query integration
--   Shared UI
--   Shared types
--   Shared gRPC contracts
--   Shared configuration/lint/TypeScript configuration
+- Forge API
+- GitHub integration
+- Project/repository management
+- PostgreSQL/Prisma persistence
+- Builder service
+- BullMQ build workers
+- Project detection
+- Node/React build strategies
+- Storage abstraction
+- Registry abstraction
+- Deployer service
+- Kubernetes client/resource abstractions
+- Next.js dashboard
+- API client
+- TanStack Query integration
+- Shared UI
+- Shared types
+- Shared gRPC contracts
+- Shared configuration/lint/TypeScript configuration
 
 The system has progressed beyond a simple frontend/backend application
 into a distributed platform architecture.
 
-------------------------------------------------------------------------
+---
 
 # 37. One-Sentence Description
 
@@ -1611,11 +1613,11 @@ control-plane API, asynchronous Builder/Deployer workers, PostgreSQL,
 Redis/BullMQ, object storage, container registries, and a Next.js
 management dashboard.**
 
-------------------------------------------------------------------------
+---
 
 # 38. Architecture in One Diagram
 
-``` text
+```text
                            ┌─────────────────────┐
                            │       Developer     │
                            └──────────┬──────────┘
@@ -1671,7 +1673,7 @@ management dashboard.**
                     └──────────────────────────┘
 ```
 
-------------------------------------------------------------------------
+---
 
 ## Summary
 
@@ -1685,7 +1687,7 @@ The **Web** is the user interface, the **API** is the control plane, the
 Shared packages provide the boundaries that keep those services
 consistent:
 
-``` text
+```text
                    FORGE
                      │
         ┌────────────┴────────────┐

@@ -164,17 +164,17 @@ Every router except `POST /auth/github` is guarded by the `authenticate` middlew
 
 **Database schema highlights (Prisma):**
 
-| Model                 | Notes                                                                |
-| --------------------- | -------------------------------------------------------------------- |
-| `User`                | UUID PK, GitHub OAuth via `Account`                                  |
-| `Project`             | Belongs to User; unique `(userId, slug)`                             |
-| `Deployment`          | Status: `QUEUED → BUILDING → DEPLOYING → READY / FAILED / CANCELLED` |
-| `Build`               | 1-to-1 with Deployment; separate `BuildStatus` lifecycle             |
-| `Domain`              | `CUSTOM` or `SYSTEM`; `PENDING → ACTIVE / FAILED`                    |
-| `EnvironmentVariable` | Encrypted at rest (`valueEncrypted`)                                 |
-| `GitHubInstallation`  | GitHub App installation per User; PK is the GitHub `installation.id` |
+| Model                 | Notes                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `User`                | UUID PK, GitHub OAuth via `Account`                                                                             |
+| `Project`             | Belongs to User; unique `(userId, slug)`                                                                        |
+| `Deployment`          | Status: `QUEUED → BUILDING → DEPLOYING → READY / FAILED / CANCELLED`                                            |
+| `Build`               | 1-to-1 with Deployment; separate `BuildStatus` lifecycle                                                        |
+| `Domain`              | `CUSTOM` or `SYSTEM`; `PENDING → ACTIVE / FAILED`                                                               |
+| `EnvironmentVariable` | Encrypted at rest (`valueEncrypted`)                                                                            |
+| `GitHubInstallation`  | GitHub App installation per User; PK is the GitHub `installation.id`                                            |
 | `GitHubRepository`    | Linked to Installation; `projectId` optional + unique; holds the detected `framework` (null = not detected yet) |
-| `DeploymentResource`  | CPU/memory/storage specs per Deployment                              |
+| `DeploymentResource`  | CPU/memory/storage specs per Deployment                                                                         |
 
 `BuildStatus` is `QUEUED → BUILDING → SUCCEEDED / FAILED / CANCELLED` — it is **not** the same lifecycle as `DeploymentStatus`. A build can stay `SUCCEEDED` even if the subsequent rollout fails.
 

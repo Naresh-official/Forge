@@ -1,0 +1,5 @@
+# Kustomize entry point: apply everything with
+#   kubectl apply -k apps/log-router/manifests/
+resources:
+  - log-router.yaml
+  - fluent-bit/

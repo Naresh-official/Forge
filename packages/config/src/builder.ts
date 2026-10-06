@@ -20,6 +20,21 @@ export const builderSchema = z.object({
   }),
   workerCount: z.int().positive(),
   apiGRPCUrl: z.string().default("localhost:8001"),
+  logs: z.object({
+    /** Redis channel prefix — full channel is `${prefix}<deploymentId>`. */
+    channelPrefix: z.string().min(1),
+    /** How often buffered logs are flushed to S3. */
+    flushIntervalMs: z.number().int().positive(),
+    /** Max buffered log events before an early flush. */
+    flushBatchSize: z.number().int().positive(),
+    /** S3 bucket build logs are persisted to (forge-logs). */
+    bucket: z.string().min(1),
+    region: z.string().min(1),
+    /** TTL of the live replay ring buffer in Redis. */
+    liveHistoryTtlMs: z.number().int().positive(),
+    /** Max entries kept in the live replay ring buffer. */
+    liveHistoryLimit: z.number().int().positive(),
+  }),
   storage: z.object({
     region: z.string().default("us-east-1"),
     accessKeyId: z.string().min(1),
@@ -42,6 +57,11 @@ const merged = {
   redisUrl: process.env.REDIS_URL || undefined,
   nodeEnv: process.env.NODE_ENV || "production",
   apiGRPCUrl: process.env.API_GRPC_URL || "localhost:8001",
+  logs: {
+    ...(yamlConfig.builder?.logs ?? {}),
+    bucket: process.env.LOGS_BUCKET || undefined,
+    region: process.env.AWS_REGION || undefined,
+  },
   storage: {
     ...(yamlConfig.builder?.storage ?? {}),
     region: process.env.AWS_REGION || undefined,

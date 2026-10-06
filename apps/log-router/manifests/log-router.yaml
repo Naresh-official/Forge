@@ -1,0 +1,99 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: forge-system
+  labels:
+    app.kubernetes.io/managed-by: forge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: log-router
+  namespace: forge-system
+  labels:
+    app.kubernetes.io/managed-by: forge
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-router
+  namespace: forge-system
+  labels:
+    app.kubernetes.io/managed-by: forge
+spec:
+  selector:
+    app: log-router
+  ports:
+    - name: forward
+      port: 8010
+      targetPort: 8010
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-router
+  namespace: forge-system
+  labels:
+    app.kubernetes.io/managed-by: forge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-router
+  template:
+    metadata:
+      labels:
+        app: log-router
+        app.kubernetes.io/managed-by: forge
+    spec:
+      serviceAccountName: log-router
+      # In production, deploy Redis as an in-cluster service and set
+      # REDIS_URL to its ClusterIP (e.g. redis://redis.forge-system:6379).
+      # For local kind development, hostNetwork exposes the host's Redis on
+      # localhost:6379 so the pod can reach it.
+      hostNetwork: true
+      dnsPolicy: "ClusterFirstWithHostNet"
+      enableServiceLinks: false
+      containers:
+        - name: log-router
+          image: log-router:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8010
+              name: forward
+              protocol: TCP
+          env:
+            # Redis — used for live pub/sub + replay ring buffer.
+            # Redis runs in a Docker container on the same `kind` network.
+            # Find its IP with: docker inspect redis --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+            - name: REDIS_URL
+              value: "redis://172.23.0.3:6379"
+            - name: NODE_ENV
+              value: "development"
+            # Explicitly set LOG_ROUTER_PORT to override any Kubernetes-injected
+            # service link env var of the same name.
+            - name: LOG_ROUTER_PORT
+              value: "8010"
+            # S3 bucket for persisted logs
+            - name: LOGS_BUCKET
+              value: "forge-logs"
+            - name: AWS_REGION
+              value: "us-east-1"
+            # Optional: for MinIO or other S3-compatible backends
+            # - name: S3_ENDPOINT
+            #   value: "http://minio.forge-system:9000"
+            # - name: S3_FORCE_PATH_STYLE
+            #   value: "true"
+          readinessProbe:
+            tcpSocket:
+              port: 8010
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8010
+            initialDelaySeconds: 15
+            periodSeconds: 20

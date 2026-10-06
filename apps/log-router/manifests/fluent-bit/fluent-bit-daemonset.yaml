@@ -1,0 +1,90 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+  namespace: forge-system
+  labels:
+    app.kubernetes.io/managed-by: forge
+    app.kubernetes.io/name: fluent-bit
+spec:
+  selector:
+    matchLabels:
+      app: fluent-bit
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: fluent-bit
+        app.kubernetes.io/managed-by: forge
+        app.kubernetes.io/name: fluent-bit
+    spec:
+      serviceAccountName: fluent-bit
+      # hostNetwork allows the Forward output to reach the log-router
+      # service on the pod network without additional NAT overhead.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: fluent-bit
+          image: ghcr.io/fluent/fluent-bit:4.2
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FLUENT_ELIMINATE_FLAPPERS
+              value: "true"
+          resources:
+            requests:
+              memory: 100Mi
+              cpu: 100m
+            limits:
+              memory: 500Mi
+              cpu: 500m
+          volumeMounts:
+            - name: varlogcontainers
+              mountPath: /var/log/containers
+              readOnly: true
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc/
+              readOnly: true
+            - name: fluent-bit-rootfs
+              mountPath: /rootfs
+              readOnly: true
+            - name: fluent-bit-varlog
+              mountPath: /var/log
+              readOnly: true
+          # The forward output needs the log-router service reachable.
+          # When hostNetwork is false, the pod's DNS resolves
+          # log-router.forge-system.svc.cluster.local normally.
+          # With hostNetwork, we use the service address directly.
+      volumes:
+        - name: varlogcontainers
+          hostPath:
+            path: /var/log/containers
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+        - name: fluent-bit-config
+          configMap:
+            name: fluent-bit-config
+            items:
+              - key: fluent-bit.conf
+                path: fluent-bit.conf
+              - key: parsers.conf
+                path: parsers.conf
+        - name: fluent-bit-rootfs
+          hostPath:
+            path: /
+        - name: fluent-bit-varlog
+          hostPath:
+            path: /var/log

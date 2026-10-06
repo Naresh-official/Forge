@@ -7,10 +7,38 @@ web:
 api:
   port: 8000
   grpcPort: 8001
+  logRouter:
+    port: 8010
+  logs:
+    bucket: "forge-logs"
+    region: "us-east-1"
+    # Buffer flush interval and size for log retrieval buffering.
+    listPageSize: 100
+  # Object storage holding static build artifacts. Used to clean a
+  # project's artifacts up when it is deleted.
+  storage:
+    bucket: "forge-project"
+    region: "us-east-1"
+  # Container registry holding built images. Used to clean a project's
+  # images up when it is deleted.
+  dockerRegistry:
+    registryId: "123456789012"
+    region: "us-east-1"
+    repository: "forge-project"
 
 # Static configurations for Builder application
 builder:
   grpcPort: 8002
+  logs:
+    # forge:logs:deployment:<deploymentId> (live) + <projectId>/<deploymentId>/build/... (S3)
+    channelPrefix: "forge:logs:deployment:"
+    flushIntervalMs: 2000
+    flushBatchSize: 100
+    bucket: "forge-logs"
+    region: "us-east-1"
+    # Retention for the live Redis ring buffer replayed on SSE connect.
+    liveHistoryTtlMs: 3600000
+    liveHistoryLimit: 2000
   tempDir: "/tmp/forge-builder"
   defaultQueueOptions:
     name: "forge-builder"

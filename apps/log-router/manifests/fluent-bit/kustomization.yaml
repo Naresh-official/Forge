@@ -1,0 +1,4 @@
+resources:
+  - fluent-bit-rbac.yaml
+  - fluent-bit-configmap.yaml
+  - fluent-bit-daemonset.yaml

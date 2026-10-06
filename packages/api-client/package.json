@@ -11,7 +11,8 @@
     "./project": "./src/project.ts",
     "./repositories": "./src/repositories.ts",
     "./deployment": "./src/deployment.ts",
-    "./github": "./src/github.ts"
+    "./github": "./src/github.ts",
+    "./logs": "./src/logs.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

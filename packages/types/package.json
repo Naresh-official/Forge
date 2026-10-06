@@ -12,7 +12,8 @@
     "./user": "./src/user.ts",
     "./github": "./src/github.ts",
     "./deployment": "./src/deployment.ts",
-    "./project": "./src/project.ts"
+    "./project": "./src/project.ts",
+    "./logs": "./src/logs.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

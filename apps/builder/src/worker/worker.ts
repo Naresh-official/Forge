@@ -13,7 +13,7 @@ import { isStaticFramework, normalizeFramework } from "@forge/frameworks"
 import { containerizeNodeProject } from "./features/builders/node.container"
 import { buildDockerfileProject } from "./features/builders/dockerfile.builder"
 import { buildDockerComposeProject } from "./features/builders/docker-compose.builder"
-import { createBuildLogger } from "./features/logs/build-logs"
+import { createForgeBuildLogger } from "./features/logs/build-logs"
 import logger from "@/utils/logger"
 
 const workerId = process.env.WORKER_ID ?? "unknown"
@@ -42,13 +42,32 @@ const worker = new Worker<BuilderQueueJob>(
     }
 
     let repoPath: string | undefined
+    /*
+     * Deployment-scoped log pipeline. Created right after BuildStarted
+     * (which provides projectId/deploymentId) and closed in the finally
+     * block so buffered logs always reach S3 before the terminal status is
+     * reported — even when the build fails or throws.
+     */
+    let buildLogger: ReturnType<typeof createForgeBuildLogger> | undefined
 
     try {
       const response = await buildStarted({
         buildId,
       })
 
+      buildLogger = createForgeBuildLogger({
+        projectId: response.projectId,
+        deploymentId: response.deploymentId,
+      })
+
+      buildLogger.info(`Building ${response.repoFullName} (build ${buildId})`)
+      buildLogger.info(
+        `Commit ${response.commitSha} on branch ${response.branch}`
+      )
+
       repoPath = await cloneGitRepository(response)
+
+      buildLogger.info("Repository cloned")
 
       /*
        * Images and artifacts are stored under
@@ -71,12 +90,20 @@ const worker = new Worker<BuilderQueueJob>(
        * Each builder closes the logger it receives, so create a
        * fresh one for every step of the pipeline.
        */
-      const createLogger = () => createBuildLogger(repoPath!, buildId)
+      const createLogger = () =>
+        createForgeBuildLogger({
+          projectId: response.projectId,
+          deploymentId: response.deploymentId,
+        })
 
       const detection = detectProject(repoPath)
       // Framework is detected once, at repository import time, and handed to
       // the builder by the API — it is never detected here.
       const framework = normalizeFramework(response.framework)
+
+      buildLogger.info(
+        `Detected strategy "${detection.strategy}" (framework: ${framework}, runner: ${detection.packageRunner ?? "n/a"})`
+      )
 
       report.strategy = detection.strategy
       report.framework = framework
@@ -87,6 +114,8 @@ const worker = new Worker<BuilderQueueJob>(
           if (detection.packageRunner === undefined) {
             throw new Error("Package runner is undefined")
           }
+
+          buildLogger.info("Installing dependencies and building project...")
 
           const output = await buildNodeProject({
             projectPath: repoPath,
@@ -102,6 +131,8 @@ const worker = new Worker<BuilderQueueJob>(
               throw new Error("Static build produced no output directory")
             }
 
+            buildLogger.info("Uploading static artifacts...")
+
             const upload = await uploadDirectory({
               config: builderConfig.storage,
               directoryPath: output.outputDirectory,
@@ -109,10 +140,15 @@ const worker = new Worker<BuilderQueueJob>(
             })
 
             logger.info({ upload }, "Artifact upload complete")
+            buildLogger.info(
+              `Uploaded ${upload.fileCount} artifacts (${upload.totalBytes} bytes)`
+            )
 
             report.artifactBucket = builderConfig.storage.bucket
             report.artifactKey = `${objectPrefix}/`
           } else {
+            buildLogger.info("Building container image...")
+
             const container = await containerizeNodeProject({
               projectPath: repoPath,
               packageRunner: detection.packageRunner,
@@ -126,6 +162,8 @@ const worker = new Worker<BuilderQueueJob>(
             const pushLogger = createLogger()
 
             try {
+              buildLogger.info("Pushing image to registry...")
+
               const push = await pushImage({
                 config: builderConfig.dockerRegistry,
                 imageName: container.imageName,
@@ -152,6 +190,8 @@ const worker = new Worker<BuilderQueueJob>(
             throw new Error("Dockerfile is undefined")
           }
 
+          buildLogger.info("Building image from Dockerfile...")
+
           const output = await buildDockerfileProject({
             projectPath: repoPath,
             dockerfile: detection.dockerfile,
@@ -164,6 +204,8 @@ const worker = new Worker<BuilderQueueJob>(
           const pushLogger = createLogger()
 
           try {
+            buildLogger.info("Pushing image to registry...")
+
             const push = await pushImage({
               config: builderConfig.dockerRegistry,
               imageName: output.imageName,
@@ -189,6 +231,8 @@ const worker = new Worker<BuilderQueueJob>(
             throw new Error("Compose file is undefined")
           }
 
+          buildLogger.info("Building images with docker compose...")
+
           const output = await buildDockerComposeProject({
             projectPath: repoPath,
             composeFile: detection.composeFile,
@@ -200,6 +244,8 @@ const worker = new Worker<BuilderQueueJob>(
           const pushLogger = createLogger()
 
           try {
+            buildLogger.info("Pushing images to registry...")
+
             const push = await pushComposeImages({
               config: builderConfig.dockerRegistry,
               composeFile: detection.composeFile,
@@ -228,6 +274,8 @@ const worker = new Worker<BuilderQueueJob>(
       report.status = "SUCCEEDED"
       report.message = "Build completed"
 
+      buildLogger.info("Build completed successfully")
+
       return {
         success: true,
       }
@@ -235,8 +283,31 @@ const worker = new Worker<BuilderQueueJob>(
       report.status = "FAILED"
       report.message = error instanceof Error ? error.message : String(error)
 
+      buildLogger?.error(`Build failed: ${report.message}`)
+
       throw error
     } finally {
+      /*
+       * Flush every remaining buffered log line to S3 before the terminal
+       * status is reported so the dashboard never shows a finished build
+       * with missing logs. Failures are logged, not thrown — logs are a
+       * side effect and must never change the build result.
+       */
+      try {
+        const flushed = await buildLogger?.close()
+
+        if (flushed === false) {
+          logger.warn(
+            `[Worker ${workerId}] Log flush incomplete for build ${buildId}`
+          )
+        }
+      } catch (flushError) {
+        logger.error(
+          flushError,
+          `[Worker ${workerId}] Failed to flush logs for build ${buildId}`
+        )
+      }
+
       try {
         await buildCompleted({
           buildId,

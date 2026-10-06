@@ -12,6 +12,7 @@ import githubRouter from "@/features/github/github.routes"
 import repositoriesRouter from "@/features/repositories/repositories.routes"
 import deploymentRouter from "@/features/deployment/deployment.routes"
 import projectsRouter from "@/features/projects/projects.routes"
+import logsRouter from "@/features/logs/logs.routes"
 
 const app: Express = express()
 
@@ -57,6 +58,9 @@ app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/github", githubRouter)
 app.use("/api/v1/repositories", repositoriesRouter)
 app.use("/api/v1/deployments", deploymentRouter)
+// Log routes are mounted under /deployments so endpoints read
+// /api/v1/deployments/:deploymentId/logs[/stream]
+app.use("/api/v1/deployments", logsRouter)
 app.use("/api/v1/projects", projectsRouter)
 
 export default app

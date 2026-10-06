@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { getDeployment, getProject } from "@/lib/forge-data"
 import { StatusBadge } from "../../../_components/ui"
 import { useToast } from "../../../_components/toast-provider"
-import { LogViewer } from "./project-logs"
+import { DeploymentLogs } from "./deployment-logs"
 
 export function DeploymentDetail({
   projectId,
@@ -109,7 +109,9 @@ export function DeploymentDetail({
             ))}
           </div>
         </article>
-        <LogViewer />
+      </div>
+      <div className="mt-3">
+        <DeploymentLogs deploymentId={deploymentId} />
       </div>
     </>
   )

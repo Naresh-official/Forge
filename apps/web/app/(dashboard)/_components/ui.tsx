@@ -21,6 +21,7 @@ export function StatusBadge({ status }: { status?: string }) {
     "VERIFYING",
     "PENDING",
     "QUEUED",
+    "PAUSED",
   ].includes(norm)
 
   const formattedStatus =

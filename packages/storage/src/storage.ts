@@ -5,6 +5,8 @@ import {
   HeadBucketCommand,
   CreateBucketCommand,
   PutObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
   type BucketLocationConstraint,
 } from "@aws-sdk/client-s3"
 import { lookup } from "mime-types"
@@ -48,6 +50,11 @@ export interface UploadDirectoryResult {
 
   fileCount: number
   totalBytes: number
+}
+
+export interface DeleteByPrefixResult {
+  bucket: string
+  deletedCount: number
 }
 
 export function createStorageClient(config: StorageConfig): S3Client {
@@ -135,6 +142,59 @@ function listFilesRecursive(directoryPath: string): string[] {
   }
 
   return files
+}
+
+/**
+ * Deletes every object whose key starts with `prefix` (e.g.
+ * "<projectId>/" to remove all of a project's artifacts). Idempotent:
+ * deleting an empty prefix is a no-op.
+ */
+export async function deleteObjectsByPrefix(
+  config: StorageConfig,
+  prefix: string
+): Promise<DeleteByPrefixResult> {
+  const client = createStorageClient(config)
+
+  let deletedCount = 0
+  let continuationToken: string | undefined
+
+  do {
+    const page = await client.send(
+      new ListObjectsV2Command({
+        Bucket: config.bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      })
+    )
+
+    const objects = (page.Contents ?? [])
+      .map((object) => object.Key)
+      .filter((key): key is string => typeof key === "string")
+      .map((key) => ({ Key: key }))
+
+    if (objects.length > 0) {
+      const result = await client.send(
+        new DeleteObjectsCommand({
+          Bucket: config.bucket,
+          Delete: { Objects: objects },
+        })
+      )
+
+      if (result.Errors && result.Errors.length > 0) {
+        throw new Error(
+          `Failed to delete ${result.Errors.length} object(s) under "${prefix}": ${result.Errors[0]?.Message ?? "unknown error"}`
+        )
+      }
+
+      deletedCount += result.Deleted?.length ?? objects.length
+    }
+
+    continuationToken = page.IsTruncated
+      ? page.NextContinuationToken
+      : undefined
+  } while (continuationToken)
+
+  return { bucket: config.bucket, deletedCount }
 }
 
 export async function uploadDirectory(

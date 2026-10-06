@@ -1,6 +1,11 @@
-export { createStorageClient, uploadDirectory } from "./storage"
+export {
+  createStorageClient,
+  uploadDirectory,
+  deleteObjectsByPrefix,
+} from "./storage"
 export type {
   StorageConfig,
   UploadDirectoryInput,
   UploadDirectoryResult,
+  DeleteByPrefixResult,
 } from "./storage"

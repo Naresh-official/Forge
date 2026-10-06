@@ -3,6 +3,7 @@ export {
   pushComposeImages,
   getEcrAuthorizationToken,
   buildImageTag,
+  deleteImagesByTagPrefix,
 } from "./registry"
 export type {
   RegistryConfig,
@@ -12,4 +13,5 @@ export type {
   PushComposeImagesResult,
   EcrAuthorizationToken,
   DockerOutputHandlers,
+  DeleteImagesResult,
 } from "./registry"

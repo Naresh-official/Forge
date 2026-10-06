@@ -411,6 +411,93 @@ function registryHostFrom(config: RegistryConfig): string {
   return `${config.registryId}.dkr.ecr.${config.region}.amazonaws.com`
 }
 
+export interface DeleteImagesResult {
+  /** Number of image tags removed. */
+  deletedCount: number
+}
+
+/**
+ * Deletes every image tag in `repository` that starts with `tagPrefix`.
+ *
+ * Forge stores a project's images in a single repository using tags of the
+ * form "<projectId>.<deploymentId>.<repoName>", so passing
+ * "<projectId>." removes all of a project's images — including one per
+ * docker-compose service. Idempotent: a missing repository or no matching
+ * tags deletes nothing.
+ */
+export async function deleteImagesByTagPrefix(
+  config: RegistryConfig,
+  repository: string,
+  tagPrefix: string
+): Promise<DeleteImagesResult> {
+  const { ECRClient, ListImagesCommand, BatchDeleteImageCommand } =
+    await import("@aws-sdk/client-ecr")
+
+  const ecr = new ECRClient({
+    region: config.region,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+  })
+
+  const repositoryName = normalizeRepository(repository)
+  const registryId = config.registryId ? { registryId: config.registryId } : {}
+
+  let deletedCount = 0
+  let nextToken: string | undefined
+
+  try {
+    do {
+      const page = await ecr.send(
+        new ListImagesCommand({
+          repositoryName,
+          nextToken,
+          ...registryId,
+        })
+      )
+
+      const matching = (page.imageIds ?? []).filter((imageId) =>
+        imageId.imageTag?.startsWith(tagPrefix)
+      )
+
+      if (matching.length > 0) {
+        const result = await ecr.send(
+          new BatchDeleteImageCommand({
+            repositoryName,
+            imageIds: matching,
+            ...registryId,
+          })
+        )
+
+        if (result.failures && result.failures.length > 0) {
+          throw new Error(
+            `Failed to delete ${result.failures.length} image(s): ${result.failures[0]?.failureReason ?? "unknown error"}`
+          )
+        }
+
+        deletedCount += matching.length
+      }
+
+      nextToken = page.nextToken
+    } while (nextToken)
+  } catch (error) {
+    const name =
+      typeof error === "object" && error !== null && "name" in error
+        ? String((error as { name?: unknown }).name)
+        : ""
+
+    // Nothing to delete — treat a missing repository as success.
+    if (name === "RepositoryNotFoundException") {
+      return { deletedCount: 0 }
+    }
+
+    throw error
+  }
+
+  return { deletedCount }
+}
+
 /**
  * Pushes every service in the compose file that has a build section,
  * including services that don't declare an `image:` name. Compose build

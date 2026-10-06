@@ -9,4 +9,6 @@ export type {
   DeployContainerParams,
   ContainerEnvVar,
   RegistryPullSecretParams,
+  WorkloadRef,
+  ScaleWorkloadParams,
 } from "./types"

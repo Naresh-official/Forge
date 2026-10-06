@@ -3,7 +3,12 @@ import { NamespaceApi } from "./resources/namespace.api"
 import { DeploymentApi } from "./resources/deployment.api"
 import { ServiceApi } from "./resources/service.api"
 import { SecretApi } from "./resources/secret.api"
-import type { DeployContainerParams, RegistryPullSecretParams } from "./types"
+import { HpaApi } from "./resources/hpa.api"
+import type {
+  DeployContainerParams,
+  RegistryPullSecretParams,
+  ScaleWorkloadParams,
+} from "./types"
 import logger from "@/utils/logger"
 
 /** How long to wait for the Deployment rollout to become available. */
@@ -27,6 +32,7 @@ export class KubernetesClient {
   private readonly deployments: DeploymentApi
   private readonly services: ServiceApi
   private readonly secrets: SecretApi
+  private readonly hpas: HpaApi
 
   constructor(http?: KubeHttpClient) {
     this.http = http ?? new KubeHttpClient()
@@ -34,6 +40,7 @@ export class KubernetesClient {
     this.deployments = new DeploymentApi(this.http)
     this.services = new ServiceApi(this.http)
     this.secrets = new SecretApi(this.http)
+    this.hpas = new HpaApi(this.http)
   }
 
   async listNamespaces(): Promise<string[]> {
@@ -42,6 +49,14 @@ export class KubernetesClient {
 
   async ensureNamespace(name: string): Promise<string> {
     return this.namespaces.ensure(name)
+  }
+
+  /**
+   * Deletes a namespace and all resources inside it. Idempotent — a missing
+   * namespace is treated as already deleted.
+   */
+  async deleteNamespace(name: string): Promise<void> {
+    await this.namespaces.remove(name)
   }
 
   async ensureDockerRegistrySecret(
@@ -88,6 +103,13 @@ export class KubernetesClient {
     await this.deployments.ensure(params)
     await this.services.ensure(params)
 
+    // Autoscaling projects get an HPA that owns the replica count. The
+    // initial Deployment replicas (1) satisfy the HPA's minimum, so the
+    // rollout below observes a ready pod before the HPA adjusts anything.
+    if (params.autoscalingEnabled) {
+      await this.hpas.ensure(params)
+    }
+
     const rolloutReady = await this.waitForRollout(
       params.namespace,
       params.name,
@@ -95,6 +117,32 @@ export class KubernetesClient {
     )
 
     return { rolloutReady }
+  }
+
+  /**
+   * Scales an existing workload to `replicas` (pause = 0, resume = 1).
+   *
+   * When the workload autoscales, the HPA is removed before scaling to zero
+   * — otherwise it would immediately scale the Deployment back up to its
+   * minimum. On resume the HPA is recreated so it resumes managing replicas
+   * from the minimum. Idempotent: pausing or resuming twice is safe.
+   */
+  async scaleWorkload(params: ScaleWorkloadParams): Promise<void> {
+    const { namespace, name, replicas, autoscalingEnabled } = params
+
+    if (replicas <= 0) {
+      if (autoscalingEnabled) {
+        await this.hpas.remove(namespace, name)
+      }
+      await this.deployments.scale(namespace, name, 0)
+      return
+    }
+
+    await this.deployments.scale(namespace, name, replicas)
+
+    if (autoscalingEnabled) {
+      await this.hpas.ensure({ namespace, name })
+    }
   }
 
   /**

@@ -4,6 +4,15 @@ import type { DeployContainerParams } from "../types"
 export function buildDeploymentManifest(params: DeployContainerParams) {
   const { namespace, name, image, containerPort, env = [] } = params
 
+  /*
+   * Identity labels carry the explicit Forge project/deployment ids (the
+   * same values the worker received on the Deploy job) so every runtime log
+   * record is routed by labels — never by parsing pod or namespace names,
+   * both of which truncate UUIDs at 63 chars.
+   */
+  const projectId = params.projectId
+  const deploymentId = params.deploymentId
+
   const imagePullSecrets = params.imagePullSecret
     ? [{ name: params.imagePullSecret }]
     : undefined
@@ -17,6 +26,8 @@ export function buildDeploymentManifest(params: DeployContainerParams) {
       labels: {
         app: name,
         ...FORGE_MANAGED_BY_LABELS,
+        ...(projectId ? { "forge.dev/project-id": projectId } : {}),
+        ...(deploymentId ? { "forge.dev/deployment-id": deploymentId } : {}),
       },
     },
     spec: {
@@ -31,6 +42,10 @@ export function buildDeploymentManifest(params: DeployContainerParams) {
           labels: {
             app: name,
             ...FORGE_MANAGED_BY_LABELS,
+            ...(projectId ? { "forge.dev/project-id": projectId } : {}),
+            ...(deploymentId
+              ? { "forge.dev/deployment-id": deploymentId }
+              : {}),
           },
         },
         spec: {

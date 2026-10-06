@@ -4,6 +4,10 @@ package deployer;
 
 service DeployerService {
   rpc Deploy(DeployRequest) returns (DeployResponse);
+  // Scale an already-deployed project's workload (pause/resume).
+  rpc Scale(ScaleRequest) returns (ScaleResponse);
+  // Delete a project's Kubernetes namespaces (one per deployment).
+  rpc DeleteDeployments(DeleteDeploymentsRequest) returns (DeleteDeploymentsResponse);
 }
 
 message DeployRequest {
@@ -27,9 +31,34 @@ message DeployRequest {
   int32 cpu_millicores = 10;
   int32 memory_mb = 11;
   int32 ephemeral_storage_mb = 12;
+
+  // When true the deployer creates an HPA instead of a fixed replica count.
+  bool autoscaling_enabled = 13;
 }
 
 message DeployResponse {
+  string message = 1;
+}
+
+message ScaleRequest {
+  string project_id = 1;
+  string deployment_id = 2;
+  // Desired replica count (0 to pause, 1 to resume).
+  int32 replicas = 3;
+  // When true, the HPA is removed on pause and recreated on resume.
+  bool autoscaling_enabled = 4;
+}
+
+message ScaleResponse {
+  string message = 1;
+}
+
+message DeleteDeploymentsRequest {
+  string project_id = 1;
+  repeated string deployment_ids = 2;
+}
+
+message DeleteDeploymentsResponse {
   string message = 1;
 }
 

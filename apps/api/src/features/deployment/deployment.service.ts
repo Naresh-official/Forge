@@ -81,7 +81,7 @@ export const deployRepositoryService = async (
               cpuMillicores: plan.cpuMillicores,
               memoryMb: plan.memoryMb,
               ephemeralStorageMb: plan.ephemeralStorageMb,
-              autoscalingEnabled: false,
+              autoscalingEnabled: input.autoscaling ?? false,
             },
           },
           build: {

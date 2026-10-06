@@ -12,6 +12,21 @@ export class NamespaceApi {
   }
 
   /**
+   * Deletes the namespace and everything in it (Deployment, Service, HPA,
+   * pull secret). Missing namespaces are ignored so deletion is idempotent.
+   */
+  async remove(name: string): Promise<void> {
+    try {
+      await this.http.delete(`/api/v1/namespaces/${name}`)
+    } catch (error) {
+      if (hasHttpStatus(error, 404)) {
+        return
+      }
+      throw error
+    }
+  }
+
+  /**
    * Create the namespace if it does not already exist.
    * Returns the namespace name. Idempotent.
    */

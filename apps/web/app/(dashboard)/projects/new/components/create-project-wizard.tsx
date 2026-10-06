@@ -22,6 +22,7 @@ import { listRepositories } from "@forge/api-client/repositories"
 import type { GithubRepository } from "@forge/types/github"
 import { isStaticFramework, normalizeFramework } from "@forge/frameworks"
 import {
+  AUTOSCALING,
   DEPLOYMENT_PLANS,
   deploymentPlanIds,
   type DeploymentPlanId,
@@ -58,6 +59,9 @@ export function CreateProjectWizard() {
   const [selected, setSelected] = useState<GithubRepository | null>(null)
   const [projectName, setProjectName] = useState("")
   const [plan, setPlan] = useState<DeploymentPlanId>("basic")
+  // Autoscaling is chosen instead of a fixed tier; requests fall back to
+  // Basic as the HPA's CPU baseline.
+  const [autoscaling, setAutoscaling] = useState(false)
 
   const selectedIsStatic = selected
     ? isStaticFramework(normalizeFramework(selected.framework))
@@ -104,7 +108,11 @@ export function CreateProjectWizard() {
     deployment.mutate({
       repositoryId: selected.id,
       ...(name ? { projectName: name } : {}),
-      ...(selectedIsStatic ? {} : { plan }),
+      ...(selectedIsStatic
+        ? {}
+        : autoscaling
+          ? { autoscaling: true }
+          : { plan }),
     })
   }
 
@@ -323,19 +331,22 @@ export function CreateProjectWizard() {
               <StepTitle
                 icon={<Cpu className="size-5" />}
                 title="Configure resources"
-                description="Choose how much CPU, memory and storage your service gets."
+                description="Choose how much CPU, memory and storage your service gets — or let it autoscale."
               />
 
-              <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-5 max-sm:grid-cols-1">
+              <div className="mt-5 grid grid-cols-4 gap-3 border-t border-border pt-5 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 {deploymentPlanIds.map((id) => {
                   const planOption = DEPLOYMENT_PLANS[id]
-                  const active = plan === id
+                  const active = !autoscaling && plan === id
 
                   return (
                     <button
                       key={id}
                       type="button"
-                      onClick={() => setPlan(id)}
+                      onClick={() => {
+                        setAutoscaling(false)
+                        setPlan(id)
+                      }}
                       className={[
                         "flex flex-col gap-1.5 rounded-md border p-3 text-left",
                         active
@@ -361,6 +372,33 @@ export function CreateProjectWizard() {
                     </button>
                   )
                 })}
+
+                <button
+                  type="button"
+                  onClick={() => setAutoscaling(true)}
+                  className={[
+                    "flex flex-col gap-1.5 rounded-md border p-3 text-left",
+                    autoscaling
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50",
+                  ].join(" ")}
+                >
+                  <span className="flex items-center justify-between">
+                    <strong className="text-[12px] font-semibold">
+                      Autoscale
+                    </strong>
+                    {autoscaling && <Check className="size-3.5 text-primary" />}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Up to {AUTOSCALING.maxReplicas} replicas
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Target {AUTOSCALING.targetCpuUtilization}% CPU
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Scale on demand
+                  </span>
+                </button>
               </div>
 
               <Actions>
@@ -396,7 +434,11 @@ export function CreateProjectWizard() {
                 {!selectedIsStatic && (
                   <Summary
                     label="Resources"
-                    value={`${DEPLOYMENT_PLANS[plan].label} · ${DEPLOYMENT_PLANS[plan].cpuMillicores}m / ${DEPLOYMENT_PLANS[plan].memoryMb}MB`}
+                    value={
+                      autoscaling
+                        ? `Autoscale · up to ${AUTOSCALING.maxReplicas} replicas · ${AUTOSCALING.targetCpuUtilization}% CPU`
+                        : `${DEPLOYMENT_PLANS[plan].label} · ${DEPLOYMENT_PLANS[plan].cpuMillicores}m / ${DEPLOYMENT_PLANS[plan].memoryMb}MB`
+                    }
                   />
                 )}
               </div>

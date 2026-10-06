@@ -20,6 +20,8 @@ export type DeployerQueueJob = {
   cpuMillicores?: number
   memoryMb?: number
   ephemeralStorageMb?: number
+  // When true the deployer creates an HPA instead of a fixed replica count.
+  autoscalingEnabled?: boolean
 }
 
 export const deployerQueue = new Queue<DeployerQueueJob>(

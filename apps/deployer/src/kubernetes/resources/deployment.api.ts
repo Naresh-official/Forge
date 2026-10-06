@@ -28,6 +28,21 @@ export class DeploymentApi {
   }
 
   /**
+   * Sets `spec.replicas` directly (0 pauses, 1 resumes). Does not touch the
+   * pod template, so no image rollout is triggered. Idempotent.
+   */
+  async scale(
+    namespace: string,
+    name: string,
+    replicas: number
+  ): Promise<void> {
+    await this.http.patch(
+      `/apis/apps/v1/namespaces/${namespace}/deployments/${name}`,
+      { spec: { replicas } }
+    )
+  }
+
+  /**
    * Creates the Deployment, or patches the existing one when it already
    * exists (HTTP 409). Idempotent and safe to retry.
    */

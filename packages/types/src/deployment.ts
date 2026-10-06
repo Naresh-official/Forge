@@ -49,11 +49,28 @@ export const deploymentPlanIds: DeploymentPlanId[] = [
   "pro",
 ]
 
+/**
+ * Bounds the deployer's HorizontalPodAutoscaler applies when a project
+ * opts into autoscaling instead of a fixed resource tier.
+ */
+export const AUTOSCALING = {
+  minReplicas: 1,
+  maxReplicas: 5,
+  /** Target average CPU utilisation, as a percentage of requests. */
+  targetCpuUtilization: 80,
+} as const
+
 export const createRepositorySchema = z.object({
   repositoryId: z.int(),
   projectName: z.string().optional(),
   /** Resource tier for non-static (containerized) projects. */
   plan: deploymentPlanSchema.optional(),
+  /**
+   * When true, the service is deployed with an HPA (max {@link AUTOSCALING.maxReplicas}
+   * replicas, target {@link AUTOSCALING.targetCpuUtilization}% CPU) instead of a
+   * fixed replica count. Requests still come from `plan` (Basic by default).
+   */
+  autoscaling: z.boolean().optional(),
 })
 
 export type CreateRepositoryInput = z.infer<typeof createRepositorySchema>

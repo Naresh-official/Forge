@@ -8,6 +8,10 @@ export {
 export {
   DeployRequest,
   DeployResponse,
+  ScaleRequest,
+  ScaleResponse,
+  DeleteDeploymentsRequest,
+  DeleteDeploymentsResponse,
   DeploymentStartedRequest,
   DeploymentStartedResponse,
   DeploymentCompletedRequest,

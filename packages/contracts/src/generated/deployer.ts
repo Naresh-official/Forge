@@ -38,9 +38,33 @@ export interface DeployRequest {
   cpuMillicores: number
   memoryMb: number
   ephemeralStorageMb: number
+  /** When true the deployer creates an HPA instead of a fixed replica count. */
+  autoscalingEnabled: boolean
 }
 
 export interface DeployResponse {
+  message: string
+}
+
+export interface ScaleRequest {
+  projectId: string
+  deploymentId: string
+  /** Desired replica count (0 to pause, 1 to resume). */
+  replicas: number
+  /** When true, the HPA is removed on pause and recreated on resume. */
+  autoscalingEnabled: boolean
+}
+
+export interface ScaleResponse {
+  message: string
+}
+
+export interface DeleteDeploymentsRequest {
+  projectId: string
+  deploymentIds: string[]
+}
+
+export interface DeleteDeploymentsResponse {
   message: string
 }
 
@@ -81,6 +105,7 @@ function createBaseDeployRequest(): DeployRequest {
     cpuMillicores: 0,
     memoryMb: 0,
     ephemeralStorageMb: 0,
+    autoscalingEnabled: false,
   }
 }
 
@@ -124,6 +149,9 @@ export const DeployRequest: MessageFns<DeployRequest> = {
     }
     if (message.ephemeralStorageMb !== 0) {
       writer.uint32(96).int32(message.ephemeralStorageMb)
+    }
+    if (message.autoscalingEnabled !== false) {
+      writer.uint32(104).bool(message.autoscalingEnabled)
     }
     return writer
   },
@@ -232,6 +260,14 @@ export const DeployRequest: MessageFns<DeployRequest> = {
           message.ephemeralStorageMb = reader.int32()
           continue
         }
+        case 13: {
+          if (tag !== 104) {
+            break
+          }
+
+          message.autoscalingEnabled = reader.bool()
+          continue
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break
@@ -299,6 +335,11 @@ export const DeployRequest: MessageFns<DeployRequest> = {
         : isSet(object.ephemeral_storage_mb)
           ? globalThis.Number(object.ephemeral_storage_mb)
           : 0,
+      autoscalingEnabled: isSet(object.autoscalingEnabled)
+        ? globalThis.Boolean(object.autoscalingEnabled)
+        : isSet(object.autoscaling_enabled)
+          ? globalThis.Boolean(object.autoscaling_enabled)
+          : false,
     }
   },
 
@@ -340,6 +381,9 @@ export const DeployRequest: MessageFns<DeployRequest> = {
     if (message.ephemeralStorageMb !== 0) {
       obj.ephemeralStorageMb = Math.round(message.ephemeralStorageMb)
     }
+    if (message.autoscalingEnabled !== false) {
+      obj.autoscalingEnabled = message.autoscalingEnabled
+    }
     return obj
   },
 
@@ -364,6 +408,7 @@ export const DeployRequest: MessageFns<DeployRequest> = {
     message.cpuMillicores = object.cpuMillicores ?? 0
     message.memoryMb = object.memoryMb ?? 0
     message.ephemeralStorageMb = object.ephemeralStorageMb ?? 0
+    message.autoscalingEnabled = object.autoscalingEnabled ?? false
     return message
   },
 }
@@ -435,6 +480,374 @@ export const DeployResponse: MessageFns<DeployResponse> = {
     return message
   },
 }
+
+function createBaseScaleRequest(): ScaleRequest {
+  return {
+    projectId: "",
+    deploymentId: "",
+    replicas: 0,
+    autoscalingEnabled: false,
+  }
+}
+
+export const ScaleRequest: MessageFns<ScaleRequest> = {
+  encode(
+    message: ScaleRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.projectId !== "") {
+      writer.uint32(10).string(message.projectId)
+    }
+    if (message.deploymentId !== "") {
+      writer.uint32(18).string(message.deploymentId)
+    }
+    if (message.replicas !== 0) {
+      writer.uint32(24).int32(message.replicas)
+    }
+    if (message.autoscalingEnabled !== false) {
+      writer.uint32(32).bool(message.autoscalingEnabled)
+    }
+    return writer
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ScaleRequest {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseScaleRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
+
+          message.projectId = reader.string()
+          continue
+        }
+        case 2: {
+          if (tag !== 18) {
+            break
+          }
+
+          message.deploymentId = reader.string()
+          continue
+        }
+        case 3: {
+          if (tag !== 24) {
+            break
+          }
+
+          message.replicas = reader.int32()
+          continue
+        }
+        case 4: {
+          if (tag !== 32) {
+            break
+          }
+
+          message.autoscalingEnabled = reader.bool()
+          continue
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
+
+  fromJSON(object: any): ScaleRequest {
+    return {
+      projectId: isSet(object.projectId)
+        ? globalThis.String(object.projectId)
+        : isSet(object.project_id)
+          ? globalThis.String(object.project_id)
+          : "",
+      deploymentId: isSet(object.deploymentId)
+        ? globalThis.String(object.deploymentId)
+        : isSet(object.deployment_id)
+          ? globalThis.String(object.deployment_id)
+          : "",
+      replicas: isSet(object.replicas) ? globalThis.Number(object.replicas) : 0,
+      autoscalingEnabled: isSet(object.autoscalingEnabled)
+        ? globalThis.Boolean(object.autoscalingEnabled)
+        : isSet(object.autoscaling_enabled)
+          ? globalThis.Boolean(object.autoscaling_enabled)
+          : false,
+    }
+  },
+
+  toJSON(message: ScaleRequest): unknown {
+    const obj: any = {}
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId
+    }
+    if (message.deploymentId !== "") {
+      obj.deploymentId = message.deploymentId
+    }
+    if (message.replicas !== 0) {
+      obj.replicas = Math.round(message.replicas)
+    }
+    if (message.autoscalingEnabled !== false) {
+      obj.autoscalingEnabled = message.autoscalingEnabled
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<ScaleRequest>, I>>(
+    base?: I
+  ): ScaleRequest {
+    return ScaleRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<ScaleRequest>, I>>(
+    object: I
+  ): ScaleRequest {
+    const message = createBaseScaleRequest()
+    message.projectId = object.projectId ?? ""
+    message.deploymentId = object.deploymentId ?? ""
+    message.replicas = object.replicas ?? 0
+    message.autoscalingEnabled = object.autoscalingEnabled ?? false
+    return message
+  },
+}
+
+function createBaseScaleResponse(): ScaleResponse {
+  return { message: "" }
+}
+
+export const ScaleResponse: MessageFns<ScaleResponse> = {
+  encode(
+    message: ScaleResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.message !== "") {
+      writer.uint32(10).string(message.message)
+    }
+    return writer
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ScaleResponse {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseScaleResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
+
+          message.message = reader.string()
+          continue
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
+
+  fromJSON(object: any): ScaleResponse {
+    return {
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+    }
+  },
+
+  toJSON(message: ScaleResponse): unknown {
+    const obj: any = {}
+    if (message.message !== "") {
+      obj.message = message.message
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<ScaleResponse>, I>>(
+    base?: I
+  ): ScaleResponse {
+    return ScaleResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<ScaleResponse>, I>>(
+    object: I
+  ): ScaleResponse {
+    const message = createBaseScaleResponse()
+    message.message = object.message ?? ""
+    return message
+  },
+}
+
+function createBaseDeleteDeploymentsRequest(): DeleteDeploymentsRequest {
+  return { projectId: "", deploymentIds: [] }
+}
+
+export const DeleteDeploymentsRequest: MessageFns<DeleteDeploymentsRequest> = {
+  encode(
+    message: DeleteDeploymentsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.projectId !== "") {
+      writer.uint32(10).string(message.projectId)
+    }
+    for (const v of message.deploymentIds) {
+      writer.uint32(18).string(v!)
+    }
+    return writer
+  },
+
+  decode(
+    input: BinaryReader | Uint8Array,
+    length?: number
+  ): DeleteDeploymentsRequest {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseDeleteDeploymentsRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
+
+          message.projectId = reader.string()
+          continue
+        }
+        case 2: {
+          if (tag !== 18) {
+            break
+          }
+
+          message.deploymentIds.push(reader.string())
+          continue
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
+
+  fromJSON(object: any): DeleteDeploymentsRequest {
+    return {
+      projectId: isSet(object.projectId)
+        ? globalThis.String(object.projectId)
+        : isSet(object.project_id)
+          ? globalThis.String(object.project_id)
+          : "",
+      deploymentIds: globalThis.Array.isArray(object?.deploymentIds)
+        ? object.deploymentIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deployment_ids)
+          ? object.deployment_ids.map((e: any) => globalThis.String(e))
+          : [],
+    }
+  },
+
+  toJSON(message: DeleteDeploymentsRequest): unknown {
+    const obj: any = {}
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId
+    }
+    if (message.deploymentIds?.length) {
+      obj.deploymentIds = message.deploymentIds
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<DeleteDeploymentsRequest>, I>>(
+    base?: I
+  ): DeleteDeploymentsRequest {
+    return DeleteDeploymentsRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteDeploymentsRequest>, I>>(
+    object: I
+  ): DeleteDeploymentsRequest {
+    const message = createBaseDeleteDeploymentsRequest()
+    message.projectId = object.projectId ?? ""
+    message.deploymentIds = object.deploymentIds?.map((e) => e) || []
+    return message
+  },
+}
+
+function createBaseDeleteDeploymentsResponse(): DeleteDeploymentsResponse {
+  return { message: "" }
+}
+
+export const DeleteDeploymentsResponse: MessageFns<DeleteDeploymentsResponse> =
+  {
+    encode(
+      message: DeleteDeploymentsResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.message !== "") {
+        writer.uint32(10).string(message.message)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): DeleteDeploymentsResponse {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseDeleteDeploymentsResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.message = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): DeleteDeploymentsResponse {
+      return {
+        message: isSet(object.message) ? globalThis.String(object.message) : "",
+      }
+    },
+
+    toJSON(message: DeleteDeploymentsResponse): unknown {
+      const obj: any = {}
+      if (message.message !== "") {
+        obj.message = message.message
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<DeleteDeploymentsResponse>, I>>(
+      base?: I
+    ): DeleteDeploymentsResponse {
+      return DeleteDeploymentsResponse.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<I extends Exact<DeepPartial<DeleteDeploymentsResponse>, I>>(
+      object: I
+    ): DeleteDeploymentsResponse {
+      const message = createBaseDeleteDeploymentsResponse()
+      message.message = object.message ?? ""
+      return message
+    },
+  }
 
 function createBaseDeploymentStartedRequest(): DeploymentStartedRequest {
   return { deploymentId: "" }
@@ -834,10 +1247,45 @@ export const DeployerServiceService = {
     responseDeserialize: (value: Buffer): DeployResponse =>
       DeployResponse.decode(value),
   },
+  /** Scale an already-deployed project's workload (pause/resume). */
+  scale: {
+    path: "/deployer.DeployerService/Scale" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ScaleRequest): Buffer =>
+      Buffer.from(ScaleRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ScaleRequest =>
+      ScaleRequest.decode(value),
+    responseSerialize: (value: ScaleResponse): Buffer =>
+      Buffer.from(ScaleResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ScaleResponse =>
+      ScaleResponse.decode(value),
+  },
+  /** Delete a project's Kubernetes namespaces (one per deployment). */
+  deleteDeployments: {
+    path: "/deployer.DeployerService/DeleteDeployments" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteDeploymentsRequest): Buffer =>
+      Buffer.from(DeleteDeploymentsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteDeploymentsRequest =>
+      DeleteDeploymentsRequest.decode(value),
+    responseSerialize: (value: DeleteDeploymentsResponse): Buffer =>
+      Buffer.from(DeleteDeploymentsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteDeploymentsResponse =>
+      DeleteDeploymentsResponse.decode(value),
+  },
 } as const
 
 export interface DeployerServiceServer extends UntypedServiceImplementation {
   deploy: handleUnaryCall<DeployRequest, DeployResponse>
+  /** Scale an already-deployed project's workload (pause/resume). */
+  scale: handleUnaryCall<ScaleRequest, ScaleResponse>
+  /** Delete a project's Kubernetes namespaces (one per deployment). */
+  deleteDeployments: handleUnaryCall<
+    DeleteDeploymentsRequest,
+    DeleteDeploymentsResponse
+  >
 }
 
 export interface DeployerServiceClient extends Client {
@@ -855,6 +1303,47 @@ export interface DeployerServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeployResponse) => void
+  ): ClientUnaryCall
+  /** Scale an already-deployed project's workload (pause/resume). */
+  scale(
+    request: ScaleRequest,
+    callback: (error: ServiceError | null, response: ScaleResponse) => void
+  ): ClientUnaryCall
+  scale(
+    request: ScaleRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ScaleResponse) => void
+  ): ClientUnaryCall
+  scale(
+    request: ScaleRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ScaleResponse) => void
+  ): ClientUnaryCall
+  /** Delete a project's Kubernetes namespaces (one per deployment). */
+  deleteDeployments(
+    request: DeleteDeploymentsRequest,
+    callback: (
+      error: ServiceError | null,
+      response: DeleteDeploymentsResponse
+    ) => void
+  ): ClientUnaryCall
+  deleteDeployments(
+    request: DeleteDeploymentsRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: DeleteDeploymentsResponse
+    ) => void
+  ): ClientUnaryCall
+  deleteDeployments(
+    request: DeleteDeploymentsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: DeleteDeploymentsResponse
+    ) => void
   ): ClientUnaryCall
 }
 

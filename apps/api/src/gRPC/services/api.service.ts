@@ -128,6 +128,7 @@ export const apiService = {
             cpuMillicores: resources?.cpuMillicores ?? 0,
             memoryMb: resources?.memoryMb ?? 0,
             ephemeralStorageMb: resources?.ephemeralStorageMb ?? 0,
+            autoscalingEnabled: resources?.autoscalingEnabled ?? false,
           })
         } catch (deployError) {
           console.error("Failed to forward build to deployer:", deployError)

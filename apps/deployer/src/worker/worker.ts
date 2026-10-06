@@ -30,6 +30,7 @@ const worker = new Worker<DeployerQueueJob>(
       cpuMillicores,
       memoryMb,
       ephemeralStorageMb,
+      autoscalingEnabled,
     } = job.data
 
     /*
@@ -106,12 +107,17 @@ const worker = new Worker<DeployerQueueJob>(
       // 6. Deploy to Kubernetes
       //    - Namespace: forge-project-<projectId>-<deploymentId>
       //    - Resources: 0.5–1 CPU cores, 512 MB – 2 GB RAM
-      //    - No autoscaling (replicas = 1)
+      //    - Autoscaling projects get an HPA (1–5 replicas, 80% CPU target);
+      //      others run a single replica
+      //    - Pod labels carry the forge.dev project/deployment ids so the
+      //      runtime log collector (Fluent Bit) can route logs
       const { rolloutReady } = await k8s.deployContainer({
         namespace,
         name: appName,
         image: fullImage,
         containerPort: 80,
+        projectId,
+        deploymentId,
         imagePullSecret: "forge-ecr-pull",
         pullSecretCredentials: {
           registryHost: token.registryHost,
@@ -123,6 +129,7 @@ const worker = new Worker<DeployerQueueJob>(
           memoryMb: memoryMb ?? 0,
           ephemeralStorageMb: ephemeralStorageMb ?? 0,
         },
+        autoscalingEnabled: autoscalingEnabled ?? false,
       })
 
       /*

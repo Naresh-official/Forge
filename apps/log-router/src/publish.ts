@@ -23,10 +23,20 @@ import logger from "@/utils/logger"
 const FLUSH_INTERVAL_MS = 2_000
 /** Flush early once this many events accumulate per deployment. */
 const FLUSH_BATCH_SIZE = 100
+/**
+ * Upper bound on events held per deployment while S3 is unavailable. Older
+ * events are dropped once this is reached, so a persistent S3 outage costs
+ * log history instead of the process' memory.
+ */
+const MAX_BUFFERED_EVENTS = 5_000
+/** Log every Nth consecutive persistence failure after the first. */
+const FAILURE_LOG_INTERVAL = 30
 
 interface DeploymentBuffer {
   events: LogEvent[]
   timer: ReturnType<typeof setInterval> | undefined
+  /** Consecutive S3 failures, used to throttle the warning noise. */
+  failures: number
 }
 
 const buffers = new Map<string, DeploymentBuffer>()
@@ -50,20 +60,36 @@ function getBuffer(deploymentId: string): DeploymentBuffer {
   let buffer = buffers.get(deploymentId)
 
   if (!buffer) {
-    buffer = { events: [], timer: undefined }
+    buffer = { events: [], timer: undefined, failures: 0 }
     buffers.set(deploymentId, buffer)
 
     // Periodic flush — unref so it never keeps the process alive alone.
-    buffer.timer = setInterval(
-      () => flushBuffer(deploymentId),
-      FLUSH_INTERVAL_MS
-    )
+    buffer.timer = setInterval(() => {
+      void flushBuffer(deploymentId)
+    }, FLUSH_INTERVAL_MS)
     buffer.timer.unref?.()
   }
 
   return buffer
 }
 
+/** Appends events, dropping the oldest once the buffer cap is reached. */
+function pushBounded(buffer: DeploymentBuffer, events: LogEvent[]): void {
+  buffer.events.push(...events)
+
+  if (buffer.events.length > MAX_BUFFERED_EVENTS) {
+    buffer.events.splice(0, buffer.events.length - MAX_BUFFERED_EVENTS)
+  }
+}
+
+/**
+ * Writes the buffered events for one deployment to S3.
+ *
+ * Never rejects. Log persistence is best-effort: an unhandled rejection here
+ * used to exit the whole process, which took live runtime logs down for every
+ * deployment on the node until the container was recreated. A failed batch is
+ * put back (bounded) so it is retried on the next tick instead of being lost.
+ */
 async function flushBuffer(deploymentId: string): Promise<void> {
   const buffer = buffers.get(deploymentId)
 
@@ -84,12 +110,33 @@ async function flushBuffer(deploymentId: string): Promise<void> {
     timestamp: new Date(),
   })
 
-  await uploadLogChunk({
-    client: storage,
-    bucket: apiConfig.logs.bucket,
-    key,
-    events,
-  })
+  try {
+    await uploadLogChunk({
+      client: storage,
+      bucket: apiConfig.logs.bucket,
+      key,
+      events,
+    })
+
+    buffer.failures = 0
+  } catch (error) {
+    buffer.failures += 1
+
+    // Retry these events on the next flush (newest events win if capped).
+    pushBounded(buffer, events)
+
+    if (buffer.failures === 1 || buffer.failures % FAILURE_LOG_INTERVAL === 0) {
+      logger.warn(
+        {
+          error,
+          deploymentId,
+          eventCount: events.length,
+          consecutiveFailures: buffer.failures,
+        },
+        "[log-router] Failed to persist runtime logs to S3"
+      )
+    }
+  }
 }
 
 /**
@@ -135,7 +182,7 @@ export async function publishRuntimeEvents(events: LogEvent[]): Promise<void> {
 
   for (const [deploymentId, group] of byDeployment) {
     const buffer = getBuffer(deploymentId)
-    buffer.events.push(...group)
+    pushBounded(buffer, group)
 
     if (buffer.events.length >= FLUSH_BATCH_SIZE) {
       void flushBuffer(deploymentId)

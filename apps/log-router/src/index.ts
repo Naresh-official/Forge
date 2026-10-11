@@ -8,6 +8,14 @@ import { publishRuntimeEvents, closeRuntimePublisher } from "./publish"
 const config: ForwardServerOptions = {
   port: apiConfig.logRouter.port,
   host: "0.0.0.0",
+  /*
+   * Decode failures and handler errors are reported here rather than thrown:
+   * a single bad frame must never take down the receiver for every
+   * deployment on the node.
+   */
+  onError: (error) => {
+    logger.warn({ error }, "[log-router] Forward stream error")
+  },
 }
 
 const server = new ForwardServer(config, async (message) => {

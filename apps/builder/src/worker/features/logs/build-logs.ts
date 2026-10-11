@@ -14,9 +14,19 @@ import internalLogger from "@/utils/logger"
  * the shared ForgeLogger. Stream chunks are split into lines so each log
  * event carries exactly one line — what the dashboard renders.
  */
-export interface BuildLogger {
+
+/**
+ * The part of the logger build strategies need: they only *write* command
+ * output. They never own the logger's lifetime — the worker creates one
+ * logger per build and closes it once, in its `finally`, so that every step
+ * (install, build, push) appends to the same ordered buffer.
+ */
+export interface BuildOutputLogger {
   stdout(data: string): void
   stderr(data: string): void
+}
+
+export interface BuildLogger extends BuildOutputLogger {
   /** Flushes buffered logs to S3; await before reporting terminal status. */
   close(): Promise<boolean>
 }
@@ -78,7 +88,7 @@ export function createForgeBuildLogger(
 
   let pending = ""
 
-  function write(data: string, level: "info" | "error"): void {
+  function write(data: string, stream: "stdout" | "stderr"): void {
     pending += data
 
     const lines = pending.split("\n")
@@ -94,7 +104,7 @@ export function createForgeBuildLogger(
         continue
       }
 
-      forgeLogger[level](trimmed)
+      forgeLogger[classifyStreamLine(stream, trimmed)](trimmed)
     }
   }
 
@@ -111,11 +121,11 @@ export function createForgeBuildLogger(
 
   return Object.assign(forgeLogger, {
     stdout(data: string) {
-      write(data, "info")
+      write(data, "stdout")
     },
 
     stderr(data: string) {
-      write(data, "error")
+      write(data, "stderr")
     },
 
     async close(): Promise<boolean> {
@@ -128,6 +138,37 @@ export function createForgeBuildLogger(
       return closeForgeLogger()
     },
   })
+}
+
+/*
+ * stderr is *not* an error channel. Package managers and Docker/build tools
+ * write normal progress, deprecation notices and warnings to stderr, so
+ * mapping every stderr line to `error` painted healthy builds red and buried
+ * the one line that actually failed. Classify by content instead: only lines
+ * that look like a genuine failure get `error`; warnings stay warnings and
+ * everything else is ordinary output.
+ */
+const ERROR_LINE_PATTERN =
+  /\b(err|error|failed|failure|fatal|exception|panic)\b/i
+const WARN_LINE_PATTERN = /\b(warn|warning|deprecated|deprecation)\b/i
+
+export function classifyStreamLine(
+  stream: "stdout" | "stderr",
+  line: string
+): "info" | "warn" | "error" {
+  if (stream === "stdout") {
+    return "info"
+  }
+
+  if (ERROR_LINE_PATTERN.test(line)) {
+    return "error"
+  }
+
+  if (WARN_LINE_PATTERN.test(line)) {
+    return "warn"
+  }
+
+  return "info"
 }
 
 let redisClient: import("bun").RedisClient | undefined

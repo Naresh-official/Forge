@@ -6,13 +6,13 @@ import {
   type PackageRunner,
 } from "@forge/frameworks"
 import { runCommand } from "../../process/run-command"
-import type { BuildLogger } from "../logs/build-logs"
+import type { BuildOutputLogger } from "../logs/build-logs"
 
 interface NodeBuildInput {
   projectPath: string
   packageRunner: PackageRunner
   framework: Framework
-  logger: BuildLogger
+  logger: BuildOutputLogger
 }
 
 interface NodeBuildResult {
@@ -150,10 +150,29 @@ export async function buildNodeProject(
 ): Promise<NodeBuildResult> {
   const { projectPath, packageRunner, framework, logger } = input
 
-  try {
-    const install = getInstallCommand(packageRunner, projectPath)
+  const install = getInstallCommand(packageRunner, projectPath)
 
-    await runCommand(install.command, install.args, {
+  await runCommand(install.command, install.args, {
+    cwd: projectPath,
+
+    onStdout: (data) => {
+      logger.stdout(data)
+    },
+
+    onStderr: (data) => {
+      logger.stderr(data)
+    },
+  })
+
+  const packageJson = readPackageJson(projectPath)
+  const hasBuildScript = packageJson?.scripts?.build !== undefined
+
+  /*
+   * Projects without a build script (e.g. plain JavaScript
+   * Express apps) are install-only and still buildable.
+   */
+  if (hasBuildScript) {
+    await runCommand(packageRunner, ["run", "build"], {
       cwd: projectPath,
 
       onStdout: (data) => {
@@ -164,44 +183,21 @@ export async function buildNodeProject(
         logger.stderr(data)
       },
     })
+  }
 
-    const packageJson = readPackageJson(projectPath)
-    const hasBuildScript = packageJson?.scripts?.build !== undefined
+  const outputDirectory = findOutputDirectory(projectPath, framework)
 
-    /*
-     * Projects without a build script (e.g. plain JavaScript
-     * Express apps) are install-only and still buildable.
-     */
-    if (hasBuildScript) {
-      await runCommand(packageRunner, ["run", "build"], {
-        cwd: projectPath,
+  if (
+    hasBuildScript &&
+    hasStandardOutputDirectory(framework) &&
+    outputDirectory === undefined
+  ) {
+    throw new Error(
+      `Build completed but output directory was not found for framework: ${framework}`
+    )
+  }
 
-        onStdout: (data) => {
-          logger.stdout(data)
-        },
-
-        onStderr: (data) => {
-          logger.stderr(data)
-        },
-      })
-    }
-
-    const outputDirectory = findOutputDirectory(projectPath, framework)
-
-    if (
-      hasBuildScript &&
-      hasStandardOutputDirectory(framework) &&
-      outputDirectory === undefined
-    ) {
-      throw new Error(
-        `Build completed but output directory was not found for framework: ${framework}`
-      )
-    }
-
-    return {
-      outputDirectory,
-    }
-  } finally {
-    logger.close()
+  return {
+    outputDirectory,
   }
 }

@@ -60,6 +60,10 @@ const worker = new Worker<BuilderQueueJob>(
         deploymentId: response.deploymentId,
       })
 
+      // A stable, non-nullable binding for use inside callbacks, where TS
+      // cannot carry the narrowing of the `let` above.
+      const buildLog = buildLogger
+
       buildLogger.info(`Building ${response.repoFullName} (build ${buildId})`)
       buildLogger.info(
         `Commit ${response.commitSha} on branch ${response.branch}`
@@ -87,14 +91,12 @@ const worker = new Worker<BuilderQueueJob>(
       )
 
       /*
-       * Each builder closes the logger it receives, so create a
-       * fresh one for every step of the pipeline.
+       * Every step writes to the one deployment-scoped logger created
+       * above, so install/build/push output and the worker's own status
+       * lines share a single ordered buffer and a single flush to S3.
+       * Creating separate loggers per step fragmented the log stream and
+       * let concurrent flushes collide on object keys.
        */
-      const createLogger = () =>
-        createForgeBuildLogger({
-          projectId: response.projectId,
-          deploymentId: response.deploymentId,
-        })
 
       const detection = detectProject(repoPath)
       // Framework is detected once, at repository import time, and handed to
@@ -121,7 +123,7 @@ const worker = new Worker<BuilderQueueJob>(
             projectPath: repoPath,
             packageRunner: detection.packageRunner,
             framework,
-            logger: createLogger(),
+            logger: buildLogger,
           })
 
           logger.info({ output }, "Build output")
@@ -154,32 +156,26 @@ const worker = new Worker<BuilderQueueJob>(
               packageRunner: detection.packageRunner,
               framework,
               buildId,
-              logger: createLogger(),
+              logger: buildLogger,
             })
 
             logger.info({ container }, "Container image built")
 
-            const pushLogger = createLogger()
+            buildLogger.info("Pushing image to registry...")
 
-            try {
-              buildLogger.info("Pushing image to registry...")
+            const push = await pushImage({
+              config: builderConfig.dockerRegistry,
+              imageName: container.imageName,
+              repository: builderConfig.dockerRegistry.repository,
+              tag: imageTag,
+              onStdout: (data) => buildLog.stdout(data),
+              onStderr: (data) => buildLog.stderr(data),
+            })
 
-              const push = await pushImage({
-                config: builderConfig.dockerRegistry,
-                imageName: container.imageName,
-                repository: builderConfig.dockerRegistry.repository,
-                tag: imageTag,
-                onStdout: (data) => pushLogger.stdout(data),
-                onStderr: (data) => pushLogger.stderr(data),
-              })
+            logger.info({ push }, "Image pushed")
 
-              logger.info({ push }, "Image pushed")
-
-              report.imageUrl = push.imageRef.split(":")[0]
-              report.imageTag = imageTag
-            } finally {
-              pushLogger.close()
-            }
+            report.imageUrl = push.imageRef.split(":")[0]
+            report.imageTag = imageTag
           }
 
           break
@@ -196,32 +192,26 @@ const worker = new Worker<BuilderQueueJob>(
             projectPath: repoPath,
             dockerfile: detection.dockerfile,
             buildId,
-            logger: createLogger(),
+            logger: buildLogger,
           })
 
           logger.info({ output }, "Build output")
 
-          const pushLogger = createLogger()
+          buildLogger.info("Pushing image to registry...")
 
-          try {
-            buildLogger.info("Pushing image to registry...")
+          const push = await pushImage({
+            config: builderConfig.dockerRegistry,
+            imageName: output.imageName,
+            repository: builderConfig.dockerRegistry.repository,
+            tag: imageTag,
+            onStdout: (data) => buildLog.stdout(data),
+            onStderr: (data) => buildLog.stderr(data),
+          })
 
-            const push = await pushImage({
-              config: builderConfig.dockerRegistry,
-              imageName: output.imageName,
-              repository: builderConfig.dockerRegistry.repository,
-              tag: imageTag,
-              onStdout: (data) => pushLogger.stdout(data),
-              onStderr: (data) => pushLogger.stderr(data),
-            })
+          logger.info({ push }, "Image pushed")
 
-            logger.info({ push }, "Image pushed")
-
-            report.imageUrl = push.imageRef.split(":")[0]
-            report.imageTag = imageTag
-          } finally {
-            pushLogger.close()
-          }
+          report.imageUrl = push.imageRef.split(":")[0]
+          report.imageTag = imageTag
 
           break
         }
@@ -236,33 +226,27 @@ const worker = new Worker<BuilderQueueJob>(
           const output = await buildDockerComposeProject({
             projectPath: repoPath,
             composeFile: detection.composeFile,
-            logger: createLogger(),
+            logger: buildLogger,
           })
 
           logger.info({ output }, "Build output")
 
-          const pushLogger = createLogger()
+          buildLogger.info("Pushing images to registry...")
 
-          try {
-            buildLogger.info("Pushing images to registry...")
+          const push = await pushComposeImages({
+            config: builderConfig.dockerRegistry,
+            composeFile: detection.composeFile,
+            cwd: repoPath,
+            repository: builderConfig.dockerRegistry.repository,
+            tag: imageTag,
+            onStdout: (data) => buildLog.stdout(data),
+            onStderr: (data) => buildLog.stderr(data),
+          })
 
-            const push = await pushComposeImages({
-              config: builderConfig.dockerRegistry,
-              composeFile: detection.composeFile,
-              cwd: repoPath,
-              repository: builderConfig.dockerRegistry.repository,
-              tag: imageTag,
-              onStdout: (data) => pushLogger.stdout(data),
-              onStderr: (data) => pushLogger.stderr(data),
-            })
+          logger.info({ push }, "Image pushed")
 
-            logger.info({ push }, "Image pushed")
-
-            report.imageUrl = push.imageRefs[0]?.split(":")[0] ?? ""
-            report.imageTag = imageTag
-          } finally {
-            pushLogger.close()
-          }
+          report.imageUrl = push.imageRefs[0]?.split(":")[0] ?? ""
+          report.imageTag = imageTag
 
           break
         }

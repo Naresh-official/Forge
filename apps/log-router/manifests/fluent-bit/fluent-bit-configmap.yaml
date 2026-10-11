@@ -21,7 +21,11 @@ data:
     [INPUT]
         Name              tail
         Path              /var/log/containers/*.log
-        Parser            docker
+        # Containerd/kubelet write CRI-format logs (`<ts> <stream> <flag> <line>`),
+        # not docker JSON. Parsing them as JSON left the whole raw line —
+        # including the CRI prefix — in the message and never set `stream`,
+        # so every runtime line was classified as info.
+        Parser            cri
         Tag               kube.*
         Mem_Buf_Limit     5MB
         Skip_Long_Lines   On
@@ -47,6 +51,16 @@ data:
         # implements with its Bun.listen ForwardServer.
 
   parsers.conf: |
+    # 2026-10-11T05:54:35.879240254Z stdout F yarn run v1.22.22
+    # The trailing flag (F = full, P = partial) is not part of the log line.
+    [PARSER]
+        Name        cri
+        Format      regex
+        Regex       ^(?<time>[^ ]+) +(?<stream>stdout|stderr) +[^ ]+ +(?<log>.*)$
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep   On
+
     [PARSER]
         Name docker
         Format json

@@ -40,6 +40,11 @@ metadata:
     app.kubernetes.io/managed-by: forge
 spec:
   replicas: 1
+  # The pod uses hostNetwork and binds a fixed host port (8010), so a rolling
+  # update can never schedule the replacement pod — the old one still holds
+  # the port. Recreate takes the old pod down first instead of deadlocking.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: log-router
@@ -77,11 +82,37 @@ spec:
             # service link env var of the same name.
             - name: LOG_ROUTER_PORT
               value: "8010"
-            # S3 bucket for persisted logs
+            # S3 bucket + region for persisted runtime logs. These must match
+            # the LOGS_BUCKET / AWS_REGION in the repo-root .env: the api reads
+            # history from that bucket, so a mismatch silently hides runtime
+            # logs even though they are being written.
             - name: LOGS_BUCKET
-              value: "forge-logs"
+              value: "forge-project-logs"
             - name: AWS_REGION
-              value: "us-east-1"
+              value: "ap-south-1"
+            # Credentials for S3 log persistence. Without them every flush
+            # fails with a credentials error (the receiver keeps running, but
+            # runtime logs are only available live, never as history).
+            #
+            #   kubectl create secret generic forge-aws-credentials \
+            #     -n forge-system \
+            #     --from-literal=AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+            #     --from-literal=AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+            #
+            # Read from the repo-root .env so the same credentials the builder
+            # and api use on the host are available in-cluster.
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: forge-aws-credentials
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: forge-aws-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
             # Optional: for MinIO or other S3-compatible backends
             # - name: S3_ENDPOINT
             #   value: "http://minio.forge-system:9000"

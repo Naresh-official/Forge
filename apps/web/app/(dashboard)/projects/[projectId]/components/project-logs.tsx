@@ -105,7 +105,11 @@ export function ProjectLogs({ projectId }: { projectId: string }) {
               )
             })}
           </div>
-          <DeploymentLogs key={selected.id} deploymentId={selected.id} />
+          <DeploymentLogs
+            key={selected.id}
+            deploymentId={selected.id}
+            status={selected.status}
+          />
         </>
       )}
     </>

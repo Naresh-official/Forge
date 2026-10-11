@@ -2,10 +2,39 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Copy, RefreshCw, Terminal } from "lucide-react"
+import type { DeploymentStatus } from "@forge/types"
 import {
   useDeploymentLogs,
   type DeploymentLogType,
 } from "./use-deployment-logs"
+
+/** Deployment states in which the application is up and serving traffic. */
+export function isDeploymentRunning(status?: DeploymentStatus): boolean {
+  return status === "READY"
+}
+
+/**
+ * Tab to open with. An explicit `initialType` wins; otherwise a running
+ * deployment opens on runtime logs and everything else on build logs.
+ */
+export function initialLogType(
+  initialType: DeploymentLogType | undefined,
+  status?: DeploymentStatus
+): DeploymentLogType {
+  return initialType ?? (isDeploymentRunning(status) ? "runtime" : "build")
+}
+
+/**
+ * Tab to move to as status/output changes. Switches to runtime once the
+ * deployment is running or emitting runtime output; otherwise stays put.
+ */
+export function autoLogType(
+  current: DeploymentLogType,
+  status: DeploymentStatus | undefined,
+  hasRuntimeLogs: boolean
+): DeploymentLogType {
+  return isDeploymentRunning(status) || hasRuntimeLogs ? "runtime" : current
+}
 
 const LEVEL_COLORS: Record<string, string> = {
   info: "text-emerald-400",
@@ -31,13 +60,24 @@ function formatTime(timestamp: string): string {
 
 export function DeploymentLogs({
   deploymentId,
-  initialType = "build",
+  initialType,
+  status,
 }: {
   deploymentId: string
   initialType?: DeploymentLogType
+  /** Current deployment status; drives the automatic build→runtime switch. */
+  status?: DeploymentStatus
 }) {
-  const [type, setType] = useState<DeploymentLogType>(initialType)
+  // Open an already-running deployment on its runtime logs; everything else
+  // (queued/building/failed/cancelled) starts on the build logs.
+  const [type, setType] = useState<DeploymentLogType>(() =>
+    initialLogType(initialType, status)
+  )
   const [autoScroll, setAutoScroll] = useState(true)
+
+  // Set once the user picks a tab, so the automatic switch never yanks them
+  // away from the view they deliberately chose.
+  const userPinnedType = useRef(false)
 
   const {
     lines,
@@ -45,10 +85,30 @@ export function DeploymentLogs({
     isError,
     error,
     isLiveConnected,
+    hasRuntimeLogs,
     hasMore,
     loadMore,
     refetch,
   } = useDeploymentLogs({ deploymentId, type })
+
+  /*
+   * Follow the deployment into runtime once it is ready and actually
+   * producing output. Two triggers, because they cover different cases:
+   * `status` handles an already-running deployment (and status refreshes),
+   * while `hasRuntimeLogs` handles a build that finishes while this view is
+   * open — the deployments list is not polled, so the live stream is the
+   * signal that the application has started.
+   */
+  useEffect(() => {
+    if (userPinnedType.current) return
+
+    setType((current) => autoLogType(current, status, hasRuntimeLogs))
+  }, [status, hasRuntimeLogs])
+
+  const selectType = (value: DeploymentLogType) => {
+    userPinnedType.current = true
+    setType(value)
+  }
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -104,7 +164,7 @@ export function DeploymentLogs({
               <button
                 key={value}
                 type="button"
-                onClick={() => setType(value)}
+                onClick={() => selectType(value)}
                 className={[
                   "px-2.5 py-1 text-[10px] capitalize",
                   type === value

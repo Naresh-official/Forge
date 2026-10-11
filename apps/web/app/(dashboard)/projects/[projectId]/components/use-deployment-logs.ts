@@ -20,13 +20,19 @@ export interface UseDeploymentLogsOptions {
 }
 
 export interface UseDeploymentLogsResult {
-  /** Historical + live lines merged, oldest first. */
+  /** Historical + live lines for the selected type, oldest first. */
   lines: LogLine[]
   isLoading: boolean
   isError: boolean
   error: unknown
   /** True while the SSE channel is connected. */
   isLiveConnected: boolean
+  /**
+   * True once any runtime output has been observed for this deployment
+   * (historical or live). Used to auto-switch off the build tab once the
+   * application starts producing logs.
+   */
+  hasRuntimeLogs: boolean
   /** True when older pages exist and can be fetched. */
   hasMore: boolean
   /** Fetches the next (older) page from S3. */
@@ -39,8 +45,10 @@ export interface UseDeploymentLogsResult {
  * events (a dedicated SSE connection — intentionally not a TanStack Query,
  * which is a request/response cache, not a push channel).
  *
- * Live events are also written into the query cache so switching between
- * deployments keeps them.
+ * The SSE channel is *deployment*-scoped and carries both build and runtime
+ * events, so switching the log type must never tear it down or drop the live
+ * buffer — it only changes which `source` is displayed. Tearing it down used
+ * to wipe the buffer and show "No logs yet" for both tabs.
  */
 export function useDeploymentLogs(
   options: UseDeploymentLogsOptions
@@ -62,11 +70,16 @@ export function useDeploymentLogs(
     enabled: cursorStack.length > 0,
   })
 
-  // Reset live state when switching deployments or log type.
+  /*
+   * Reset per-deployment state only. `type` is deliberately excluded: the
+   * live buffer holds events for the whole deployment and is filtered for
+   * display, so switching tabs keeps whatever has already streamed in.
+   */
   useEffect(() => {
     setLiveLines([])
     setIsLiveConnected(false)
-  }, [deploymentId, type])
+    setCursorStack([])
+  }, [deploymentId])
 
   const streamRef = useRef<DeploymentLogStream | undefined>(undefined)
 
@@ -87,7 +100,7 @@ export function useDeploymentLogs(
       stream.close()
       streamRef.current = undefined
     }
-  }, [deploymentId, type, live])
+  }, [deploymentId, live])
 
   const lines = useMemo(() => {
     const historical = [
@@ -95,14 +108,17 @@ export function useDeploymentLogs(
       ...(olderPageQuery.data?.data.lines ?? []),
     ]
 
-    // Oldest page first: pages were fetched newest-first, so accumulated
-    // cursors are in newest→oldest order — reverse the chunk lines? Pages
-    // themselves are chronological per cursor; simplest correct merge is
-    // historical then live, sorted by timestamp when both exist.
-    const merged = [...historical, ...liveLines]
+    return mergeLogLines(historical, liveLines, type)
+  }, [historyQuery.data, olderPageQuery.data, liveLines, type])
 
-    return merged
-  }, [historyQuery.data, olderPageQuery.data, liveLines])
+  /*
+   * Live events carry both sources regardless of the selected tab, so this
+   * flips as soon as the running application emits its first log line.
+   */
+  const hasRuntimeLogs = useMemo(
+    () => liveLines.some((line) => line.source === "runtime"),
+    [liveLines]
+  )
 
   const hasMore =
     olderPageQuery.data?.data.hasMore ??
@@ -126,6 +142,7 @@ export function useDeploymentLogs(
     isError: historyQuery.isError,
     error: historyQuery.error,
     isLiveConnected,
+    hasRuntimeLogs,
     hasMore,
     loadMore,
     refetch: () => historyQuery.refetch(),
@@ -140,4 +157,37 @@ function toLine(event: LogEvent): LogLine {
     message: event.message,
     ...(event.kubernetes ? { kubernetes: event.kubernetes } : {}),
   }
+}
+
+/**
+ * Selects the lines for `type`, removes duplicates (a reconnect replays Redis
+ * history, which overlaps with events already buffered and with S3 history),
+ * and sorts oldest-first. Exported for testing.
+ */
+export function mergeLogLines(
+  historical: LogLine[],
+  live: LogLine[],
+  type: DeploymentLogType
+): LogLine[] {
+  const seen = new Set<string>()
+  const merged: LogLine[] = []
+
+  for (const line of [...historical, ...live]) {
+    if (line.source !== type) {
+      continue
+    }
+
+    const key = `${line.timestamp}|${line.source}|${line.message}`
+
+    if (seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    merged.push(line)
+  }
+
+  return merged.sort(
+    (a, b) => (Date.parse(a.timestamp) || 0) - (Date.parse(b.timestamp) || 0)
+  )
 }

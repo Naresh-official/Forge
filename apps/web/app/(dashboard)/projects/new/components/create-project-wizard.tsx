@@ -27,6 +27,13 @@ import {
   deploymentPlanIds,
   type DeploymentPlanId,
 } from "@forge/types"
+import { Alert, AlertTitle } from "@forge/ui/components/alert"
+import { Button, buttonVariants } from "@forge/ui/components/button"
+import { Card } from "@forge/ui/components/card"
+import { Input } from "@forge/ui/components/input"
+import { Label } from "@forge/ui/components/label"
+import { Skeleton } from "@forge/ui/components/skeleton"
+import { cn } from "@forge/ui/lib/utils"
 import { FrameworkLogo } from "@/app/(dashboard)/_components/framework-logo"
 import { useToast } from "@/app/(dashboard)/_components/toast-provider"
 
@@ -118,13 +125,15 @@ export function CreateProjectWizard() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => router.push("/projects")}
-        className="mb-5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+        className="mb-5 gap-1.5 px-0 text-[11px] text-muted-foreground hover:bg-transparent hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> Projects
-      </button>
+      </Button>
 
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-[-.045em]">
@@ -138,32 +147,33 @@ export function CreateProjectWizard() {
       <div className="max-w-4xl">
         <div className="mb-3 flex gap-6 max-sm:justify-between max-sm:gap-2">
           {steps.map(({ label }, i) => (
-            <button
+            <Button
               key={label}
               type="button"
+              variant="ghost"
               disabled={i + 1 > step || selected === null}
               onClick={() => goToStep(i + 1)}
-              className={[
-                "flex items-center gap-2 text-sm",
-                step === i + 1 ? "text-foreground" : "text-muted-foreground",
-              ].join(" ")}
+              className={cn(
+                "h-auto gap-2 px-0 text-sm hover:bg-transparent",
+                step === i + 1 ? "text-foreground" : "text-muted-foreground"
+              )}
             >
               <span
-                className={[
+                className={cn(
                   "grid size-5 place-items-center rounded-full border",
                   step >= i + 1
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border",
-                ].join(" ")}
+                    : "border-border"
+                )}
               >
                 {step > i + 1 ? <Check className="size-3" /> : i + 1}
               </span>
               <span className="max-sm:hidden">{label}</span>
-            </button>
+            </Button>
           ))}
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-6 max-sm:p-4">
+        <Card className="gap-0 p-6 max-sm:p-4">
           {step === 1 && (
             <>
               <StepTitle
@@ -173,35 +183,40 @@ export function CreateProjectWizard() {
               />
 
               <div className="mt-5 flex flex-wrap items-center gap-2">
-                <label className="flex h-9 min-w-55 flex-1 items-center gap-2 rounded-md border border-border bg-background px-2.5">
-                  <Search className="size-3.5 shrink-0 text-muted-foreground" />
-                  <input
+                <div className="relative flex h-9 min-w-55 flex-1 items-center">
+                  <Search className="pointer-events-none absolute left-2.5 size-3.5 shrink-0 text-muted-foreground" />
+                  <Input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search repositories"
                     disabled={repositoriesQuery.isLoading}
-                    className="min-w-0 flex-1 bg-transparent text-[11px] outline-none"
+                    className="h-9 pl-8 text-[11px]"
                   />
-                </label>
-                <button
+                </div>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="lg"
                   onClick={() => repositoriesQuery.refetch()}
                   disabled={repositoriesQuery.isFetching}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  className="gap-1.5 text-[11px] text-muted-foreground"
                 >
                   <RefreshCw
-                    className={[
+                    className={cn(
                       "size-3.5",
-                      repositoriesQuery.isFetching ? "animate-spin" : "",
-                    ].join(" ")}
+                      repositoriesQuery.isFetching && "animate-spin"
+                    )}
                   />
                   Sync
-                </button>
+                </Button>
                 <a
                   href={githubInstallUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-2.5 text-[11px] font-bold text-primary-foreground"
+                  className={cn(
+                    buttonVariants({ size: "lg" }),
+                    "gap-1.5 text-[11px] font-bold"
+                  )}
                 >
                   <ExternalLink className="size-3.5" />
                   Allow more repos
@@ -211,16 +226,16 @@ export function CreateProjectWizard() {
               {repositoriesQuery.isLoading && (
                 <div className="mt-3 space-y-1.5">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <div
+                    <Card
                       key={i}
-                      className="flex animate-pulse items-center gap-3 rounded-md border border-border p-2.5"
+                      className="flex-row items-center gap-3 p-2.5 ring-1 ring-border"
                     >
-                      <div className="size-7 shrink-0 rounded-md bg-muted" />
+                      <Skeleton className="size-7 shrink-0 rounded-md" />
                       <div className="flex flex-1 flex-col gap-1.5">
-                        <div className="h-3 w-40 rounded bg-muted" />
-                        <div className="h-2.5 w-20 rounded bg-muted" />
+                        <Skeleton className="h-3 w-40" />
+                        <Skeleton className="h-2.5 w-20" />
                       </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               )}
@@ -235,7 +250,7 @@ export function CreateProjectWizard() {
               {!repositoriesQuery.isLoading &&
                 !repositoriesQuery.isError &&
                 repositories.length === 0 && (
-                  <div className="mt-3 flex flex-col items-center gap-2 rounded-md border border-dashed border-border px-4 py-10 text-center">
+                  <Card className="mt-3 flex flex-col items-center gap-2 border border-dashed border-border px-4 py-10 text-center ring-0">
                     <GitBranch className="size-5 text-muted-foreground" />
                     <h3 className="text-[11px] text-foreground">
                       No repositories available
@@ -248,12 +263,15 @@ export function CreateProjectWizard() {
                       href={githubInstallUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground"
+                      className={cn(
+                        buttonVariants({ size: "lg" }),
+                        "mt-1 gap-1.5 text-[11px] font-bold"
+                      )}
                     >
                       <ExternalLink className="size-3.5" />
                       Allow repositories on GitHub
                     </a>
-                  </div>
+                  </Card>
                 )}
 
               {!repositoriesQuery.isLoading &&
@@ -272,20 +290,21 @@ export function CreateProjectWizard() {
                     const isSelected = selected?.id === repo.id
 
                     return (
-                      <button
+                      <Button
                         key={repo.id}
                         type="button"
+                        variant="outline"
                         disabled={connected}
                         onClick={() => setSelected(repo)}
-                        className={[
-                          "flex w-full items-center gap-3 rounded-md border p-2.5 text-left",
+                        className={cn(
+                          "h-auto w-full items-center justify-start gap-3 p-2.5 text-left font-normal",
                           isSelected
                             ? "border-primary bg-primary/5"
                             : "border-border",
                           connected
                             ? "cursor-not-allowed opacity-50"
-                            : "hover:border-primary/50",
-                        ].join(" ")}
+                            : "hover:border-primary/50"
+                        )}
                       >
                         <span className="grid size-7 shrink-0 place-items-center rounded-md bg-secondary">
                           <FrameworkLogo framework={repo.framework} />
@@ -307,21 +326,22 @@ export function CreateProjectWizard() {
                         {isSelected && (
                           <Check className="size-3.5 shrink-0 text-primary" />
                         )}
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
               )}
 
               <Actions>
-                <button
+                <Button
                   type="button"
+                  size="lg"
                   disabled={selected === null}
                   onClick={() => goToStep(2)}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  className="gap-2 text-[11px] font-bold"
                 >
                   Continue <ArrowUpRight className="size-3.5" />
-                </button>
+                </Button>
               </Actions>
             </>
           )}
@@ -340,21 +360,22 @@ export function CreateProjectWizard() {
                   const active = !autoscaling && plan === id
 
                   return (
-                    <button
+                    <Button
                       key={id}
                       type="button"
+                      variant="outline"
                       onClick={() => {
                         setAutoscaling(false)
                         setPlan(id)
                       }}
-                      className={[
-                        "flex flex-col gap-1.5 rounded-md border p-3 text-left",
+                      className={cn(
+                        "h-auto flex-col items-start gap-1.5 p-3 text-left font-normal",
                         active
                           ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50",
-                      ].join(" ")}
+                          : "border-border hover:border-primary/50"
+                      )}
                     >
-                      <span className="flex items-center justify-between">
+                      <span className="flex w-full items-center justify-between">
                         <strong className="text-[12px] font-semibold">
                           {planOption.label}
                         </strong>
@@ -369,21 +390,22 @@ export function CreateProjectWizard() {
                       <span className="text-[10px] text-muted-foreground">
                         {planOption.ephemeralStorageMb} MB storage
                       </span>
-                    </button>
+                    </Button>
                   )
                 })}
 
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setAutoscaling(true)}
-                  className={[
-                    "flex flex-col gap-1.5 rounded-md border p-3 text-left",
+                  className={cn(
+                    "h-auto flex-col items-start gap-1.5 p-3 text-left font-normal",
                     autoscaling
                       ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50",
-                  ].join(" ")}
+                      : "border-border hover:border-primary/50"
+                  )}
                 >
-                  <span className="flex items-center justify-between">
+                  <span className="flex w-full items-center justify-between">
                     <strong className="text-[12px] font-semibold">
                       Autoscale
                     </strong>
@@ -398,24 +420,27 @@ export function CreateProjectWizard() {
                   <span className="text-[10px] text-muted-foreground">
                     Scale on demand
                   </span>
-                </button>
+                </Button>
               </div>
 
               <Actions>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="lg"
                   onClick={() => goToStep(1)}
-                  className="rounded-md border border-border bg-card px-3 py-2 text-[11px]"
+                  className="text-[11px]"
                 >
                   Back
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="lg"
                   onClick={() => goToStep(3)}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground"
+                  className="gap-2 text-[11px] font-bold"
                 >
                   Continue <ArrowUpRight className="size-3.5" />
-                </button>
+                </Button>
               </Actions>
             </>
           )}
@@ -443,16 +468,16 @@ export function CreateProjectWizard() {
                 )}
               </div>
 
-              <label className="mt-5 flex flex-col gap-1.5 text-sm text-muted-foreground">
+              <Label className="mt-5 flex-col items-start gap-1.5 text-sm font-normal text-muted-foreground">
                 Project name
-                <input
+                <Input
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder={repoShortName(selected)}
                   disabled={deployment.isPending}
-                  className="rounded-md border border-border bg-background px-2.5 py-2 text-[11px] text-foreground outline-none focus:ring-1 focus:ring-ring"
+                  className="h-auto py-2 text-[11px]"
                 />
-              </label>
+              </Label>
               <p className="mt-2 text-[9px] text-muted-foreground">
                 Leave empty to use the repository name. Forge detects the build
                 and output settings automatically.
@@ -469,19 +494,22 @@ export function CreateProjectWizard() {
               )}
 
               <Actions>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="lg"
                   disabled={deployment.isPending}
                   onClick={() => goToStep(step - 1)}
-                  className="rounded-md border border-border bg-card px-3 py-2 text-[11px] disabled:opacity-50"
+                  className="text-[11px]"
                 >
                   Back
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="lg"
                   disabled={!canDeploy}
                   onClick={startDeployment}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  className="gap-2 text-[11px] font-bold"
                 >
                   {deployment.isPending
                     ? "Starting deployment…"
@@ -491,11 +519,11 @@ export function CreateProjectWizard() {
                   ) : (
                     <Rocket className="size-3.5" />
                   )}
-                </button>
+                </Button>
               </Actions>
             </>
           )}
-        </div>
+        </Card>
       </div>
     </>
   )
@@ -518,20 +546,27 @@ function InlineError({
   onRetry?: () => void
 }) {
   return (
-    <div className="mt-3 flex items-center gap-2 rounded-md border border-rose-500/20 bg-rose-500/5 px-3 py-2.5 text-[11px] text-rose-300">
+    <Alert
+      variant="destructive"
+      className="mt-3 flex items-center gap-2 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2.5 text-[11px] text-rose-300"
+    >
       <AlertCircle className="size-3.5 shrink-0" />
-      <span className="flex-1">{message}</span>
+      <AlertTitle className="flex-1 text-[11px] font-normal text-inherit">
+        {message}
+      </AlertTitle>
       {onRetry && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="xs"
           onClick={onRetry}
-          className="inline-flex shrink-0 items-center gap-1 text-rose-200 hover:text-rose-100"
+          className="shrink-0 gap-1 text-rose-200 hover:bg-transparent hover:text-rose-100"
         >
           <RefreshCw className="size-3" />
           Retry
-        </button>
+        </Button>
       )}
-    </div>
+    </Alert>
   )
 }
 

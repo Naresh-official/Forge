@@ -2,6 +2,12 @@
 
 import { Check, Copy, Plus, X } from "lucide-react"
 import { useState } from "react"
+import { Alert, AlertTitle } from "@forge/ui/components/alert"
+import { Badge } from "@forge/ui/components/badge"
+import { Button } from "@forge/ui/components/button"
+import { Card } from "@forge/ui/components/card"
+import { Table } from "@forge/ui/components/table"
+import { cn } from "@forge/ui/lib/utils"
 
 export function StatusBadge({ status }: { status?: string }) {
   const norm = (status ?? "").toUpperCase()
@@ -30,20 +36,21 @@ export function StatusBadge({ status }: { status?: string }) {
       : "Unknown"
 
   return (
-    <span
-      className={[
-        "inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-1 text-sm whitespace-nowrap",
-        good ? "text-emerald-400" : warn ? "text-amber-400" : "text-rose-400",
-      ].join(" ")}
+    <Badge
+      variant="outline"
+      className={cn(
+        "gap-1.5 px-2 py-1 text-sm",
+        good ? "text-emerald-400" : warn ? "text-amber-400" : "text-rose-400"
+      )}
     >
       <span
-        className={[
+        className={cn(
           "size-1.5 rounded-full",
-          good ? "bg-emerald-400" : warn ? "bg-amber-400" : "bg-rose-400",
-        ].join(" ")}
+          good ? "bg-emerald-400" : warn ? "bg-amber-400" : "bg-rose-400"
+        )}
       />
       {formattedStatus}
-    </span>
+    </Badge>
   )
 }
 
@@ -76,14 +83,15 @@ export function PageHeader({
         )}
       </div>
       {action && (
-        <button
+        <Button
           type="button"
+          size="lg"
           onClick={onAction}
-          className="inline-flex items-center gap-2 rounded-md border border-primary bg-primary px-3.5 py-2.5 text-[11px] font-bold text-primary-foreground shadow-sm hover:opacity-90 max-sm:w-full max-sm:justify-center"
+          className="gap-2 px-3.5 py-2.5 text-[11px] font-bold max-sm:w-full"
         >
           <Plus className="size-3.5" />
           {action}
-        </button>
+        </Button>
       )}
     </div>
   )
@@ -99,21 +107,21 @@ export function EmptyState({
   onAction?: () => void
 }) {
   return (
-    <div className="flex min-h-60 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border text-muted-foreground">
+    <Card className="flex min-h-60 flex-col items-center justify-center gap-2 border border-dashed border-border text-muted-foreground ring-0">
       <div className="rounded-md border border-border p-2">□</div>
       <h3 className="mt-1 text-sm text-foreground">{title}</h3>
       <p className="mb-2 text-sm">There&apos;s nothing here yet.</p>
       {action && onAction && (
-        <button
+        <Button
           type="button"
           onClick={onAction}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-[11px] font-semibold text-primary-foreground"
+          className="gap-2 py-2 text-[11px] font-semibold"
         >
           <Plus className="size-3.5" />
           {action}
-        </button>
+        </Button>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -121,10 +129,11 @@ export function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false)
 
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="icon-sm"
       aria-label="Copy"
-      className="grid size-7 place-items-center rounded-md border border-border bg-card text-muted-foreground hover:text-foreground"
       onClick={async () => {
         await navigator.clipboard?.writeText(value)
         setCopied(true)
@@ -132,16 +141,16 @@ export function CopyButton({ value }: { value: string }) {
       }}
     >
       {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-    </button>
+    </Button>
   )
 }
 
 export function DataTable({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-4 overflow-x-auto">
-      <table className="w-full min-w-[650px] border-collapse text-left">
+    <div className="mt-4">
+      <Table>
         {children}
-      </table>
+      </Table>
     </div>
   )
 }
@@ -154,17 +163,21 @@ export function Toast({
   onClose: () => void
 }) {
   return (
-    <div className="fixed right-6 bottom-6 z-50 flex items-center gap-2 rounded-md border border-emerald-900 bg-emerald-950/90 px-3 py-2.5 text-[11px] text-emerald-200 shadow-xl max-sm:right-4 max-sm:bottom-4 max-sm:left-4">
+    <Alert className="fixed right-6 bottom-6 z-50 flex w-fit items-center gap-2 rounded-md border-emerald-900 bg-emerald-950/90 px-3 py-2.5 text-[11px] text-emerald-200 shadow-xl max-sm:right-4 max-sm:bottom-4 max-sm:left-4">
       <Check className="size-3.5" />
-      {message}
-      <button
+      <AlertTitle className="text-[11px] font-normal text-inherit">
+        {message}
+      </AlertTitle>
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-xs"
         onClick={onClose}
         aria-label="Dismiss"
-        className="ml-2"
+        className="ml-2 text-inherit"
       >
         <X className="size-3.5" />
-      </button>
-    </div>
+      </Button>
+    </Alert>
   )
 }

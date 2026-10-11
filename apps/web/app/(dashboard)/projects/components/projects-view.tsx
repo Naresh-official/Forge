@@ -1,23 +1,51 @@
 "use client"
 
-import {
-  AlertCircle,
-  ChevronDown,
-  GitBranch,
-  RefreshCw,
-  Search,
-  X,
-} from "lucide-react"
+import { AlertCircle, GitBranch, RefreshCw, Search, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { listProjects } from "@forge/api-client/project"
+import { Alert, AlertTitle } from "@forge/ui/components/alert"
+import { Button } from "@forge/ui/components/button"
+import { Card } from "@forge/ui/components/card"
+import { Input } from "@forge/ui/components/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@forge/ui/components/select"
+import { Skeleton } from "@forge/ui/components/skeleton"
 import { EmptyState, PageHeader, StatusBadge } from "../../_components/ui"
 import {
   FrameworkLogo,
   formatFramework,
 } from "../../_components/framework-logo"
 import type { ProjectListItem } from "@forge/types"
+
+const STATUS_OPTIONS = {
+  ALL: "All Statuses",
+  READY: "Ready",
+  DEPLOYING: "Deploying",
+  BUILDING: "Building",
+  QUEUED: "Queued",
+  FAILED: "Failed",
+  CANCELLED: "Cancelled",
+} as const
+
+const FRAMEWORK_OPTIONS = {
+  ALL: "All Frameworks",
+  NEXTJS: "Next.js",
+  REACT: "React",
+  VITE: "Vite",
+  VUE: "Vue",
+  NUXT: "Nuxt",
+  ASTRO: "Astro",
+  SVELTEKIT: "SvelteKit",
+  NESTJS: "NestJS",
+  EXPRESS: "Express",
+} as const
 
 function formatRelativeTime(dateInput?: Date | string) {
   if (!dateInput) return "Recently"
@@ -42,25 +70,22 @@ function ProjectsSkeleton() {
   return (
     <div className="grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="animate-pulse rounded-lg border border-border bg-card p-[17px]"
-        >
+        <Card key={i} className="gap-2 p-[17px]">
           <div className="flex items-center justify-between">
-            <div className="size-4 rounded bg-muted" />
-            <div className="h-6 w-16 rounded-full bg-muted" />
+            <Skeleton className="size-4" />
+            <Skeleton className="h-6 w-16 rounded-full" />
           </div>
-          <div className="mt-4 h-5 w-3/4 rounded bg-muted" />
-          <div className="mt-2 mb-5 h-4 w-1/2 rounded bg-muted" />
+          <Skeleton className="mt-4 h-5 w-3/4" />
+          <Skeleton className="mt-2 mb-5 h-4 w-1/2" />
           <div className="flex items-center justify-between border-t border-border pt-3">
-            <div className="h-4 w-16 rounded bg-muted" />
-            <div className="h-4 w-14 rounded bg-muted" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-14" />
           </div>
           <div className="mt-4 flex justify-between">
-            <div className="h-3 w-24 rounded bg-muted" />
-            <div className="h-3 w-12 rounded bg-muted" />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-12" />
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   )
@@ -81,27 +106,32 @@ function ErrorState({
         : "Failed to load projects. Please try again."
 
   return (
-    <div className="flex min-h-60 flex-col items-center justify-center gap-3 rounded-lg border border-rose-500/20 bg-rose-500/5 p-8 text-center text-rose-300">
+    <Alert
+      variant="destructive"
+      className="flex min-h-60 flex-col items-center justify-center gap-3 border-rose-500/20 bg-rose-500/5 p-8 text-center text-rose-300"
+    >
       <div className="rounded-full border border-rose-500/30 bg-rose-500/10 p-3 text-rose-400">
         <AlertCircle className="size-6" />
       </div>
-      <div>
-        <h3 className="text-sm font-semibold text-foreground">
+      <div className="grid gap-1">
+        <AlertTitle className="text-sm font-semibold text-foreground">
           Error loading projects
-        </h3>
-        <p className="mt-1 text-xs text-muted-foreground">{errorMessage}</p>
+        </AlertTitle>
+        <p className="text-xs text-muted-foreground">{errorMessage}</p>
       </div>
       {onRetry && (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={onRetry}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          className="mt-2 gap-1.5 text-xs"
         >
           <RefreshCw className="size-3.5" />
           Retry
-        </button>
+        </Button>
       )}
-    </div>
+    </Alert>
   )
 }
 
@@ -170,64 +200,64 @@ export function ProjectsView({
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <label className="flex h-9 min-w-60 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-muted-foreground max-sm:w-full">
-          <Search className="size-3.5" />
-          <input
+        <div className="relative flex h-9 min-w-60 items-center max-sm:w-full">
+          <Search className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+          <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search projects..."
-            className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-9 pl-8 text-xs"
             disabled={isLoading}
           />
           {query && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => setQuery("")}
-              className="text-muted-foreground hover:text-foreground"
+              className="absolute right-1.5 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
             >
               <X className="size-3.5" />
-            </button>
+            </Button>
           )}
-        </label>
-
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            disabled={isLoading}
-            className="h-9 cursor-pointer appearance-none rounded-md border border-border bg-card pr-8 pl-3 text-xs text-muted-foreground outline-none hover:text-foreground disabled:opacity-50"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="READY">Ready</option>
-            <option value="DEPLOYING">Deploying</option>
-            <option value="BUILDING">Building</option>
-            <option value="QUEUED">Queued</option>
-            <option value="FAILED">Failed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-3 -translate-y-1/2 text-muted-foreground" />
         </div>
 
-        <div className="relative">
-          <select
-            value={frameworkFilter}
-            onChange={(e) => setFrameworkFilter(e.target.value)}
-            disabled={isLoading}
-            className="h-9 cursor-pointer appearance-none rounded-md border border-border bg-card pr-8 pl-3 text-xs text-muted-foreground outline-none hover:text-foreground disabled:opacity-50"
-          >
-            <option value="ALL">All Frameworks</option>
-            <option value="NEXTJS">Next.js</option>
-            <option value="REACT">React</option>
-            <option value="VITE">Vite</option>
-            <option value="VUE">Vue</option>
-            <option value="NUXT">Nuxt</option>
-            <option value="ASTRO">Astro</option>
-            <option value="SVELTEKIT">SvelteKit</option>
-            <option value="NESTJS">NestJS</option>
-            <option value="EXPRESS">Express</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-3 -translate-y-1/2 text-muted-foreground" />
-        </div>
+        <Select
+          items={STATUS_OPTIONS}
+          value={statusFilter}
+          onValueChange={(value) => setStatusFilter(value as string)}
+          disabled={isLoading}
+        >
+          <SelectTrigger className="h-9 min-w-36 text-xs text-muted-foreground">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(STATUS_OPTIONS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          items={FRAMEWORK_OPTIONS}
+          value={frameworkFilter}
+          onValueChange={(value) => setFrameworkFilter(value as string)}
+          disabled={isLoading}
+        >
+          <SelectTrigger className="h-9 min-w-36 text-xs text-muted-foreground">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(FRAMEWORK_OPTIONS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading && <ProjectsSkeleton />}
@@ -246,7 +276,7 @@ export function ProjectsView({
         !isError &&
         projects.length > 0 &&
         filtered.length === 0 && (
-          <div className="flex min-h-60 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border text-muted-foreground">
+          <Card className="flex min-h-60 flex-col items-center justify-center gap-2 border border-dashed border-border text-muted-foreground ring-0">
             <Search className="size-6 opacity-50" />
             <h3 className="mt-1 text-sm text-foreground">
               No results matching filter
@@ -254,18 +284,20 @@ export function ProjectsView({
             <p className="mb-2 text-xs">
               Try adjusting your search terms or filters.
             </p>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => {
                 setQuery("")
                 setStatusFilter("ALL")
                 setFrameworkFilter("ALL")
               }}
-              className="rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-muted"
+              className="text-xs"
             >
               Clear filters
-            </button>
-          </div>
+            </Button>
+          </Card>
         )}
 
       {!isLoading && !isError && filtered.length > 0 && (
@@ -282,11 +314,18 @@ export function ProjectsView({
             const framework = formatFramework(p.framework)
 
             return (
-              <button
+              <Card
                 key={p.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => router.push(`/projects/${p.id}`)}
-                className="rounded-lg border border-border bg-card p-[17px] text-left transition hover:-translate-y-px hover:border-primary/50 focus:ring-1 focus:ring-primary focus:outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    router.push(`/projects/${p.id}`)
+                  }
+                }}
+                className="cursor-pointer gap-0 p-[17px] text-left transition hover:-translate-y-px hover:ring-primary/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
               >
                 <div className="flex items-center justify-between">
                   <FrameworkLogo framework={p.framework} />
@@ -309,7 +348,7 @@ export function ProjectsView({
                   <span className="truncate">{domain}</span>
                   <span className="shrink-0 pl-2">{updated}</span>
                 </div>
-              </button>
+              </Card>
             )
           })}
         </div>

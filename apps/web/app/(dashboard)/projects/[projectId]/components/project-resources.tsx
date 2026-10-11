@@ -1,6 +1,8 @@
 "use client"
 
 import { getProject } from "@/lib/forge-data"
+import { Card, CardContent } from "@forge/ui/components/card"
+import { Progress } from "@forge/ui/components/progress"
 import { PageHeader } from "../../../_components/ui"
 import { ProjectHeader } from "./project-header"
 
@@ -23,19 +25,16 @@ export function ProjectResources({ projectId }: { projectId: string }) {
       />
       <div className="grid grid-cols-4 gap-2.5 max-lg:grid-cols-2 max-sm:grid-cols-1">
         {resources.map(([label, value]) => (
-          <article
-            key={label}
-            className="rounded-md border border-border bg-card p-3"
-          >
-            <span className="text-[9px] text-muted-foreground">{label}</span>
-            <strong className="mt-2 block font-mono text-lg">{value}</strong>
-            <small className="mt-1 block text-[9px] text-muted-foreground">
-              this month
-            </small>
-            <div className="mt-2 h-0.5 bg-border">
-              <span className="block h-full w-2/3 bg-primary" />
-            </div>
-          </article>
+          <Card key={label} size="sm">
+            <CardContent>
+              <span className="text-[9px] text-muted-foreground">{label}</span>
+              <strong className="mt-2 block font-mono text-lg">{value}</strong>
+              <small className="mt-1 block text-[9px] text-muted-foreground">
+                this month
+              </small>
+              <Progress value={66} className="mt-2 block" />
+            </CardContent>
+          </Card>
         ))}
       </div>
     </>

@@ -3,14 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  AlertCircle,
-  Loader2,
-  Pause,
-  Play,
-  RefreshCw,
-  Trash2,
-} from "lucide-react"
+import { AlertCircle, Loader2, Pause, Play, RefreshCw, Trash2 } from "lucide-react"
 import {
   deleteProject,
   listProjects,
@@ -18,6 +11,28 @@ import {
   setProjectStatus,
 } from "@forge/api-client/project"
 import type { ProjectStatus } from "@forge/types"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@forge/ui/components/alert-dialog"
+import { Alert, AlertTitle } from "@forge/ui/components/alert"
+import { Button } from "@forge/ui/components/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@forge/ui/components/card"
+import { Input } from "@forge/ui/components/input"
+import { Label } from "@forge/ui/components/label"
 import { PageHeader, StatusBadge } from "../../../_components/ui"
 import { useToast } from "../../../_components/toast-provider"
 import { ProjectHeader } from "./project-header"
@@ -36,7 +51,6 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
 
   // `null` means "show the server value" — the user has not edited yet.
   const [draftName, setDraftName] = useState<string | null>(null)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const invalidateProject = () => {
     void queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -84,25 +98,30 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
 
   if (projectsQuery.isError) {
     return (
-      <div className="flex min-h-60 flex-col items-center justify-center gap-3 rounded-lg border border-rose-500/20 bg-rose-500/5 p-8 text-center">
+      <Alert
+        variant="destructive"
+        className="flex min-h-60 flex-col items-center justify-center gap-3 border-rose-500/20 bg-rose-500/5 p-8 text-center"
+      >
         <AlertCircle className="size-6 text-rose-400" />
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">
+        <div className="grid gap-1">
+          <AlertTitle className="text-sm font-semibold text-foreground">
             Failed to load settings
-          </h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          </AlertTitle>
+          <p className="text-xs text-muted-foreground">
             This project could not be loaded from the API.
           </p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => projectsQuery.refetch()}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          className="gap-1.5 text-xs"
         >
           <RefreshCw className="size-3.5" />
           Retry
-        </button>
-      </div>
+        </Button>
+      </Alert>
     )
   }
 
@@ -135,127 +154,151 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
       />
 
       {isPaused && (
-        <div className="mb-4 flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-[11px] text-amber-300">
+        <Alert className="mb-4 flex items-center gap-2 border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-[11px] text-amber-300">
           <Pause className="size-3.5" />
-          This project is paused — its workload is scaled to zero.
-        </div>
+          <AlertTitle className="text-[11px] font-normal text-inherit">
+            This project is paused — its workload is scaled to zero.
+          </AlertTitle>
+        </Alert>
       )}
 
-      <article className="max-w-2xl rounded-lg border border-border bg-card p-[18px]">
-        <h2 className="text-xs font-semibold">General</h2>
-        <div className="mt-4 grid gap-4">
-          <label className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+      <Card className="max-w-2xl [--card-spacing:--spacing(4.5)]">
+        <CardHeader>
+          <CardTitle className="text-xs">General</CardTitle>
+        </CardHeader>
+        <CardContent className="mt-4 grid gap-4">
+          <Label className="flex-col items-start gap-1.5 text-sm font-normal text-muted-foreground">
             Project name
-            <input
+            <Input
               value={name}
               onChange={(e) => setDraftName(e.target.value)}
               disabled={renameMutation.isPending}
-              className="rounded-md border border-border bg-background px-2.5 py-2 text-[11px] text-foreground outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+              className="h-auto py-2 text-[11px]"
             />
-          </label>
+          </Label>
 
           {renameMutation.isError && (
             <InlineError message="Could not rename the project. Please try again." />
           )}
 
-          <button
+          <Button
             type="button"
+            size="lg"
             disabled={!canRename}
             onClick={() => renameMutation.mutate(trimmedName)}
-            className="inline-flex w-fit items-center gap-2 rounded-md bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-fit gap-2 text-[11px] font-bold"
           >
             {renameMutation.isPending && (
               <Loader2 className="size-3.5 animate-spin" />
             )}
             Save changes
-          </button>
-        </div>
-      </article>
+          </Button>
+        </CardContent>
+      </Card>
 
-      <article className="mt-4 max-w-2xl rounded-lg border border-border bg-card p-[18px]">
-        <h2 className="text-xs font-semibold">Availability</h2>
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          Pausing scales the running workload to zero. Resuming brings it back
-          to one replica (or lets autoscaling take over).
-        </p>
-        <div className="mt-4 flex items-center gap-3">
-          <StatusBadge status={project.status} />
-          <button
-            type="button"
-            disabled={statusMutation.isPending}
-            onClick={() =>
-              statusMutation.mutate(isPaused ? "ACTIVE" : "PAUSED")
-            }
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-[11px] font-medium text-foreground hover:bg-muted disabled:opacity-50"
-          >
-            {statusMutation.isPending ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : isPaused ? (
-              <Play className="size-3.5" />
-            ) : (
-              <Pause className="size-3.5" />
-            )}
-            {isPaused ? "Resume project" : "Pause project"}
-          </button>
-        </div>
-        {statusMutation.isError && (
-          <InlineError message="Could not update the project's workload. Please try again." />
-        )}
-      </article>
-
-      <article className="mt-4 max-w-2xl rounded-lg border border-rose-500/20 bg-rose-500/[.03] p-[18px]">
-        <h2 className="text-xs font-semibold text-rose-300">Danger zone</h2>
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          Deleting a project removes it and all of its deployments. This cannot
-          be undone.
-        </p>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {confirmingDelete ? (
-            <>
-              <button
-                type="button"
-                disabled={deleteMutation.isPending}
-                onClick={() => deleteMutation.mutate()}
-                className="inline-flex items-center gap-2 rounded-md bg-rose-600 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"
-              >
-                {deleteMutation.isPending && (
-                  <Loader2 className="size-3.5 animate-spin" />
-                )}
-                Confirm delete
-              </button>
-              <button
-                type="button"
-                disabled={deleteMutation.isPending}
-                onClick={() => setConfirmingDelete(false)}
-                className="rounded-md border border-border bg-card px-3 py-2 text-[11px]"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button
+      <Card className="mt-4 max-w-2xl [--card-spacing:--spacing(4.5)]">
+        <CardHeader>
+          <CardTitle className="text-xs">Availability</CardTitle>
+          <CardDescription className="text-[11px]">
+            Pausing scales the running workload to zero. Resuming brings it back
+            to one replica (or lets autoscaling take over).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="mt-4">
+          <div className="flex items-center gap-3">
+            <StatusBadge status={project.status} />
+            <Button
               type="button"
-              onClick={() => setConfirmingDelete(true)}
-              className="inline-flex items-center gap-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] font-medium text-rose-300 hover:bg-rose-500/20"
+              variant="outline"
+              size="lg"
+              disabled={statusMutation.isPending}
+              onClick={() => statusMutation.mutate(isPaused ? "ACTIVE" : "PAUSED")}
+              className="gap-2 text-[11px] font-medium"
+            >
+              {statusMutation.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : isPaused ? (
+                <Play className="size-3.5" />
+              ) : (
+                <Pause className="size-3.5" />
+              )}
+              {isPaused ? "Resume project" : "Pause project"}
+            </Button>
+          </div>
+          {statusMutation.isError && (
+            <InlineError message="Could not update the project's workload. Please try again." />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 max-w-2xl border border-rose-500/20 bg-rose-500/[.03] ring-0 [--card-spacing:--spacing(4.5)]">
+        <CardHeader>
+          <CardTitle className="text-xs text-rose-300">Danger zone</CardTitle>
+          <CardDescription className="text-[11px]">
+            Deleting a project removes it and all of its deployments. This
+            cannot be undone.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="mt-4">
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  variant="outline"
+                  className="gap-2 border-rose-500/40 bg-rose-500/10 text-[11px] font-medium text-rose-300 hover:bg-rose-500/20"
+                />
+              }
             >
               <Trash2 className="size-3.5" />
               Delete project
-            </button>
-          )}
-        </div>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this project?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deleting “{project.name}” removes it and all of its
+                  deployments. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleteMutation.isPending}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate()}
+                  className="gap-2"
+                >
+                  {deleteMutation.isPending && (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  )}
+                  Confirm delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
         {deleteMutation.isError && (
-          <InlineError message="Could not delete the project. Please try again." />
+          <CardContent>
+            <InlineError message="Could not delete the project. Please try again." />
+          </CardContent>
         )}
-      </article>
+      </Card>
     </>
   )
 }
 
 function InlineError({ message }: { message: string }) {
   return (
-    <p className="flex items-center gap-1.5 text-[11px] text-rose-300">
+    <Alert
+      variant="destructive"
+      className="flex items-center gap-1.5 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2 text-[11px] text-rose-300"
+    >
       <AlertCircle className="size-3.5 shrink-0" />
-      {message}
-    </p>
+      <AlertTitle className="text-[11px] font-normal text-inherit">
+        {message}
+      </AlertTitle>
+    </Alert>
   )
 }

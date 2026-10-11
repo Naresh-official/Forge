@@ -1,8 +1,18 @@
 "use client"
 
-import { ArrowUpRight, ExternalLink, Rocket } from "lucide-react"
+import { ArrowUpRight, ExternalLink } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { deployments, getProject } from "@/lib/forge-data"
+import { Button } from "@forge/ui/components/button"
+import {
+  Card,
+  CardAction,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@forge/ui/components/card"
+import { Progress } from "@forge/ui/components/progress"
 import { DeploymentTable } from "../../../deployments/components/deployments-view"
 import { PageHeader, StatusBadge } from "../../../_components/ui"
 import { useToast } from "../../../_components/toast-provider"
@@ -15,6 +25,8 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
 
   if (!project) return <div>Project not found.</div>
 
+  const latest = deployments[0]
+
   return (
     <>
       <ProjectHeader project={project} />
@@ -25,52 +37,55 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
         onAction={() => notify("Deployment started")}
       />
       <section className="mb-3 grid grid-cols-2 gap-3 max-lg:grid-cols-1">
-        <article className="rounded-lg border border-border bg-card p-[18px]">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xs font-semibold">Production deployment</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {deployments[0].message}
-              </p>
-            </div>
-            <StatusBadge status="Ready" />
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-5">
-            <Info label="Deployment" value={deployments[0].id} />
-            <Info label="Commit" value={deployments[0].commit} />
+        <Card className="[--card-spacing:--spacing(4.5)]">
+          <CardHeader>
+            <CardTitle className="text-xs">Production deployment</CardTitle>
+            <CardDescription className="text-sm">
+              {latest?.message ?? "No deployments yet."}
+            </CardDescription>
+            <CardAction>
+              <StatusBadge status="Ready" />
+            </CardAction>
+          </CardHeader>
+          <CardContent className="mt-5 grid grid-cols-2 gap-5">
+            <Info label="Deployment" value={latest?.id ?? "—"} />
+            <Info label="Commit" value={latest?.commit ?? "—"} />
             <Info label="Branch" value="main" />
             <Info label="Build duration" value="42s" />
-          </div>
-          <div className="mt-5 flex gap-2">
-            <button
+          </CardContent>
+          <CardContent className="mt-5 flex gap-2">
+            <Button
               type="button"
+              variant="outline"
               onClick={() => notify("Opening deployment")}
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm"
+              className="gap-2"
             >
               Visit <ExternalLink className="size-3.5" />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => notify("Redeploy started")}
-              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
             >
               Redeploy
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => notify("Rollback successful")}
-              className="rounded-md border border-border bg-card px-3 py-2 text-sm"
             >
               Rollback
-            </button>
-          </div>
-        </article>
-        <article className="rounded-lg border border-border bg-card p-[18px]">
-          <h2 className="text-xs font-semibold">Resource overview</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Current allocation and usage
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-2">
+            </Button>
+          </CardContent>
+        </Card>
+        <Card className="[--card-spacing:--spacing(4.5)]">
+          <CardHeader>
+            <CardTitle className="text-xs">Resource overview</CardTitle>
+            <CardDescription className="text-sm">
+              Current allocation and usage
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="mt-5 grid grid-cols-2 gap-2">
             {[
               ["CPU", "42%"],
               ["Memory", "1.8 GB"],
@@ -80,36 +95,37 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
               <div key={a} className="rounded-md border border-border p-3">
                 <span className="text-[9px] text-muted-foreground">{a}</span>
                 <strong className="mt-2 block font-mono text-lg">{b}</strong>
-                <div className="mt-2 h-0.5 bg-border">
-                  <span className="block h-full w-2/3 bg-primary" />
-                </div>
+                <Progress value={66} className="mt-2 block" />
               </div>
             ))}
-          </div>
-        </article>
+          </CardContent>
+        </Card>
       </section>
-      <article className="rounded-lg border border-border bg-card p-[18px]">
-        <div className="flex justify-between">
-          <div>
-            <h2 className="text-xs font-semibold">Latest deployments</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Recent activity for {project.name}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push(`/projects/${project.id}/deployments`)}
-            className="inline-flex items-center text-sm text-primary"
-          >
-            View all <ArrowUpRight className="ml-1 size-3.5" />
-          </button>
-        </div>
-        <DeploymentTable
-          onSelect={(d) =>
-            router.push(`/projects/${project.id}/deployments/${d.id}`)
-          }
-        />
-      </article>
+      <Card className="[--card-spacing:--spacing(4.5)]">
+        <CardHeader>
+          <CardTitle className="text-xs">Latest deployments</CardTitle>
+          <CardDescription className="text-sm">
+            Recent activity for {project.name}
+          </CardDescription>
+          <CardAction>
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => router.push(`/projects/${project.id}/deployments`)}
+              className="gap-1 text-sm"
+            >
+              View all <ArrowUpRight className="size-3.5" />
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <DeploymentTable
+            onSelect={(d) =>
+              router.push(`/projects/${project.id}/deployments/${d.id}`)
+            }
+          />
+        </CardContent>
+      </Card>
     </>
   )
 }

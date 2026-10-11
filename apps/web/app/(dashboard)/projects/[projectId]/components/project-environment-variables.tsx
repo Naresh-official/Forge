@@ -2,8 +2,20 @@
 
 import { useState } from "react"
 import { getProject, envVars } from "@/lib/forge-data"
-import { CopyButton, DataTable, PageHeader } from "../../../_components/ui"
+import { Button } from "@forge/ui/components/button"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@forge/ui/components/table"
+import { Tabs, TabsList, TabsTrigger } from "@forge/ui/components/tabs"
+import { CopyButton, PageHeader } from "../../../_components/ui"
 import { ProjectHeader } from "./project-header"
+
+const ENVIRONMENTS = ["Production", "Preview", "Development"] as const
 
 export function ProjectEnvironmentVariables({
   projectId,
@@ -21,49 +33,47 @@ export function ProjectEnvironmentVariables({
         description="Secrets and configuration scoped to each environment."
         action="Add variable"
       />
-      <div className="mb-4 flex gap-1 border-b border-border">
-        <button
-          type="button"
-          className="border-b-2 border-primary px-3 py-2 text-sm"
-        >
-          Production
-        </button>
-        <button
-          type="button"
-          className="px-3 py-2 text-sm text-muted-foreground"
-        >
-          Preview
-        </button>
-        <button
-          type="button"
-          className="px-3 py-2 text-sm text-muted-foreground"
-        >
-          Development
-        </button>
-      </div>
-      <DataTable>
-        <thead>
-          <tr className="text-[9px] tracking-widest text-muted-foreground uppercase">
+      <Tabs defaultValue="Production">
+        <TabsList variant="line" className="mb-4 gap-1 border-b border-border">
+          {ENVIRONMENTS.map((environment) => (
+            <TabsTrigger
+              key={environment}
+              value={environment}
+              className="px-3 py-2 text-sm"
+            >
+              {environment}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      <Table className="mt-4">
+        <TableHeader>
+          <TableRow>
             {["Variable", "Value", "Environment", "Updated", "Actions"].map(
               (h) => (
-                <th key={h} className="px-3 pb-2 text-left">
+                <TableHead
+                  key={h}
+                  className="px-3 text-[9px] tracking-widest text-muted-foreground uppercase"
+                >
                   {h}
-                </th>
+                </TableHead>
               )
             )}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {envVars.map((v) => (
-            <tr key={v.name} className="border-t border-border">
-              <td className="px-3 py-3">
+            <TableRow key={v.name}>
+              <TableCell className="px-3 py-3">
                 <code className="text-sm text-primary">{v.name}</code>
-              </td>
-              <td className="px-3 py-3 font-mono text-sm text-muted-foreground">
+              </TableCell>
+              <TableCell className="px-3 py-3 font-mono text-sm text-muted-foreground">
                 {visible.includes(v.name) ? v.value : "••••••••••••••"}{" "}
-                <button
+                <Button
                   type="button"
-                  className="ml-2 text-primary"
+                  variant="link"
+                  size="xs"
+                  className="ml-2"
                   onClick={() =>
                     setVisible((cur) =>
                       cur.includes(v.name)
@@ -73,19 +83,21 @@ export function ProjectEnvironmentVariables({
                   }
                 >
                   {visible.includes(v.name) ? "Hide" : "Reveal"}
-                </button>
-              </td>
-              <td className="px-3 py-3 text-[11px]">{v.environment}</td>
-              <td className="px-3 py-3 text-sm text-muted-foreground">
+                </Button>
+              </TableCell>
+              <TableCell className="px-3 py-3 text-[11px]">
+                {v.environment}
+              </TableCell>
+              <TableCell className="px-3 py-3 text-sm text-muted-foreground">
                 {v.updated}
-              </td>
-              <td className="px-3 py-3">
+              </TableCell>
+              <TableCell className="px-3 py-3">
                 <CopyButton value={v.value} />
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </DataTable>
+        </TableBody>
+      </Table>
     </>
   )
 }

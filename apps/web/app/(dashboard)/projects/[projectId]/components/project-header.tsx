@@ -3,6 +3,8 @@
 import { ArrowLeft, Rocket } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { projectTabs } from "@/lib/forge-data"
+import { Button } from "@forge/ui/components/button"
+import { Tabs, TabsList, TabsTrigger } from "@forge/ui/components/tabs"
 import { StatusBadge } from "../../../_components/ui"
 
 /**
@@ -30,15 +32,23 @@ export function ProjectHeader({ project }: { project: ProjectHeaderData }) {
   const pathProjectId =
     pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? project.id
 
+  const tabHref = (tab: string) =>
+    `/projects/${pathProjectId}${tab === "Overview" ? "" : `/${tab.toLowerCase().replaceAll(" ", "-")}`}`
+
+  const activeTab =
+    projectTabs.find((tab) => pathname === tabHref(tab)) ?? "Overview"
+
   return (
     <div className="relative mb-7 border-b border-border pb-4">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => router.push("/projects")}
-        className="mb-4 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+        className="mb-4 gap-1.5 px-0 text-[11px] text-muted-foreground hover:bg-transparent hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" /> Projects
-      </button>
+      </Button>
       <div className="flex items-center gap-2.5">
         <span className="size-2 rounded-full bg-primary" />
         <h1 className="text-2xl font-semibold tracking-[-.04em]">
@@ -57,37 +67,31 @@ export function ProjectHeader({ project }: { project: ProjectHeaderData }) {
         )}
       </p>
       <div className="mb-3 flex gap-2">
-        <button
+        <Button
           type="button"
+          size="lg"
           onClick={() => router.push(`/projects/${pathProjectId}/deployments`)}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground"
+          className="gap-2 text-[11px] font-bold"
         >
           Deploy <Rocket className="size-3.5" />
-        </button>
+        </Button>
       </div>
-      <nav className="flex gap-5 overflow-x-auto">
-        {projectTabs.map((tab) => {
-          const href = `/projects/${pathProjectId}/${tab === "Overview" ? "" : tab.toLowerCase().replaceAll(" ", "-")}`
-          const active =
-            pathname === href ||
-            (tab === "Overview" && pathname === `/projects/${pathProjectId}`)
-          return (
-            <button
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => router.push(tabHref(value as string))}
+      >
+        <TabsList variant="line" className="gap-5 overflow-x-auto">
+          {projectTabs.map((tab) => (
+            <TabsTrigger
               key={tab}
-              type="button"
-              onClick={() => router.push(href)}
-              className={[
-                "border-b-2 py-2 text-sm whitespace-nowrap",
-                active
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground",
-              ].join(" ")}
+              value={tab}
+              className="px-0 py-2 text-sm whitespace-nowrap"
             >
               {tab}
-            </button>
-          )
-        })}
-      </nav>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
     </div>
   )
 }

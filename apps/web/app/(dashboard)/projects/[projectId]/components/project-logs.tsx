@@ -4,6 +4,9 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { AlertCircle, RefreshCw } from "lucide-react"
 import { listProjectDeployments, listProjects } from "@forge/api-client/project"
+import { Alert, AlertTitle } from "@forge/ui/components/alert"
+import { Button } from "@forge/ui/components/button"
+import { cn } from "@forge/ui/lib/utils"
 import { EmptyState, PageHeader, StatusBadge } from "../../../_components/ui"
 import { ProjectHeader } from "./project-header"
 import { DeploymentLogs } from "./deployment-logs"
@@ -33,28 +36,33 @@ export function ProjectLogs({ projectId }: { projectId: string }) {
 
   if (projectsQuery.isError || deploymentsQuery.isError) {
     return (
-      <div className="flex min-h-60 flex-col items-center justify-center gap-3 rounded-lg border border-rose-500/20 bg-rose-500/5 p-8 text-center">
+      <Alert
+        variant="destructive"
+        className="flex min-h-60 flex-col items-center justify-center gap-3 border-rose-500/20 bg-rose-500/5 p-8 text-center"
+      >
         <AlertCircle className="size-6 text-rose-400" />
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">
+        <div className="grid gap-1">
+          <AlertTitle className="text-sm font-semibold text-foreground">
             Failed to load logs
-          </h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          </AlertTitle>
+          <p className="text-xs text-muted-foreground">
             This project could not be loaded from the API.
           </p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => {
             void projectsQuery.refetch()
             void deploymentsQuery.refetch()
           }}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          className="gap-1.5 text-xs"
         >
           <RefreshCw className="size-3.5" />
           Retry
-        </button>
-      </div>
+        </Button>
+      </Alert>
     )
   }
 
@@ -87,21 +95,23 @@ export function ProjectLogs({ projectId }: { projectId: string }) {
             {deployments.map((deployment) => {
               const isActive = deployment.id === selected.id
               return (
-                <button
+                <Button
                   key={deployment.id}
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setSelectedId(deployment.id)}
-                  className={[
-                    "flex items-center gap-2 rounded-md border px-2.5 py-1.5 font-mono text-[10px] transition-colors",
+                  className={cn(
+                    "gap-2 px-2.5 py-1.5 font-mono text-[10px] transition-colors",
                     isActive
                       ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  )}
                 >
                   <span>#{deployment.deploymentNumber}</span>
                   <span className="max-w-32 truncate">{deployment.branch}</span>
                   <StatusBadge status={deployment.status} />
-                </button>
+                </Button>
               )
             })}
           </div>

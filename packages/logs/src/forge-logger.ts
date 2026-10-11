@@ -64,6 +64,7 @@ export class ForgeLogger {
   private timer: ReturnType<typeof setInterval> | undefined
   private flushing: Promise<void> = Promise.resolve()
   private closed = false
+  private flushSequence = 0
 
   constructor(options: ForgeLoggerOptions) {
     this.options = options
@@ -94,23 +95,6 @@ export class ForgeLogger {
     }
   }
 
-  private async emit(event: LogEvent): Promise<void> {
-    // Live path — publishLogEvent never throws on Redis failures.
-    await publishLogEvent({
-      redis: this.options.redis,
-      event,
-      historyLimit: this.options.historyLimit,
-      historyTtlMs: this.options.historyTtlMs,
-    })
-
-    // Durable path — buffer for the next S3 flush.
-    this.buffer.push(event)
-
-    if (this.buffer.length >= this.options.flushBatchSize) {
-      this.flushBuffered()
-    }
-  }
-
   private log(level: LogLevel, message: string | LogEventInput): void {
     if (this.closed) {
       return
@@ -124,9 +108,27 @@ export class ForgeLogger {
 
     const event = this.makeEvent(level, text, new Date())
 
-    // emit() is async but logging must stay fire-and-forget; failures are
-    // reported through onError instead of crashing the host service.
-    this.emit(event).catch((error) => this.options.onError?.(error))
+    /*
+     * Durable path is buffered synchronously — before any async work.
+     * `close()` snapshots this buffer the instant it is called, so an event
+     * that only reached the buffer after an awaited Redis publish would be
+     * lost whenever a terminal log line is immediately followed by close()
+     * (exactly the worker's failure path: `error(...)` then `close()`).
+     */
+    this.buffer.push(event)
+
+    if (this.buffer.length >= this.options.flushBatchSize) {
+      this.flushBuffered()
+    }
+
+    // Live path — best-effort and fire-and-forget. publishLogEvent never
+    // throws on Redis failures; onError is kept for diagnostics only.
+    void publishLogEvent({
+      redis: this.options.redis,
+      event,
+      historyLimit: this.options.historyLimit,
+      historyTtlMs: this.options.historyTtlMs,
+    }).catch((error) => this.options.onError?.(error))
   }
 
   info(message: string | LogEventInput): void {
@@ -141,6 +143,17 @@ export class ForgeLogger {
     this.log("error", message)
   }
 
+  /** Serializes flushes so chunk ordering follows event ordering. */
+  private enqueueFlush(events: LogEvent[]): void {
+    if (events.length === 0) {
+      return
+    }
+
+    this.flushing = this.flushing
+      .then(() => this.flushWithRetry(events))
+      .catch((error) => this.options.onError?.(error))
+  }
+
   private flushBuffered(): void {
     if (this.closed || this.buffer.length === 0) {
       return
@@ -149,10 +162,7 @@ export class ForgeLogger {
     const events = this.buffer
     this.buffer = []
 
-    // Serialize flushes so chunk ordering follows event ordering.
-    this.flushing = this.flushing
-      .then(() => this.flushWithRetry(events))
-      .catch((error) => this.options.onError?.(error))
+    this.enqueueFlush(events)
   }
 
   private async flushWithRetry(events: LogEvent[]): Promise<void> {
@@ -165,6 +175,9 @@ export class ForgeLogger {
       deploymentId: this.options.deploymentId,
       kind: this.options.kind,
       timestamp: new Date(),
+      // Multiple flushes can land in the same millisecond; without a
+      // sequence they would collide on the object key and overwrite.
+      sequence: this.flushSequence++,
     })
 
     const body = events.map((event) => JSON.stringify(event)).join("\n") + "\n"
@@ -208,14 +221,23 @@ export class ForgeLogger {
       return true
     }
 
-    this.closed = true
-
     if (this.timer) {
       clearInterval(this.timer)
       this.timer = undefined
     }
 
-    this.flushBuffered()
+    /*
+     * Flush the remaining buffer *before* marking the logger closed —
+     * `flushBuffered()` is a no-op once `closed` is set, so ordering these
+     * the other way silently dropped every event that had not yet been
+     * flushed by the interval (the tail of every build, including the
+     * final error/success line).
+     */
+    const remaining = this.buffer
+    this.buffer = []
+
+    this.closed = true
+    this.enqueueFlush(remaining)
 
     try {
       await this.flushing

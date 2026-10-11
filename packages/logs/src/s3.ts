@@ -95,7 +95,7 @@ export async function uploadLogChunk(
   )
 }
 
-function parseLogLine(raw: string): LogLine | undefined {
+function parseLogLine(raw: string): LogLine {
   try {
     const parsed = logEventFromJson(JSON.parse(raw))
 

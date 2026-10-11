@@ -1,9 +1,12 @@
 import z from "zod"
 
-/** Where a log event originates from. */
-export type LogSource = "builder" | "runtime"
+/**
+ * Where a log event originates from. Matches the S3 kind folder and the
+ * API's `type` query parameter (`build` | `runtime`).
+ */
+export type LogSource = "build" | "runtime"
 
-export const logSources: LogSource[] = ["builder", "runtime"]
+export const logSources: LogSource[] = ["build", "runtime"]
 
 export type LogLevel = "info" | "warn" | "error"
 
@@ -70,7 +73,7 @@ export interface GetDeploymentLogsResponse {
 export const logEventSchema = z.object({
   projectId: z.string().min(1),
   deploymentId: z.string().min(1),
-  source: z.enum(["builder", "runtime"]),
+  source: z.enum(["build", "runtime"]),
   level: z.enum(["info", "warn", "error"]),
   timestamp: z.string().min(1),
   message: z.string(),

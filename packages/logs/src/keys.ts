@@ -26,15 +26,26 @@ export function buildLogObjectKey(input: {
   deploymentId: string
   kind: LogKind
   timestamp?: Date
+  /**
+   * Disambiguates multiple flushes that share a millisecond. Kept after the
+   * timestamp so keys still sort chronologically.
+   */
+  sequence?: number
 }): string {
-  const { projectId, deploymentId, kind, timestamp = new Date() } = input
-
-  return [
+  const {
     projectId,
     deploymentId,
     kind,
-    `${timestampForLogKey(timestamp)}.log`,
-  ].join("/")
+    timestamp = new Date(),
+    sequence,
+  } = input
+
+  const filename =
+    sequence === undefined
+      ? `${timestampForLogKey(timestamp)}.log`
+      : `${timestampForLogKey(timestamp)}-${sequence}.log`
+
+  return [projectId, deploymentId, kind, filename].join("/")
 }
 
 /**

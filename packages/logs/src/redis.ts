@@ -34,6 +34,12 @@ export interface LogPublisher {
   publish(channel: string, message: string): Promise<number>
   sadd(key: string, ...members: string[]): Promise<number>
   expire(key: string, seconds: number): Promise<number>
+  /**
+   * Optional: only needed for trimming the replay ring buffer once it grows
+   * past `historyLimit`. Clients without them simply keep untrimmed history.
+   */
+  smembers?(key: string): Promise<string[]>
+  srem?(key: string, ...members: string[]): Promise<number>
 }
 
 export interface PublishLogEventOptions {
@@ -71,21 +77,15 @@ export async function publishLogEvent(
       // Cheap-enough trimming: keep the newest `historyLimit` events. SETs
       // have no order, so we drop arbitrary members when over the limit —
       // replay history is best-effort by design.
-      if (count > historyLimit) {
-        const members = await (
-          redis as {
-            smembers(key: string): Promise<string[]>
-          }
-        ).smembers(logHistoryKeyForDeployment(event.deploymentId))
+      if (count > historyLimit && redis.smembers && redis.srem) {
+        const members = await redis.smembers(
+          logHistoryKeyForDeployment(event.deploymentId)
+        )
 
         const excess = members.length - historyLimit
 
         if (excess > 0) {
-          await (
-            redis as {
-              srem(key: string, ...members: string[]): Promise<number>
-            }
-          ).srem(
+          await redis.srem(
             logHistoryKeyForDeployment(event.deploymentId),
             ...members.slice(0, excess)
           )

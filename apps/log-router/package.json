@@ -12,6 +12,7 @@
     "@forge/config": "workspace:*",
     "@forge/logs": "workspace:*",
     "@forge/logger": "workspace:*",
+    "@forge/types": "workspace:*",
     "msgpackr": "^2.1.0"
   },
   "devDependencies": {

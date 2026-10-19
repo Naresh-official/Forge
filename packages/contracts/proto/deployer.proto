@@ -8,6 +8,9 @@ service DeployerService {
   rpc Scale(ScaleRequest) returns (ScaleResponse);
   // Delete a project's Kubernetes namespaces (one per deployment).
   rpc DeleteDeployments(DeleteDeploymentsRequest) returns (DeleteDeploymentsResponse);
+  // Push a project's current environment variables into the env Secret of
+  // its running deployments and roll the workload so pods pick them up.
+  rpc SyncEnvironmentVariables(SyncEnvironmentVariablesRequest) returns (SyncEnvironmentVariablesResponse);
 }
 
 message DeployRequest {
@@ -62,6 +65,20 @@ message DeleteDeploymentsResponse {
   string message = 1;
 }
 
+message SyncEnvironmentVariablesRequest {
+  string project_id = 1;
+  // Deployments whose namespace Secret should be updated.
+  repeated string deployment_ids = 2;
+  // The project's full variable set, decrypted by the API.
+  map<string, string> environment_variables = 3;
+}
+
+message SyncEnvironmentVariablesResponse {
+  string message = 1;
+  // Deployments whose namespace actually had a running workload updated.
+  repeated string updated_deployment_ids = 2;
+}
+
 service DeployerApiService {
   rpc DeploymentStarted(DeploymentStartedRequest) returns (DeploymentStartedResponse);
   rpc DeploymentCompleted(DeploymentCompletedRequest) returns (DeploymentCompletedResponse);
@@ -74,6 +91,11 @@ message DeploymentStartedRequest {
 message DeploymentStartedResponse {
   bool success = 1;
   string message = 2;
+  // Project environment variables with decrypted values. The deployer
+  // materialises them as a Kubernetes Secret in the deployment namespace and
+  // injects them into the container. Only populated for container
+  // deployments; the API is the only service holding ENV_ENCRYPTION_SECRET.
+  map<string, string> environment_variables = 3;
 }
 
 message DeploymentCompletedRequest {

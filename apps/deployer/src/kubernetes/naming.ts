@@ -29,3 +29,12 @@ export function namespaceForDeployment(
 export function appNameForDeployment(deploymentId: string): string {
   return `app-${sanitizeK8sName(deploymentId)}`
 }
+
+/**
+ * Name of the Secret holding a deployment's environment variables —
+ * `app-<deploymentId>-env`. Created in the same namespace as the workload
+ * that consumes it.
+ */
+export function envSecretNameForDeployment(deploymentId: string): string {
+  return sanitizeK8sName(`app-${deploymentId}-env`)
+}

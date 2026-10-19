@@ -128,21 +128,27 @@ app/
 
 **REST routes (prefix `/api/v1`, mounted in `src/app.ts`):**
 
-| Path               | Method | Auth | Handler                                                    |
-| ------------------ | ------ | ---- | ---------------------------------------------------------- |
-| `/health`          | GET    | no   | inline health check                                        |
-| `/auth/github`     | POST   | no   | `features/auth` — sync GitHub user into the DB             |
-| `/auth/me`         | GET    | yes  | `features/auth` — current user                             |
-| `/github/install`  | GET    | yes  | `features/github` — 302 redirect to the GitHub App install |
-| `/github/setup`    | GET    | yes  | `features/github` — GitHub App post-install callback       |
-| `/repositories`    | GET    | yes  | `features/repositories` — repos via the GitHub App         |
-| `/deployments/new` | POST   | yes  | `features/deployment` — create project + first deployment  |
-| `/projects/all`    | GET    | yes  | `features/projects` — full project list                    |
-| `/projects/list`   | GET    | yes  | `features/projects` — `{ id, name }` only                  |
+| Path                                              | Method | Auth | Handler                                                    |
+| ------------------------------------------------- | ------ | ---- | ---------------------------------------------------------- |
+| `/health`                                         | GET    | no   | inline health check                                        |
+| `/auth/github`                                    | POST   | no   | `features/auth` — sync GitHub user into the DB             |
+| `/auth/me`                                        | GET    | yes  | `features/auth` — current user                             |
+| `/github/install`                                 | GET    | yes  | `features/github` — 302 redirect to the GitHub App install |
+| `/github/setup`                                   | GET    | yes  | `features/github` — GitHub App post-install callback       |
+| `/repositories`                                   | GET    | yes  | `features/repositories` — repos via the GitHub App         |
+| `/deployments/new`                                | POST   | yes  | `features/deployment` — create project + first deployment  |
+| `/projects/all`                                   | GET    | yes  | `features/projects` — full project list                    |
+| `/projects/list`                                  | GET    | yes  | `features/projects` — `{ id, name }` only                  |
+| `/projects/:projectId/environment-variables`      | GET    | yes  | `features/environment` — keys only, never values           |
+| `/projects/:projectId/environment-variables`      | POST   | yes  | `features/environment` — add a variable + apply the change |
+| `/projects/:projectId/environment-variables/:key` | PATCH  | yes  | `features/environment` — replace a value + apply           |
+| `/projects/:projectId/environment-variables/:key` | DELETE | yes  | `features/environment` — remove a variable + apply         |
 
 Every router except `POST /auth/github` is guarded by the `authenticate` middleware.
 
 **Routing structure:** `feature.routes.ts → feature.controller.ts → feature.service.ts`. Controllers are thin: parse/validate input, call the service, wrap the result in `ApiResponse`, and funnel failures through `handleErrors(res, error)`.
+
+**Environment changes:** `features/environment` owns a project's variables. A mutation encrypts with `ENV_ENCRYPTION_SECRET`, persists, then applies the change (`decideEnvironmentChange` routes it): **static** projects get a new deployment + build so the builder re-runs with the new variables under a fresh `<projectId>/<deploymentId>/` prefix — `pruneStaleArtifacts` removes every other prefix once that build succeeds; **container** projects get their namespace Secret rewritten and their workload rolled through `DeployerService.SyncEnvironmentVariables`. The variable is saved either way, so a propagation failure is reported as a `warning` rather than failing the request.
 
 **Middlewares / utilities:**
 
@@ -154,10 +160,11 @@ Every router except `POST /auth/github` is guarded by the `authenticate` middlew
 **gRPC services:**
 
 - `BuilderService.Build` (`builder.proto`) — triggers a build on the builder
-- `ApiService.BuildStarted` (`builder.proto`) — builder calls this when a job begins; returns repo metadata + GitHub access token
+- `ApiService.BuildStarted` (`builder.proto`) — builder calls this when a job begins; returns repo metadata + GitHub access token, plus the project's decrypted environment variables (`environment_variables`) for static builds only
 - `ApiService.BuildCompleted` (`builder.proto`) — builder calls this with the build result (image URL / static artifact key, status, etc.); on success, api forwards details to `DeployerService.Deploy`
 - `DeployerService.Deploy` (`deployer.proto`) — api calls this on deployer to queue a deployment
-- `DeployerApiService.DeploymentStarted` (`deployer.proto`) — deployer worker calls this when deployment starts; sets deployment status to `DEPLOYING`
+- `DeployerService.SyncEnvironmentVariables` (`deployer.proto`) — api calls this after an environment change; the deployer rewrites each running deployment's env Secret and rolls the workload (plaintext variables travel on this internal channel only)
+- `DeployerApiService.DeploymentStarted` (`deployer.proto`) — deployer worker calls this when deployment starts; sets deployment status to `DEPLOYING` and returns the project's decrypted environment variables (`environment_variables`) for container deployments only
 - `DeployerApiService.DeploymentCompleted` (`deployer.proto`) — deployer worker reports the final status; sets `READY`/`FAILED` and stores the image URL
 
 **Failure handling worth preserving:** if `startBuildWrapper` throws, `deployment.service.ts` marks both the build and deployment `FAILED` and returns a 502 rather than leaving them stuck in `QUEUED`. Likewise the API marks the deployment `FAILED` if forwarding to the deployer fails.
@@ -220,7 +227,7 @@ src/
 1. The main process (`src/index.ts`) starts a gRPC server and spawns N worker OS-processes (`src/worker/worker.ts`): **1** when `nodeEnv === "development"`, otherwise `builderConfig.workerCount` (currently `2`, from `config.yaml`) — not one per CPU.
 2. Each worker picks jobs from the BullMQ queue (`forge-builder`).
 3. On each job the worker:
-   - Calls `ApiService.BuildStarted` → receives repo metadata + access token
+   - Calls `ApiService.BuildStarted` → receives repo metadata + access token (+ decrypted env vars for static builds)
    - Clones the GitHub repo into `builderConfig.tempDir` (`/tmp/forge-builder`)
    - **Detects** the project type (`src/worker/features/detect.ts`)
    - **Builds** using the matching strategy
@@ -255,10 +262,10 @@ The strategy name is forwarded to the deployer, which uses it to decide whether 
 2. The gRPC server receives `Deploy` requests from the API and enqueues jobs onto the BullMQ queue (`forge-deployer`).
 3. Each worker picks jobs from the BullMQ queue.
 4. On each job the worker:
-   - Calls `DeployerApiService.DeploymentStarted` → sets deployment status to `DEPLOYING`
+   - Calls `DeployerApiService.DeploymentStarted` → sets deployment status to `DEPLOYING` and receives the project's decrypted environment variables (container deployments only)
    - **Branches on strategy**: static/non-container builds have no Kubernetes resources, so the worker immediately reports `READY` (the artifact already lives in object storage). Only container strategies (`dockerfile`, `docker-compose`, or `node` **with** an `imageUrl`) proceed to Kubernetes.
    - Fetches a short-lived ECR authorization token and creates a `docker-registry` pull secret in the deployment namespace
-   - Creates/updates the namespace, Deployment, Service and registry secret
+   - Creates/replaces an `Opaque` env Secret (`app-<deploymentId>-env`) holding the project's variables, then creates/updates the namespace, Deployment, Service and registry secret. The Deployment injects the variables with `secretKeyRef` and carries a `forge.dev/env-secret-hash` pod annotation so a changed variable set triggers a rollout — an updated Secret alone never restarts pods.
    - Polls the rollout; reports `READY` only if the rollout actually became available, otherwise `FAILED`
    - On any error, best-effort reports `FAILED` to the API and rethrows so BullMQ records the failure
 
@@ -272,7 +279,7 @@ kubernetes/
 ├── constants.ts
 ├── types.ts
 ├── http/kube-http.client.ts — thin HTTP wrapper
-├── manifests/               — pure manifest builders (namespace, deployment, service, registry-secret)
+├── manifests/               — pure manifest builders (namespace, deployment, service, registry-secret, env-secret)
 └── resources/               — per-resource APIs (namespace, deployment, service, secret)
 ```
 
@@ -280,6 +287,7 @@ kubernetes/
 
 - Namespace: `forge-project-<projectId>-<deploymentId>`
 - Deployment + Service name: `app-<deploymentId>`
+- Env Secret name: `app-<deploymentId>-env` (created in the deployment's own namespace)
 - All names are lowercased, sanitized to DNS-safe characters and truncated to **63 chars** — with two full UUIDs the tail of the `deploymentId` is cut off. Never assume you can recover a full UUID from a namespace name.
 - Container port is `80`; pull secret is named `forge-ecr-pull`.
 
@@ -291,9 +299,9 @@ kubernetes/
 
 Typed HTTP client for the `api` app, consumed by the `web` app. This is the **transport boundary** — components should not construct `fetch` calls directly.
 
-Modules (`src/`): `client.ts`, `auth.ts`, `project.ts`, `repositories.ts`, `deployment.ts`, `github.ts`.
+Modules (`src/`): `client.ts`, `auth.ts`, `project.ts`, `repositories.ts`, `deployment.ts`, `github.ts`, `environment.ts`, `logs.ts`.
 
-Exports map: `.`, `./auth`, `./project`, `./repositories`, `./deployment`, `./github`.
+Exports map: `.`, `./auth`, `./project`, `./repositories`, `./deployment`, `./github`, `./environment`, `./logs`.
 
 Key details in `client.ts`:
 
@@ -326,7 +334,7 @@ This shells out to `protoc` directly, so it must be installed and on `PATH`. Onl
 
 ### `@forge/storage`
 
-Object storage abstraction backed by the AWS S3 SDK (works with MinIO too). Exports `createStorageClient` and `uploadDirectory()` (recursively uploads a local directory to a bucket, with MIME type detection).
+Object storage abstraction backed by the AWS S3 SDK (works with MinIO too). Exports `createStorageClient`, `uploadDirectory()` (recursively uploads a local directory to a bucket, with MIME type detection) and `deleteObjectsByPrefix()` (bulk deletes, optionally keeping keys under `excludePrefixes` — used to prune stale artifacts).
 
 ### `@forge/registry`
 

@@ -44,6 +44,18 @@ export class KubeHttpClient {
   }
 
   /**
+   * Full replace of an existing resource. Unlike a merge-patch this drops
+   * fields absent from the body, which is what an environment Secret needs:
+   * a removed variable must not survive a redeploy.
+   */
+  async put<T>(path: string, body: unknown): Promise<T> {
+    const response = await axios.put<T>(`${this.baseUrl}${path}`, body, {
+      httpsAgent: this.agent,
+    })
+    return response.data
+  }
+
+  /**
    * JSON merge-patch (RFC 7386). Lists are replaced wholesale, which makes
    * this suitable for reconciling `spec` of existing resources.
    */
@@ -51,6 +63,23 @@ export class KubeHttpClient {
     const response = await axios.patch<T>(`${this.baseUrl}${path}`, body, {
       httpsAgent: this.agent,
       headers: { "Content-Type": "application/merge-patch+json" },
+    })
+    return response.data
+  }
+
+  /**
+   * Strategic-merge patch (`application/strategic-merge-patch+json`).
+   *
+   * Merges typed lists by their declared merge key — `env` entries merge on
+   * `name` and may be removed with an explicit `$patch: delete`, which a JSON
+   * merge patch cannot express without shipping the whole list.
+   */
+  async strategicPatch<T>(path: string, body: unknown): Promise<T> {
+    const response = await axios.patch<T>(`${this.baseUrl}${path}`, body, {
+      httpsAgent: this.agent,
+      headers: {
+        "Content-Type": "application/strategic-merge-patch+json",
+      },
     })
     return response.data
   }

@@ -6,6 +6,7 @@ import slugify from "slugify"
 import { githubApp } from "../github/github.client"
 import type { CreateRepositoryInput } from "@forge/types/deployment"
 import { startBuildWrapper } from "@/gRPC/wrapper/builder.wrapper"
+import { encryptEnvValue } from "@/utils/encryption"
 
 export const deployRepositoryService = async (
   input: CreateRepositoryInput,
@@ -54,6 +55,32 @@ export const deployRepositoryService = async (
 
   const plan = DEPLOYMENT_PLANS[input.plan ?? "basic"]
 
+  const environmentVariables = input.environmentVariables ?? []
+  const seenKeys = new Set<string>()
+
+  for (const variable of environmentVariables) {
+    if (seenKeys.has(variable.key)) {
+      throw new ApiError(
+        400,
+        `Duplicate environment variable "${variable.key}".`
+      )
+    }
+    seenKeys.add(variable.key)
+  }
+
+  /*
+   * Encrypt before writing anything, so a missing/invalid
+   * ENV_ENCRYPTION_SECRET fails the request without leaving a project
+   * (and its first deployment) behind.
+   */
+  const encryptedEnvironmentVariables = environmentVariables.map(
+    (variable) => ({
+      key: variable.key,
+      valueEncrypted: encryptEnvValue(variable.value),
+      isSecret: true,
+    })
+  )
+
   const project = await prisma.project.create({
     data: {
       userId,
@@ -68,6 +95,13 @@ export const deployRepositoryService = async (
           id: repository.id,
         },
       },
+      ...(encryptedEnvironmentVariables.length > 0
+        ? {
+            environmentVariables: {
+              create: encryptedEnvironmentVariables,
+            },
+          }
+        : {}),
       deployments: {
         create: {
           deploymentNumber: 1,

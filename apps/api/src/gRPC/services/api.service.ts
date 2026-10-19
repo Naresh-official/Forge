@@ -9,7 +9,9 @@ import type {
   BuildCompletedResponse,
 } from "@forge/contracts"
 import type { sendUnaryData, ServerUnaryCall } from "@grpc/grpc-js"
-import { normalizeFramework } from "@forge/frameworks"
+import { isStaticFramework, normalizeFramework } from "@forge/frameworks"
+import { decryptEnvVariables } from "@/utils/encryption"
+import { pruneStaleArtifacts } from "@/features/builds/artifacts.service"
 
 export const apiService = {
   async buildStarted(
@@ -31,6 +33,7 @@ export const apiService = {
               project: {
                 include: {
                   githubRepository: true,
+                  environmentVariables: true,
                 },
               },
             },
@@ -67,6 +70,37 @@ export const apiService = {
       if (!token) {
         throw new Error("GitHub installation token not found")
       }
+
+      const framework = normalizeFramework(
+        build.deployment.project.githubRepository.framework
+      )
+
+      /*
+       * Build-time environment variables only matter to static builds, where
+       * the builder runs install/build itself. Container images get their
+       * configuration at runtime, so there is no reason to hand those
+       * plaintext secrets out over gRPC. Decryption happens here because the
+       * API is the only service holding ENV_ENCRYPTION_SECRET.
+       */
+      const { values: environmentVariables, failedKeys } = isStaticFramework(
+        framework
+      )
+        ? decryptEnvVariables(build.deployment.project.environmentVariables)
+        : { values: {}, failedKeys: [] }
+
+      if (failedKeys.length > 0) {
+        /*
+         * The build proceeds with the variables that are readable — one row
+         * written under an older key must not block every build. Loud,
+         * because the artifact will be missing those values.
+         */
+        console.error(
+          `[build ${build.id}] Could not decrypt environment variable(s): ${failedKeys.join(
+            ", "
+          )} — not injected into the build.`
+        )
+      }
+
       callback(null, {
         accessToken: token,
         repoFullName: build.deployment.project.githubRepository.fullName,
@@ -75,9 +109,8 @@ export const apiService = {
         branch: build.deployment.branch,
         commitSha: build.deployment.commitSha,
         buildId: build.id,
-        framework: normalizeFramework(
-          build.deployment.project.githubRepository.framework
-        ),
+        framework,
+        environmentVariables,
       })
     } catch (error) {
       callback(error as Error, null)
@@ -108,6 +141,24 @@ export const apiService = {
         artifactBucket: request.artifactBucket || undefined,
         artifactKey: request.artifactKey || undefined,
       })
+
+      /*
+       * A successful static build has just uploaded its output under a fresh
+       * "<projectId>/<deploymentId>/" prefix, so the project's older artifact
+       * sets can be pruned. This is what makes "env change → rebuild" leave
+       * exactly one artifact set behind. Container builds produce images
+       * instead, which are pruned with the project.
+       */
+      if (request.status === "SUCCEEDED" && request.artifactKey) {
+        const pruningWarnings = await pruneStaleArtifacts(
+          updatedBuild.deployment.projectId,
+          updatedBuild.deployment.id
+        )
+
+        for (const warning of pruningWarnings) {
+          console.warn(`[build ${request.buildId}] ${warning}`)
+        }
+      }
 
       if (request.status === "SUCCEEDED" && updatedBuild.deployment) {
         try {

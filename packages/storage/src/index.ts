@@ -8,4 +8,5 @@ export type {
   UploadDirectoryInput,
   UploadDirectoryResult,
   DeleteByPrefixResult,
+  DeleteByPrefixOptions,
 } from "./storage"

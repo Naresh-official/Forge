@@ -68,6 +68,25 @@ export interface DeleteDeploymentsResponse {
   message: string
 }
 
+export interface SyncEnvironmentVariablesRequest {
+  projectId: string
+  /** Deployments whose namespace Secret should be updated. */
+  deploymentIds: string[]
+  /** The project's full variable set, decrypted by the API. */
+  environmentVariables: { [key: string]: string }
+}
+
+export interface SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry {
+  key: string
+  value: string
+}
+
+export interface SyncEnvironmentVariablesResponse {
+  message: string
+  /** Deployments whose namespace actually had a running workload updated. */
+  updatedDeploymentIds: string[]
+}
+
 export interface DeploymentStartedRequest {
   deploymentId: string
 }
@@ -75,6 +94,18 @@ export interface DeploymentStartedRequest {
 export interface DeploymentStartedResponse {
   success: boolean
   message: string
+  /**
+   * Project environment variables with decrypted values. The deployer
+   * materialises them as a Kubernetes Secret in the deployment namespace and
+   * injects them into the container. Only populated for container
+   * deployments; the API is the only service holding ENV_ENCRYPTION_SECRET.
+   */
+  environmentVariables: { [key: string]: string }
+}
+
+export interface DeploymentStartedResponse_EnvironmentVariablesEntry {
+  key: string
+  value: string
 }
 
 export interface DeploymentCompletedRequest {
@@ -849,6 +880,379 @@ export const DeleteDeploymentsResponse: MessageFns<DeleteDeploymentsResponse> =
     },
   }
 
+function createBaseSyncEnvironmentVariablesRequest(): SyncEnvironmentVariablesRequest {
+  return { projectId: "", deploymentIds: [], environmentVariables: {} }
+}
+
+export const SyncEnvironmentVariablesRequest: MessageFns<SyncEnvironmentVariablesRequest> =
+  {
+    encode(
+      message: SyncEnvironmentVariablesRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.projectId !== "") {
+        writer.uint32(10).string(message.projectId)
+      }
+      for (const v of message.deploymentIds) {
+        writer.uint32(18).string(v!)
+      }
+      globalThis.Object.entries(message.environmentVariables).forEach(
+        ([key, value]: [string, string]) => {
+          SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry.encode(
+            { key: key as any, value },
+            writer.uint32(26).fork()
+          ).join()
+        }
+      )
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): SyncEnvironmentVariablesRequest {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseSyncEnvironmentVariablesRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.projectId = reader.string()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.deploymentIds.push(reader.string())
+            continue
+          }
+          case 3: {
+            if (tag !== 26) {
+              break
+            }
+
+            const entry3 =
+              SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry.decode(
+                reader,
+                reader.uint32()
+              )
+            if (entry3.value !== undefined) {
+              message.environmentVariables[entry3.key] = entry3.value
+            }
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): SyncEnvironmentVariablesRequest {
+      return {
+        projectId: isSet(object.projectId)
+          ? globalThis.String(object.projectId)
+          : isSet(object.project_id)
+            ? globalThis.String(object.project_id)
+            : "",
+        deploymentIds: globalThis.Array.isArray(object?.deploymentIds)
+          ? object.deploymentIds.map((e: any) => globalThis.String(e))
+          : globalThis.Array.isArray(object?.deployment_ids)
+            ? object.deployment_ids.map((e: any) => globalThis.String(e))
+            : [],
+        environmentVariables: isObject(object.environmentVariables)
+          ? (
+              globalThis.Object.entries(object.environmentVariables) as [
+                string,
+                any,
+              ][]
+            ).reduce(
+              (acc: { [key: string]: string }, [key, value]: [string, any]) => {
+                acc[key] = globalThis.String(value)
+                return acc
+              },
+              {}
+            )
+          : isObject(object.environment_variables)
+            ? (
+                globalThis.Object.entries(object.environment_variables) as [
+                  string,
+                  any,
+                ][]
+              ).reduce(
+                (
+                  acc: { [key: string]: string },
+                  [key, value]: [string, any]
+                ) => {
+                  acc[key] = globalThis.String(value)
+                  return acc
+                },
+                {}
+              )
+            : {},
+      }
+    },
+
+    toJSON(message: SyncEnvironmentVariablesRequest): unknown {
+      const obj: any = {}
+      if (message.projectId !== "") {
+        obj.projectId = message.projectId
+      }
+      if (message.deploymentIds?.length) {
+        obj.deploymentIds = message.deploymentIds
+      }
+      if (message.environmentVariables) {
+        const entries = globalThis.Object.entries(
+          message.environmentVariables
+        ) as [string, string][]
+        if (entries.length > 0) {
+          obj.environmentVariables = {}
+          entries.forEach(([k, v]) => {
+            obj.environmentVariables[k] = v
+          })
+        }
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<SyncEnvironmentVariablesRequest>, I>>(
+      base?: I
+    ): SyncEnvironmentVariablesRequest {
+      return SyncEnvironmentVariablesRequest.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<
+      I extends Exact<DeepPartial<SyncEnvironmentVariablesRequest>, I>,
+    >(object: I): SyncEnvironmentVariablesRequest {
+      const message = createBaseSyncEnvironmentVariablesRequest()
+      message.projectId = object.projectId ?? ""
+      message.deploymentIds = object.deploymentIds?.map((e) => e) || []
+      message.environmentVariables = (
+        globalThis.Object.entries(object.environmentVariables ?? {}) as [
+          string,
+          string,
+        ][]
+      ).reduce(
+        (acc: { [key: string]: string }, [key, value]: [string, string]) => {
+          if (value !== undefined) {
+            acc[key] = globalThis.String(value)
+          }
+          return acc
+        },
+        {}
+      )
+      return message
+    },
+  }
+
+function createBaseSyncEnvironmentVariablesRequest_EnvironmentVariablesEntry(): SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry {
+  return { key: "", value: "" }
+}
+
+export const SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry: MessageFns<SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry> =
+  {
+    encode(
+      message: SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== "") {
+        writer.uint32(10).string(message.key)
+      }
+      if (message.value !== "") {
+        writer.uint32(18).string(message.value)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message =
+        createBaseSyncEnvironmentVariablesRequest_EnvironmentVariablesEntry()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.key = reader.string()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.value = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(
+      object: any
+    ): SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : "",
+        value: isSet(object.value) ? globalThis.String(object.value) : "",
+      }
+    },
+
+    toJSON(
+      message: SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry
+    ): unknown {
+      const obj: any = {}
+      if (message.key !== "") {
+        obj.key = message.key
+      }
+      if (message.value !== "") {
+        obj.value = message.value
+      }
+      return obj
+    },
+
+    create<
+      I extends Exact<
+        DeepPartial<SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry>,
+        I
+      >,
+    >(base?: I): SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry {
+      return SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry.fromPartial(
+        base ?? ({} as any)
+      )
+    },
+    fromPartial<
+      I extends Exact<
+        DeepPartial<SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry>,
+        I
+      >,
+    >(object: I): SyncEnvironmentVariablesRequest_EnvironmentVariablesEntry {
+      const message =
+        createBaseSyncEnvironmentVariablesRequest_EnvironmentVariablesEntry()
+      message.key = object.key ?? ""
+      message.value = object.value ?? ""
+      return message
+    },
+  }
+
+function createBaseSyncEnvironmentVariablesResponse(): SyncEnvironmentVariablesResponse {
+  return { message: "", updatedDeploymentIds: [] }
+}
+
+export const SyncEnvironmentVariablesResponse: MessageFns<SyncEnvironmentVariablesResponse> =
+  {
+    encode(
+      message: SyncEnvironmentVariablesResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.message !== "") {
+        writer.uint32(10).string(message.message)
+      }
+      for (const v of message.updatedDeploymentIds) {
+        writer.uint32(18).string(v!)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): SyncEnvironmentVariablesResponse {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseSyncEnvironmentVariablesResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.message = reader.string()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.updatedDeploymentIds.push(reader.string())
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): SyncEnvironmentVariablesResponse {
+      return {
+        message: isSet(object.message) ? globalThis.String(object.message) : "",
+        updatedDeploymentIds: globalThis.Array.isArray(
+          object?.updatedDeploymentIds
+        )
+          ? object.updatedDeploymentIds.map((e: any) => globalThis.String(e))
+          : globalThis.Array.isArray(object?.updated_deployment_ids)
+            ? object.updated_deployment_ids.map((e: any) =>
+                globalThis.String(e)
+              )
+            : [],
+      }
+    },
+
+    toJSON(message: SyncEnvironmentVariablesResponse): unknown {
+      const obj: any = {}
+      if (message.message !== "") {
+        obj.message = message.message
+      }
+      if (message.updatedDeploymentIds?.length) {
+        obj.updatedDeploymentIds = message.updatedDeploymentIds
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<SyncEnvironmentVariablesResponse>, I>>(
+      base?: I
+    ): SyncEnvironmentVariablesResponse {
+      return SyncEnvironmentVariablesResponse.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<
+      I extends Exact<DeepPartial<SyncEnvironmentVariablesResponse>, I>,
+    >(object: I): SyncEnvironmentVariablesResponse {
+      const message = createBaseSyncEnvironmentVariablesResponse()
+      message.message = object.message ?? ""
+      message.updatedDeploymentIds =
+        object.updatedDeploymentIds?.map((e) => e) || []
+      return message
+    },
+  }
+
 function createBaseDeploymentStartedRequest(): DeploymentStartedRequest {
   return { deploymentId: "" }
 }
@@ -925,7 +1329,7 @@ export const DeploymentStartedRequest: MessageFns<DeploymentStartedRequest> = {
 }
 
 function createBaseDeploymentStartedResponse(): DeploymentStartedResponse {
-  return { success: false, message: "" }
+  return { success: false, message: "", environmentVariables: {} }
 }
 
 export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
@@ -940,6 +1344,14 @@ export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
       if (message.message !== "") {
         writer.uint32(18).string(message.message)
       }
+      globalThis.Object.entries(message.environmentVariables).forEach(
+        ([key, value]: [string, string]) => {
+          DeploymentStartedResponse_EnvironmentVariablesEntry.encode(
+            { key: key as any, value },
+            writer.uint32(26).fork()
+          ).join()
+        }
+      )
       return writer
     },
 
@@ -970,6 +1382,21 @@ export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
             message.message = reader.string()
             continue
           }
+          case 3: {
+            if (tag !== 26) {
+              break
+            }
+
+            const entry3 =
+              DeploymentStartedResponse_EnvironmentVariablesEntry.decode(
+                reader,
+                reader.uint32()
+              )
+            if (entry3.value !== undefined) {
+              message.environmentVariables[entry3.key] = entry3.value
+            }
+            continue
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break
@@ -985,6 +1412,36 @@ export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
           ? globalThis.Boolean(object.success)
           : false,
         message: isSet(object.message) ? globalThis.String(object.message) : "",
+        environmentVariables: isObject(object.environmentVariables)
+          ? (
+              globalThis.Object.entries(object.environmentVariables) as [
+                string,
+                any,
+              ][]
+            ).reduce(
+              (acc: { [key: string]: string }, [key, value]: [string, any]) => {
+                acc[key] = globalThis.String(value)
+                return acc
+              },
+              {}
+            )
+          : isObject(object.environment_variables)
+            ? (
+                globalThis.Object.entries(object.environment_variables) as [
+                  string,
+                  any,
+                ][]
+              ).reduce(
+                (
+                  acc: { [key: string]: string },
+                  [key, value]: [string, any]
+                ) => {
+                  acc[key] = globalThis.String(value)
+                  return acc
+                },
+                {}
+              )
+            : {},
       }
     },
 
@@ -995,6 +1452,17 @@ export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
       }
       if (message.message !== "") {
         obj.message = message.message
+      }
+      if (message.environmentVariables) {
+        const entries = globalThis.Object.entries(
+          message.environmentVariables
+        ) as [string, string][]
+        if (entries.length > 0) {
+          obj.environmentVariables = {}
+          entries.forEach(([k, v]) => {
+            obj.environmentVariables[k] = v
+          })
+        }
       }
       return obj
     },
@@ -1010,6 +1478,120 @@ export const DeploymentStartedResponse: MessageFns<DeploymentStartedResponse> =
       const message = createBaseDeploymentStartedResponse()
       message.success = object.success ?? false
       message.message = object.message ?? ""
+      message.environmentVariables = (
+        globalThis.Object.entries(object.environmentVariables ?? {}) as [
+          string,
+          string,
+        ][]
+      ).reduce(
+        (acc: { [key: string]: string }, [key, value]: [string, string]) => {
+          if (value !== undefined) {
+            acc[key] = globalThis.String(value)
+          }
+          return acc
+        },
+        {}
+      )
+      return message
+    },
+  }
+
+function createBaseDeploymentStartedResponse_EnvironmentVariablesEntry(): DeploymentStartedResponse_EnvironmentVariablesEntry {
+  return { key: "", value: "" }
+}
+
+export const DeploymentStartedResponse_EnvironmentVariablesEntry: MessageFns<DeploymentStartedResponse_EnvironmentVariablesEntry> =
+  {
+    encode(
+      message: DeploymentStartedResponse_EnvironmentVariablesEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== "") {
+        writer.uint32(10).string(message.key)
+      }
+      if (message.value !== "") {
+        writer.uint32(18).string(message.value)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): DeploymentStartedResponse_EnvironmentVariablesEntry {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message =
+        createBaseDeploymentStartedResponse_EnvironmentVariablesEntry()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.key = reader.string()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.value = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): DeploymentStartedResponse_EnvironmentVariablesEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : "",
+        value: isSet(object.value) ? globalThis.String(object.value) : "",
+      }
+    },
+
+    toJSON(
+      message: DeploymentStartedResponse_EnvironmentVariablesEntry
+    ): unknown {
+      const obj: any = {}
+      if (message.key !== "") {
+        obj.key = message.key
+      }
+      if (message.value !== "") {
+        obj.value = message.value
+      }
+      return obj
+    },
+
+    create<
+      I extends Exact<
+        DeepPartial<DeploymentStartedResponse_EnvironmentVariablesEntry>,
+        I
+      >,
+    >(base?: I): DeploymentStartedResponse_EnvironmentVariablesEntry {
+      return DeploymentStartedResponse_EnvironmentVariablesEntry.fromPartial(
+        base ?? ({} as any)
+      )
+    },
+    fromPartial<
+      I extends Exact<
+        DeepPartial<DeploymentStartedResponse_EnvironmentVariablesEntry>,
+        I
+      >,
+    >(object: I): DeploymentStartedResponse_EnvironmentVariablesEntry {
+      const message =
+        createBaseDeploymentStartedResponse_EnvironmentVariablesEntry()
+      message.key = object.key ?? ""
+      message.value = object.value ?? ""
       return message
     },
   }
@@ -1275,6 +1857,23 @@ export const DeployerServiceService = {
     responseDeserialize: (value: Buffer): DeleteDeploymentsResponse =>
       DeleteDeploymentsResponse.decode(value),
   },
+  /**
+   * Push a project's current environment variables into the env Secret of
+   * its running deployments and roll the workload so pods pick them up.
+   */
+  syncEnvironmentVariables: {
+    path: "/deployer.DeployerService/SyncEnvironmentVariables" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: SyncEnvironmentVariablesRequest): Buffer =>
+      Buffer.from(SyncEnvironmentVariablesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SyncEnvironmentVariablesRequest =>
+      SyncEnvironmentVariablesRequest.decode(value),
+    responseSerialize: (value: SyncEnvironmentVariablesResponse): Buffer =>
+      Buffer.from(SyncEnvironmentVariablesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SyncEnvironmentVariablesResponse =>
+      SyncEnvironmentVariablesResponse.decode(value),
+  },
 } as const
 
 export interface DeployerServiceServer extends UntypedServiceImplementation {
@@ -1285,6 +1884,14 @@ export interface DeployerServiceServer extends UntypedServiceImplementation {
   deleteDeployments: handleUnaryCall<
     DeleteDeploymentsRequest,
     DeleteDeploymentsResponse
+  >
+  /**
+   * Push a project's current environment variables into the env Secret of
+   * its running deployments and roll the workload so pods pick them up.
+   */
+  syncEnvironmentVariables: handleUnaryCall<
+    SyncEnvironmentVariablesRequest,
+    SyncEnvironmentVariablesResponse
   >
 }
 
@@ -1343,6 +1950,34 @@ export interface DeployerServiceClient extends Client {
     callback: (
       error: ServiceError | null,
       response: DeleteDeploymentsResponse
+    ) => void
+  ): ClientUnaryCall
+  /**
+   * Push a project's current environment variables into the env Secret of
+   * its running deployments and roll the workload so pods pick them up.
+   */
+  syncEnvironmentVariables(
+    request: SyncEnvironmentVariablesRequest,
+    callback: (
+      error: ServiceError | null,
+      response: SyncEnvironmentVariablesResponse
+    ) => void
+  ): ClientUnaryCall
+  syncEnvironmentVariables(
+    request: SyncEnvironmentVariablesRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: SyncEnvironmentVariablesResponse
+    ) => void
+  ): ClientUnaryCall
+  syncEnvironmentVariables(
+    request: SyncEnvironmentVariablesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: SyncEnvironmentVariablesResponse
     ) => void
   ): ClientUnaryCall
 }
@@ -1484,6 +2119,10 @@ export type Exact<P, I extends P> = P extends Builtin
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
       [K in Exclude<keyof I, KeysOfUnion<P>>]: never
     }
+
+function isObject(value: any): boolean {
+  return typeof value === "object" && value !== null
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined

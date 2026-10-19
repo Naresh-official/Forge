@@ -17,6 +17,14 @@ export const FORGE_IDENTITY_LABELS = {
 } as const
 
 /**
+ * Pod-template annotation carrying a digest of a deployment's environment.
+ * Bumping it rewrites the pod template and rolls the workload, which is how
+ * an environment change reaches running pods — updating a Secret alone never
+ * restarts anything.
+ */
+export const ENV_SECRET_HASH_ANNOTATION = "forge.dev/env-secret-hash"
+
+/**
  * Fallback resources used when a deployment carries no resource plan.
  * Mirrors the Basic plan (500m CPU / 512Mi memory / 2048Mi storage).
  */

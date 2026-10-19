@@ -3,6 +3,18 @@ export interface ContainerEnvVar {
   value: string
 }
 
+/**
+ * A deployment's project environment variables, materialised as a Kubernetes
+ * Secret in the deployment namespace. Values arrive decrypted from the API
+ * over gRPC — the deployer never holds the encryption key.
+ */
+export interface EnvSecretParams {
+  /** Secret name — see `envSecretNameForDeployment`. */
+  name: string
+  /** Plaintext variables, keyed by variable name. */
+  variables: Record<string, string>
+}
+
 /** CPU/memory/storage the container is granted (requests equal limits). */
 export interface ContainerResources {
   cpuMillicores: number
@@ -20,6 +32,18 @@ export interface RegistryPullSecretParams {
   username: string
   /** Short-lived token password. */
   password: string
+}
+
+/**
+ * Reconcile params for pushing a changed variable set to a running workload.
+ * Unlike {@link DeployContainerParams} this touches only the env Secret and
+ * the pod template — never the image or resource plan.
+ */
+export interface SyncEnvironmentParams extends WorkloadRef {
+  /** Name of the namespace Secret holding the variables. */
+  secretName: string
+  /** Plaintext variables, decrypted by the API and sent over gRPC. */
+  variables: Record<string, string>
 }
 
 /** Identifies a workload (Deployment + Service [+ HPA]) by namespace/name. */
@@ -52,8 +76,14 @@ export interface DeployContainerParams extends WorkloadRef {
    */
   projectId?: string
   deploymentId?: string
-  /** Optional environment variables to inject into the container */
+  /** Optional literal environment variables to inject into the container */
   env?: ContainerEnvVar[]
+  /**
+   * Optional project variables. When set, they are stored in a Secret in the
+   * deployment namespace and injected into the container with
+   * `secretKeyRef`, so pod manifests never carry plaintext values.
+   */
+  envSecret?: EnvSecretParams
   /**
    * Optional imagePullSecret reference. When set, the Deployment pulls
    * the image through this Secret (required for private ECR repos).

@@ -33,6 +33,11 @@ message BuildStartedResponse {
   string build_id = 7;
   // Framework detected when the repository was imported (lowercase, e.g. "nextjs").
   string framework = 8;
+  // Project environment variables with decrypted values. Only populated for
+  // static projects, where the builder injects them while installing and
+  // building. The API is the only service holding ENV_ENCRYPTION_SECRET, so
+  // the builder receives plaintext over this internal gRPC channel.
+  map<string, string> environment_variables = 9;
 }
 
 message BuildCompletedRequest {

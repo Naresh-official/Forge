@@ -13,6 +13,12 @@ interface NodeBuildInput {
   packageRunner: PackageRunner
   framework: Framework
   logger: BuildOutputLogger
+  /**
+   * Build-time variables preset on the project. The API decrypts and sends
+   * them over gRPC; they are merged over the worker's own environment for
+   * both install and build.
+   */
+  environmentVariables?: Record<string, string>
 }
 
 interface NodeBuildResult {
@@ -148,12 +154,19 @@ function findOutputDirectory(
 export async function buildNodeProject(
   input: NodeBuildInput
 ): Promise<NodeBuildResult> {
-  const { projectPath, packageRunner, framework, logger } = input
+  const {
+    projectPath,
+    packageRunner,
+    framework,
+    logger,
+    environmentVariables,
+  } = input
 
   const install = getInstallCommand(packageRunner, projectPath)
 
   await runCommand(install.command, install.args, {
     cwd: projectPath,
+    env: environmentVariables,
 
     onStdout: (data) => {
       logger.stdout(data)
@@ -174,6 +187,7 @@ export async function buildNodeProject(
   if (hasBuildScript) {
     await runCommand(packageRunner, ["run", "build"], {
       cwd: projectPath,
+      env: environmentVariables,
 
       onStdout: (data) => {
         logger.stdout(data)

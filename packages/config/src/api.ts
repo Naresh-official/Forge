@@ -15,13 +15,15 @@ export const apiSchema = z.object({
   databaseUrl: z.string().default(""),
   directUrl: z.string().default(""),
   authSecret: z.string().default(""),
+  /** API-only key used to encrypt project environment variables at rest. */
+  envEncryptionSecret: z.string().default(""),
   github: z
     .object({
       appSlug: z.string().default(""),
       appId: z.string().default(""),
       privateKeyPath: z.string().default(""),
     })
-    .default({}),
+    .default({ appSlug: "", appId: "", privateKeyPath: "" }),
   allowedOrigins: z.array(z.url()).default(["http://localhost:3000"]),
   builderGRPCUrl: z.string().default("localhost:8002"),
   deployerGRPCUrl: z.string().default("localhost:8003"),
@@ -65,6 +67,7 @@ const merged = {
   directUrl: process.env.DIRECT_URL || undefined,
   nodeEnv: process.env.NODE_ENV || "production",
   authSecret: process.env.AUTH_SECRET || undefined,
+  envEncryptionSecret: process.env.ENV_ENCRYPTION_SECRET || undefined,
   github: {
     appSlug: process.env.GITHUB_APP_SLUG || undefined,
     appId: process.env.GITHUB_APP_ID || undefined,

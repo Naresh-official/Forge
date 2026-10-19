@@ -25,7 +25,17 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   })
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`)
+    /*
+     * Errors are wrapped in the API's ApiResponse envelope, so prefer the
+     * server's message (e.g. "Environment variable already exists.") over a
+     * bare status code. Not every failure has a JSON body.
+     */
+    const message = await response
+      .json()
+      .then((body: { message?: string } | null) => body?.message)
+      .catch(() => undefined)
+
+    throw new Error(message || `API request failed: ${response.status}`)
   }
 
   return response.json() as Promise<T>

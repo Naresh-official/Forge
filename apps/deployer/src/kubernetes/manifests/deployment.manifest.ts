@@ -1,8 +1,29 @@
-import { buildContainerResources, FORGE_MANAGED_BY_LABELS } from "../constants"
+import {
+  buildContainerResources,
+  ENV_SECRET_HASH_ANNOTATION,
+  FORGE_MANAGED_BY_LABELS,
+} from "../constants"
 import type { DeployContainerParams } from "../types"
+import { hashEnvVariables } from "./env-secret.manifest"
 
 export function buildDeploymentManifest(params: DeployContainerParams) {
-  const { namespace, name, image, containerPort, env = [] } = params
+  const { namespace, name, image, containerPort, env = [], envSecret } = params
+
+  /*
+   * Project variables are injected with secretKeyRef (never as literal
+   * values), so the pod spec only references the Secret by name/key.
+   */
+  const secretEnv = envSecret
+    ? Object.keys(envSecret.variables).map((key) => ({
+        name: key,
+        valueFrom: {
+          secretKeyRef: {
+            name: envSecret.name,
+            key,
+          },
+        },
+      }))
+    : []
 
   /*
    * Identity labels carry the explicit Forge project/deployment ids (the
@@ -47,6 +68,20 @@ export function buildDeploymentManifest(params: DeployContainerParams) {
               ? { "forge.dev/deployment-id": deploymentId }
               : {}),
           },
+          /*
+           * Digest of the environment so a changed Secret set rewrites the
+           * pod template and rolls the Deployment — an updated Secret alone
+           * leaves running pods untouched.
+           */
+          ...(envSecret
+            ? {
+                annotations: {
+                  [ENV_SECRET_HASH_ANNOTATION]: hashEnvVariables(
+                    envSecret.variables
+                  ),
+                },
+              }
+            : {}),
         },
         spec: {
           ...(imagePullSecrets ? { imagePullSecrets } : {}),
@@ -60,7 +95,7 @@ export function buildDeploymentManifest(params: DeployContainerParams) {
                   protocol: "TCP",
                 },
               ],
-              env,
+              env: [...env, ...secretEnv],
               resources: buildContainerResources(params.resources),
             },
           ],

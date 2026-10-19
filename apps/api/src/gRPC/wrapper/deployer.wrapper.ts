@@ -5,6 +5,8 @@ import type {
   DeployResponse,
   ScaleRequest,
   ScaleResponse,
+  SyncEnvironmentVariablesRequest,
+  SyncEnvironmentVariablesResponse,
 } from "@forge/contracts"
 import { deployer } from "../clients/deployer.client"
 
@@ -36,6 +38,29 @@ export function scaleDeploymentWrapper(
       }
       resolve(response)
     })
+  })
+}
+
+/**
+ * Push a project's environment variables to the deployer, which rewrites the
+ * env Secret in each running deployment's namespace and rolls the workload.
+ * The values are decrypted by the API before this call — the deployer never
+ * holds the encryption key.
+ */
+export function syncEnvironmentVariablesWrapper(
+  request: SyncEnvironmentVariablesRequest
+): Promise<SyncEnvironmentVariablesResponse> {
+  return new Promise((resolve, reject) => {
+    deployer.deployerClient.syncEnvironmentVariables(
+      request,
+      (error, response) => {
+        if (error) {
+          reject(error)
+          return
+        }
+        resolve(response)
+      }
+    )
   })
 }
 

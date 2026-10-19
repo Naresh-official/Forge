@@ -57,6 +57,14 @@ export interface DeleteByPrefixResult {
   deletedCount: number
 }
 
+export interface DeleteByPrefixOptions {
+  /**
+   * Keys starting with any of these prefixes are kept. Used to prune stale
+   * build artifacts while the newest deployment's output stays live.
+   */
+  excludePrefixes?: string[]
+}
+
 export function createStorageClient(config: StorageConfig): S3Client {
   return new S3Client({
     region: config.region,
@@ -146,14 +154,17 @@ function listFilesRecursive(directoryPath: string): string[] {
 
 /**
  * Deletes every object whose key starts with `prefix` (e.g.
- * "<projectId>/" to remove all of a project's artifacts). Idempotent:
- * deleting an empty prefix is a no-op.
+ * "<projectId>/" to remove all of a project's artifacts). Keys matching an
+ * entry in `options.excludePrefixes` are kept. Idempotent: deleting an empty
+ * prefix is a no-op.
  */
 export async function deleteObjectsByPrefix(
   config: StorageConfig,
-  prefix: string
+  prefix: string,
+  options: DeleteByPrefixOptions = {}
 ): Promise<DeleteByPrefixResult> {
   const client = createStorageClient(config)
+  const excludePrefixes = options.excludePrefixes ?? []
 
   let deletedCount = 0
   let continuationToken: string | undefined
@@ -170,6 +181,7 @@ export async function deleteObjectsByPrefix(
     const objects = (page.Contents ?? [])
       .map((object) => object.Key)
       .filter((key): key is string => typeof key === "string")
+      .filter((key) => !excludePrefixes.some((kept) => key.startsWith(kept)))
       .map((key) => ({ Key: key }))
 
     if (objects.length > 0) {

@@ -103,6 +103,25 @@ const worker = new Worker<BuilderQueueJob>(
       // the builder by the API — it is never detected here.
       const framework = normalizeFramework(response.framework)
 
+      /*
+       * The API decrypts the project's environment variables and hands them
+       * over gRPC for static builds only; those are the ones the builder
+       * compiles here. Container images receive their configuration at
+       * runtime instead.
+       */
+      const environmentVariables = isStaticFramework(framework)
+        ? (response.environmentVariables ?? {})
+        : {}
+
+      const environmentVariableKeys = Object.keys(environmentVariables)
+
+      if (environmentVariableKeys.length > 0) {
+        // Keys only — values must never reach the build logs.
+        buildLogger.info(
+          `Injecting ${environmentVariableKeys.length} environment variable(s): ${environmentVariableKeys.join(", ")}`
+        )
+      }
+
       buildLogger.info(
         `Detected strategy "${detection.strategy}" (framework: ${framework}, runner: ${detection.packageRunner ?? "n/a"})`
       )
@@ -124,6 +143,7 @@ const worker = new Worker<BuilderQueueJob>(
             packageRunner: detection.packageRunner,
             framework,
             logger: buildLogger,
+            environmentVariables,
           })
 
           logger.info({ output }, "Build output")

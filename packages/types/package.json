@@ -12,6 +12,7 @@
     "./user": "./src/user.ts",
     "./github": "./src/github.ts",
     "./deployment": "./src/deployment.ts",
+    "./environment": "./src/environment.ts",
     "./project": "./src/project.ts",
     "./logs": "./src/logs.ts"
   },

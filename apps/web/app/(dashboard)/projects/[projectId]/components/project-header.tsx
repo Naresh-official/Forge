@@ -80,12 +80,11 @@ export function ProjectHeader({ project }: { project: ProjectHeaderData }) {
         value={activeTab}
         onValueChange={(value) => router.push(tabHref(value as string))}
       >
-        <TabsList variant="line" className="gap-5 overflow-x-auto">
+        <TabsList variant="line" className="gap-5">
           {projectTabs.map((tab) => (
             <TabsTrigger
               key={tab}
               value={tab}
-              className="px-0 py-2 text-sm whitespace-nowrap"
             >
               {tab}
             </TabsTrigger>

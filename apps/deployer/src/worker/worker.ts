@@ -9,6 +9,7 @@ import {
 import {
   KubernetesClient,
   appNameForDeployment,
+  envSecretNameForDeployment,
   namespaceForDeployment,
 } from "@/kubernetes"
 import logger from "@/utils/logger"
@@ -48,12 +49,20 @@ const worker = new Worker<DeployerQueueJob>(
     )
 
     try {
-      // 1. Notify the API that deployment has started
+      /*
+       * 1. Notify the API that the deployment has started. The response also
+       *    carries the project's environment variables, already decrypted by
+       *    the API — the deployer never holds the encryption key. The whole
+       *    response must never be logged: it contains plaintext secrets.
+       */
       const response = await deploymentStarted({ deploymentId })
+
       logger.info(
-        { response },
         `[Worker ${workerId}] Deployment ${deploymentId} status updated to DEPLOYING`
       )
+
+      const environmentVariables = response.environmentVariables ?? {}
+      const environmentVariableKeys = Object.keys(environmentVariables)
 
       // 2. Only container strategies can be deployed to Kubernetes
       const isContainer =
@@ -95,6 +104,17 @@ const worker = new Worker<DeployerQueueJob>(
         `[Worker ${workerId}] Deploying ${fullImage} to namespace ${namespace}`
       )
 
+      if (environmentVariableKeys.length > 0) {
+        // Names only — values must never reach the logs.
+        logger.info(
+          `[Worker ${workerId}] Creating environment secret ${envSecretNameForDeployment(
+            deploymentId
+          )} with ${environmentVariableKeys.length} variable(s): ${environmentVariableKeys.join(
+            ", "
+          )}`
+        )
+      }
+
       /*
        * 5. Fetch a short-lived ECR token so the cluster can pull the
        *    private image. The token (12h validity) is embedded in a
@@ -124,6 +144,16 @@ const worker = new Worker<DeployerQueueJob>(
           username: token.username,
           password: token.password,
         },
+        // Container deployments only: variables are materialised as a Secret
+        // in the deployment namespace and injected via secretKeyRef.
+        ...(environmentVariableKeys.length > 0
+          ? {
+              envSecret: {
+                name: envSecretNameForDeployment(deploymentId),
+                variables: environmentVariables,
+              },
+            }
+          : {}),
         resources: {
           cpuMillicores: cpuMillicores ?? 0,
           memoryMb: memoryMb ?? 0,

@@ -7,11 +7,17 @@ import {
   Check,
   Cpu,
   ExternalLink,
+  Eye,
+  EyeOff,
   GitBranch,
+  KeyRound,
   Loader2,
+  LockKeyhole,
+  Plus,
   RefreshCw,
   Rocket,
   Search,
+  Trash2,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -43,14 +49,30 @@ import { useToast } from "@/app/(dashboard)/_components/toast-provider"
  */
 const STATIC_STEPS = [
   { label: "Repository", description: "Import a repository" },
+  {
+    label: "Environment",
+    description: "Preset environment variables",
+  },
   { label: "Deploy", description: "Review and deploy" },
 ] as const
 
 const CONTAINER_STEPS = [
   { label: "Repository", description: "Import a repository" },
+  {
+    label: "Environment",
+    description: "Preset environment variables",
+  },
   { label: "Resources", description: "Configure resources" },
   { label: "Deploy", description: "Review and deploy" },
 ] as const
+
+const ENV_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/
+
+interface EnvironmentVariableDraft {
+  id: string
+  key: string
+  value: string
+}
 
 function repoShortName(repo: GithubRepository) {
   return repo.fullName.split("/")[1] ?? repo.fullName
@@ -69,6 +91,10 @@ export function CreateProjectWizard() {
   // Autoscaling is chosen instead of a fixed tier; requests fall back to
   // Basic as the HPA's CPU baseline.
   const [autoscaling, setAutoscaling] = useState(false)
+  const [environmentVariables, setEnvironmentVariables] = useState<
+    EnvironmentVariableDraft[]
+  >([])
+  const [revealedEnvRows, setRevealedEnvRows] = useState<string[]>([])
 
   const selectedIsStatic = selected
     ? isStaticFramework(normalizeFramework(selected.framework))
@@ -102,15 +128,55 @@ export function CreateProjectWizard() {
     },
   })
 
-  const canDeploy = selected !== null && !deployment.isPending
+  const filledEnvironmentVariables = environmentVariables
+    .map(({ key, value }) => ({ key: key.trim(), value }))
+    .filter(({ key, value }) => key.length > 0 || value.length > 0)
+
+  const envKeys = filledEnvironmentVariables.map(({ key }) => key)
+  const hasEmptyEnvKey = envKeys.some((key) => key.length === 0)
+  const hasInvalidEnvKey = envKeys.some(
+    (key) => key.length > 0 && !ENV_KEY_PATTERN.test(key)
+  )
+  const hasDuplicateEnvKeys = new Set(envKeys).size !== envKeys.length
+  const environmentStepValid =
+    !hasEmptyEnvKey && !hasInvalidEnvKey && !hasDuplicateEnvKeys
+
+  const canDeploy =
+    selected !== null && !deployment.isPending && environmentStepValid
 
   function goToStep(next: number) {
     deployment.reset()
     setStep(next)
   }
 
+  function addEnvironmentVariable() {
+    setEnvironmentVariables((current) => [
+      ...current,
+      { id: crypto.randomUUID(), key: "", value: "" },
+    ])
+  }
+
+  function updateEnvironmentVariable(
+    id: string,
+    field: "key" | "value",
+    value: string
+  ) {
+    setEnvironmentVariables((current) =>
+      current.map((variable) =>
+        variable.id === id ? { ...variable, [field]: value } : variable
+      )
+    )
+  }
+
+  function removeEnvironmentVariable(id: string) {
+    setEnvironmentVariables((current) =>
+      current.filter((variable) => variable.id !== id)
+    )
+    setRevealedEnvRows((current) => current.filter((rowId) => rowId !== id))
+  }
+
   function startDeployment() {
-    if (!selected) return
+    if (!selected || !environmentStepValid) return
     const name = projectName.trim()
     deployment.mutate({
       repositoryId: selected.id,
@@ -120,6 +186,9 @@ export function CreateProjectWizard() {
         : autoscaling
           ? { autoscaling: true }
           : { plan }),
+      ...(filledEnvironmentVariables.length > 0
+        ? { environmentVariables: filledEnvironmentVariables }
+        : {}),
     })
   }
 
@@ -346,7 +415,163 @@ export function CreateProjectWizard() {
             </>
           )}
 
-          {step === 2 && !selectedIsStatic && selected && (
+          {step === 2 && (
+            <>
+              <StepTitle
+                icon={<KeyRound className="size-5" />}
+                title="Environment variables"
+                description="Preset configuration and secrets for this project. Values are encrypted before they are stored."
+              />
+
+              <div className="mt-5 border-t border-border pt-5">
+                {environmentVariables.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border px-4 py-8 text-center">
+                    <LockKeyhole className="size-5 text-muted-foreground" />
+                    <h3 className="text-[11px] text-foreground">
+                      No environment variables
+                    </h3>
+                    <p className="max-w-sm text-[9px] text-muted-foreground">
+                      Add variables now, or configure them later from the
+                      project environment variables page.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {environmentVariables.map((variable) => {
+                      const keyInvalid =
+                        variable.key.trim().length > 0 &&
+                        !ENV_KEY_PATTERN.test(variable.key.trim())
+                      const revealed = revealedEnvRows.includes(variable.id)
+
+                      return (
+                        <div
+                          key={variable.id}
+                          className="flex items-start gap-2"
+                        >
+                          <Input
+                            value={variable.key}
+                            onChange={(e) =>
+                              updateEnvironmentVariable(
+                                variable.id,
+                                "key",
+                                e.target.value
+                              )
+                            }
+                            placeholder="KEY"
+                            aria-invalid={keyInvalid}
+                            disabled={deployment.isPending}
+                            className="h-9 flex-1 font-mono text-[11px]"
+                          />
+                          <div className="flex flex-1 items-center gap-1">
+                            <Input
+                              type={revealed ? "text" : "password"}
+                              value={variable.value}
+                              onChange={(e) =>
+                                updateEnvironmentVariable(
+                                  variable.id,
+                                  "value",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Value"
+                              disabled={deployment.isPending}
+                              className="h-9 flex-1 font-mono text-[11px]"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={
+                                revealed ? "Hide value" : "Show value"
+                              }
+                              onClick={() =>
+                                setRevealedEnvRows((current) =>
+                                  revealed
+                                    ? current.filter(
+                                        (rowId) => rowId !== variable.id
+                                      )
+                                    : [...current, variable.id]
+                                )
+                              }
+                              className="size-9 shrink-0"
+                            >
+                              {revealed ? (
+                                <EyeOff className="size-3.5" />
+                              ) : (
+                                <Eye className="size-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            aria-label="Remove variable"
+                            disabled={deployment.isPending}
+                            onClick={() =>
+                              removeEnvironmentVariable(variable.id)
+                            }
+                            className="size-9 shrink-0 text-muted-foreground"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={deployment.isPending}
+                  onClick={addEnvironmentVariable}
+                  className="mt-3 gap-1.5 text-[11px]"
+                >
+                  <Plus className="size-3.5" /> Add variable
+                </Button>
+
+                <p className="mt-3 text-[9px] text-muted-foreground">
+                  Values are encrypted with the API&apos;s ENV_ENCRYPTION_SECRET
+                  before being stored. Runtime injection is not wired up yet.
+                </p>
+
+                {hasEmptyEnvKey && (
+                  <InlineError message="Every environment variable needs a key." />
+                )}
+                {hasInvalidEnvKey && (
+                  <InlineError message="Keys must start with a letter or underscore and contain only letters, digits and underscores." />
+                )}
+                {hasDuplicateEnvKeys && (
+                  <InlineError message="Environment variable keys must be unique." />
+                )}
+              </div>
+
+              <Actions>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => goToStep(1)}
+                  className="text-[11px]"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={!environmentStepValid}
+                  onClick={() => goToStep(3)}
+                  className="gap-2 text-[11px] font-bold"
+                >
+                  Continue <ArrowUpRight className="size-3.5" />
+                </Button>
+              </Actions>
+            </>
+          )}
+
+          {step === 3 && !selectedIsStatic && selected && (
             <>
               <StepTitle
                 icon={<Cpu className="size-5" />}
@@ -428,7 +653,7 @@ export function CreateProjectWizard() {
                   type="button"
                   variant="outline"
                   size="lg"
-                  onClick={() => goToStep(1)}
+                  onClick={() => goToStep(2)}
                   className="text-[11px]"
                 >
                   Back
@@ -436,7 +661,7 @@ export function CreateProjectWizard() {
                 <Button
                   type="button"
                   size="lg"
-                  onClick={() => goToStep(3)}
+                  onClick={() => goToStep(4)}
                   className="gap-2 text-[11px] font-bold"
                 >
                   Continue <ArrowUpRight className="size-3.5" />
@@ -466,6 +691,14 @@ export function CreateProjectWizard() {
                     }
                   />
                 )}
+                <Summary
+                  label="Environment variables"
+                  value={
+                    filledEnvironmentVariables.length > 0
+                      ? `${filledEnvironmentVariables.length} preset`
+                      : "None"
+                  }
+                />
               </div>
 
               <Label className="mt-5 flex-col items-start gap-1.5 text-sm font-normal text-muted-foreground">

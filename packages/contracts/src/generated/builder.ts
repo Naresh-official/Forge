@@ -43,6 +43,18 @@ export interface BuildStartedResponse {
   buildId: string
   /** Framework detected when the repository was imported (lowercase, e.g. "nextjs"). */
   framework: string
+  /**
+   * Project environment variables with decrypted values. Only populated for
+   * static projects, where the builder injects them while installing and
+   * building. The API is the only service holding ENV_ENCRYPTION_SECRET, so
+   * the builder receives plaintext over this internal gRPC channel.
+   */
+  environmentVariables: { [key: string]: string }
+}
+
+export interface BuildStartedResponse_EnvironmentVariablesEntry {
+  key: string
+  value: string
 }
 
 export interface BuildCompletedRequest {
@@ -292,6 +304,7 @@ function createBaseBuildStartedResponse(): BuildStartedResponse {
     accessToken: "",
     buildId: "",
     framework: "",
+    environmentVariables: {},
   }
 }
 
@@ -324,6 +337,14 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
     if (message.framework !== "") {
       writer.uint32(66).string(message.framework)
     }
+    globalThis.Object.entries(message.environmentVariables).forEach(
+      ([key, value]: [string, string]) => {
+        BuildStartedResponse_EnvironmentVariablesEntry.encode(
+          { key: key as any, value },
+          writer.uint32(74).fork()
+        ).join()
+      }
+    )
     return writer
   },
 
@@ -402,6 +423,20 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
           message.framework = reader.string()
           continue
         }
+        case 9: {
+          if (tag !== 74) {
+            break
+          }
+
+          const entry9 = BuildStartedResponse_EnvironmentVariablesEntry.decode(
+            reader,
+            reader.uint32()
+          )
+          if (entry9.value !== undefined) {
+            message.environmentVariables[entry9.key] = entry9.value
+          }
+          continue
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break
@@ -447,6 +482,33 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
       framework: isSet(object.framework)
         ? globalThis.String(object.framework)
         : "",
+      environmentVariables: isObject(object.environmentVariables)
+        ? (
+            globalThis.Object.entries(object.environmentVariables) as [
+              string,
+              any,
+            ][]
+          ).reduce(
+            (acc: { [key: string]: string }, [key, value]: [string, any]) => {
+              acc[key] = globalThis.String(value)
+              return acc
+            },
+            {}
+          )
+        : isObject(object.environment_variables)
+          ? (
+              globalThis.Object.entries(object.environment_variables) as [
+                string,
+                any,
+              ][]
+            ).reduce(
+              (acc: { [key: string]: string }, [key, value]: [string, any]) => {
+                acc[key] = globalThis.String(value)
+                return acc
+              },
+              {}
+            )
+          : {},
     }
   },
 
@@ -476,6 +538,17 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
     if (message.framework !== "") {
       obj.framework = message.framework
     }
+    if (message.environmentVariables) {
+      const entries = globalThis.Object.entries(
+        message.environmentVariables
+      ) as [string, string][]
+      if (entries.length > 0) {
+        obj.environmentVariables = {}
+        entries.forEach(([k, v]) => {
+          obj.environmentVariables[k] = v
+        })
+      }
+    }
     return obj
   },
 
@@ -496,9 +569,119 @@ export const BuildStartedResponse: MessageFns<BuildStartedResponse> = {
     message.accessToken = object.accessToken ?? ""
     message.buildId = object.buildId ?? ""
     message.framework = object.framework ?? ""
+    message.environmentVariables = (
+      globalThis.Object.entries(object.environmentVariables ?? {}) as [
+        string,
+        string,
+      ][]
+    ).reduce(
+      (acc: { [key: string]: string }, [key, value]: [string, string]) => {
+        if (value !== undefined) {
+          acc[key] = globalThis.String(value)
+        }
+        return acc
+      },
+      {}
+    )
     return message
   },
 }
+
+function createBaseBuildStartedResponse_EnvironmentVariablesEntry(): BuildStartedResponse_EnvironmentVariablesEntry {
+  return { key: "", value: "" }
+}
+
+export const BuildStartedResponse_EnvironmentVariablesEntry: MessageFns<BuildStartedResponse_EnvironmentVariablesEntry> =
+  {
+    encode(
+      message: BuildStartedResponse_EnvironmentVariablesEntry,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.key !== "") {
+        writer.uint32(10).string(message.key)
+      }
+      if (message.value !== "") {
+        writer.uint32(18).string(message.value)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): BuildStartedResponse_EnvironmentVariablesEntry {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseBuildStartedResponse_EnvironmentVariablesEntry()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.key = reader.string()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.value = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): BuildStartedResponse_EnvironmentVariablesEntry {
+      return {
+        key: isSet(object.key) ? globalThis.String(object.key) : "",
+        value: isSet(object.value) ? globalThis.String(object.value) : "",
+      }
+    },
+
+    toJSON(message: BuildStartedResponse_EnvironmentVariablesEntry): unknown {
+      const obj: any = {}
+      if (message.key !== "") {
+        obj.key = message.key
+      }
+      if (message.value !== "") {
+        obj.value = message.value
+      }
+      return obj
+    },
+
+    create<
+      I extends Exact<
+        DeepPartial<BuildStartedResponse_EnvironmentVariablesEntry>,
+        I
+      >,
+    >(base?: I): BuildStartedResponse_EnvironmentVariablesEntry {
+      return BuildStartedResponse_EnvironmentVariablesEntry.fromPartial(
+        base ?? ({} as any)
+      )
+    },
+    fromPartial<
+      I extends Exact<
+        DeepPartial<BuildStartedResponse_EnvironmentVariablesEntry>,
+        I
+      >,
+    >(object: I): BuildStartedResponse_EnvironmentVariablesEntry {
+      const message = createBaseBuildStartedResponse_EnvironmentVariablesEntry()
+      message.key = object.key ?? ""
+      message.value = object.value ?? ""
+      return message
+    },
+  }
 
 function createBaseBuildCompletedRequest(): BuildCompletedRequest {
   return {
@@ -1013,6 +1196,10 @@ export type Exact<P, I extends P> = P extends Builtin
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & {
       [K in Exclude<keyof I, KeysOfUnion<P>>]: never
     }
+
+function isObject(value: any): boolean {
+  return typeof value === "object" && value !== null
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined

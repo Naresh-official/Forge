@@ -4,11 +4,14 @@ export {
   sanitizeK8sName,
   namespaceForDeployment,
   appNameForDeployment,
+  envSecretNameForDeployment,
 } from "./naming"
 export type {
   DeployContainerParams,
   ContainerEnvVar,
+  EnvSecretParams,
   RegistryPullSecretParams,
   WorkloadRef,
   ScaleWorkloadParams,
+  SyncEnvironmentParams,
 } from "./types"

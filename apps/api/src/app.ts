@@ -12,6 +12,7 @@ import githubRouter from "@/features/github/github.routes"
 import repositoriesRouter from "@/features/repositories/repositories.routes"
 import deploymentRouter from "@/features/deployment/deployment.routes"
 import projectsRouter from "@/features/projects/projects.routes"
+import environmentRouter from "@/features/environment/environment.routes"
 import logsRouter from "@/features/logs/logs.routes"
 
 const app: Express = express()
@@ -62,5 +63,8 @@ app.use("/api/v1/deployments", deploymentRouter)
 // /api/v1/deployments/:deploymentId/logs[/stream]
 app.use("/api/v1/deployments", logsRouter)
 app.use("/api/v1/projects", projectsRouter)
+// Environment variables are their own feature (encrypt + apply lifecycle),
+// mounted under a project so the id arrives via mergeParams.
+app.use("/api/v1/projects/:projectId/environment-variables", environmentRouter)
 
 export default app

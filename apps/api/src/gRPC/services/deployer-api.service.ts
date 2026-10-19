@@ -7,6 +7,7 @@ import type {
 import type { sendUnaryData, ServerUnaryCall } from "@grpc/grpc-js"
 import prisma from "@/utils/db"
 import { completeDeploymentService } from "@/features/deployment/deployment.service"
+import { decryptEnvVariables } from "@/utils/encryption"
 
 export const deployerApiService = {
   async deploymentStarted(
@@ -19,7 +20,7 @@ export const deployerApiService = {
         throw new Error("Deployment ID is required")
       }
 
-      await prisma.deployment.update({
+      const deployment = await prisma.deployment.update({
         where: {
           id: deploymentId,
         },
@@ -27,11 +28,40 @@ export const deployerApiService = {
           status: "DEPLOYING",
           startedAt: new Date(),
         },
+        include: {
+          project: {
+            include: {
+              environmentVariables: true,
+            },
+          },
+        },
       })
+
+      /*
+       * Static deployments never reach Kubernetes, so nothing is sent for
+       * them. Container deployments get their variables injected at runtime;
+       * the deployer turns them into a Kubernetes Secret in the deployment
+       * namespace. Decryption happens here because the API is the only
+       * service holding ENV_ENCRYPTION_SECRET.
+       */
+      const { values: environmentVariables, failedKeys } = deployment.imageUrl
+        ? decryptEnvVariables(deployment.project.environmentVariables)
+        : { values: {}, failedKeys: [] }
+
+      if (failedKeys.length > 0) {
+        // Unreadable rows are skipped so the rest of the configuration still
+        // reaches the workload; re-entering the value repairs them.
+        console.error(
+          `[deployment ${deploymentId}] Could not decrypt environment variable(s): ${failedKeys.join(
+            ", "
+          )} — not sent to the deployer.`
+        )
+      }
 
       callback(null, {
         success: true,
         message: "Deployment status updated to DEPLOYING",
+        environmentVariables,
       })
     } catch (error) {
       callback(error as Error, null)

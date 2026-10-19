@@ -12,6 +12,7 @@
     "./repositories": "./src/repositories.ts",
     "./deployment": "./src/deployment.ts",
     "./github": "./src/github.ts",
+    "./environment": "./src/environment.ts",
     "./logs": "./src/logs.ts"
   },
   "devDependencies": {

@@ -6,11 +6,14 @@ import type {
   DeployResponse,
   ScaleRequest,
   ScaleResponse,
+  SyncEnvironmentVariablesRequest,
+  SyncEnvironmentVariablesResponse,
 } from "@forge/contracts"
 import { deployerQueue } from "@/queue/queue"
 import {
   KubernetesClient,
   appNameForDeployment,
+  envSecretNameForDeployment,
   namespaceForDeployment,
 } from "@/kubernetes"
 import logger from "@/utils/logger"
@@ -86,6 +89,66 @@ export const deployerService = {
 
       callback(null, {
         message: `Scaled ${name} to ${replicas} replicas`,
+      })
+    } catch (error) {
+      callback(error as Error, null)
+    }
+  },
+
+  /**
+   * Rewrites the env Secret of each given deployment and rolls its workload
+   * so running pods pick the new values up.
+   *
+   * The request carries plaintext variables, so neither the request nor the
+   * variables may ever be logged. Deployments with no running workload are
+   * reported back instead of failing the call.
+   */
+  async syncEnvironmentVariables(
+    call: ServerUnaryCall<
+      SyncEnvironmentVariablesRequest,
+      SyncEnvironmentVariablesResponse
+    >,
+    callback: sendUnaryData<SyncEnvironmentVariablesResponse>
+  ) {
+    try {
+      const { projectId, deploymentIds, environmentVariables } = call.request
+
+      if (!projectId) {
+        throw new Error("projectId is required to sync environment variables")
+      }
+
+      if (deploymentIds.length === 0) {
+        callback(null, {
+          message: "No deployments to update",
+          updatedDeploymentIds: [],
+        })
+        return
+      }
+
+      const kubernetes = getKubernetes()
+      const updatedDeploymentIds: string[] = []
+
+      for (const deploymentId of deploymentIds) {
+        const result = await kubernetes.syncEnvironmentSecret({
+          namespace: namespaceForDeployment(projectId, deploymentId),
+          name: appNameForDeployment(deploymentId),
+          secretName: envSecretNameForDeployment(deploymentId),
+          variables: environmentVariables,
+        })
+
+        if (result === "updated") {
+          updatedDeploymentIds.push(deploymentId)
+        }
+      }
+
+      // Names and counts only — never the variable values.
+      logger.info(
+        `Synced environment variables for ${updatedDeploymentIds.length}/${deploymentIds.length} deployment(s) of project ${projectId}`
+      )
+
+      callback(null, {
+        message: `Updated ${updatedDeploymentIds.length} deployment(s)`,
+        updatedDeploymentIds,
       })
     } catch (error) {
       callback(error as Error, null)

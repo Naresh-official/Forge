@@ -60,9 +60,29 @@ export const AUTOSCALING = {
   targetCpuUtilization: 80,
 } as const
 
+/** POSIX-style variable name (e.g. DATABASE_URL). */
+export const environmentVariableKeySchema = z
+  .string()
+  .trim()
+  .min(1, "Key is required")
+  .max(255)
+  .regex(
+    /^[A-Za-z_][A-Za-z0-9_]*$/,
+    "Key must start with a letter or underscore and contain only letters, digits and underscores"
+  )
+
+export const environmentVariableSchema = z.object({
+  key: environmentVariableKeySchema,
+  value: z.string().max(65_536),
+})
+
+export type EnvironmentVariableInput = z.infer<typeof environmentVariableSchema>
+
 export const createRepositorySchema = z.object({
   repositoryId: z.int(),
   projectName: z.string().optional(),
+  /** Variables preset while creating the project; encrypted before storage. */
+  environmentVariables: z.array(environmentVariableSchema).max(100).optional(),
   /** Resource tier for non-static (containerized) projects. */
   plan: deploymentPlanSchema.optional(),
   /**

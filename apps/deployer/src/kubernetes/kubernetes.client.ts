@@ -8,7 +8,9 @@ import type {
   DeployContainerParams,
   RegistryPullSecretParams,
   ScaleWorkloadParams,
+  SyncEnvironmentParams,
 } from "./types"
+import { hashEnvVariables } from "./manifests/env-secret.manifest"
 import logger from "@/utils/logger"
 
 /** How long to wait for the Deployment rollout to become available. */
@@ -22,9 +24,10 @@ const ROLLOUT_POLL_INTERVAL_MS = 5_000
  * Deploy a container image to Kubernetes:
  *  1. Ensure the namespace exists (idempotent)
  *  2. Ensure the image pull secret exists (idempotent)
- *  3. Ensure the Deployment exists (create or patch — idempotent)
- *  4. Ensure the Service exists (create or skip — idempotent)
- *  5. Wait for the rollout to become available
+ *  3. Ensure the environment Secret exists (create or replace — idempotent)
+ *  4. Ensure the Deployment exists (create or patch — idempotent)
+ *  5. Ensure the Service exists (create or skip — idempotent)
+ *  6. Wait for the rollout to become available
  */
 export class KubernetesClient {
   private readonly http: KubeHttpClient
@@ -100,6 +103,18 @@ export class KubernetesClient {
       )
     }
 
+    /*
+     * The environment Secret is written before the Deployment so the pod's
+     * secretKeyRef lookups always resolve.
+     */
+    if (params.envSecret) {
+      await this.secrets.ensureEnvSecret(
+        params.namespace,
+        params.envSecret.name,
+        params.envSecret.variables
+      )
+    }
+
     await this.deployments.ensure(params)
     await this.services.ensure(params)
 
@@ -117,6 +132,32 @@ export class KubernetesClient {
     )
 
     return { rolloutReady }
+  }
+
+  /**
+   * Reconciles an already-deployed workload with a changed variable set: the
+   * namespace's env Secret is rewritten and the Deployment is rolled so pods
+   * pick the new values up.
+   *
+   * Returns `"skipped"` when there is no running Deployment in the namespace
+   * (nothing to update yet — the next deploy will inject the variables).
+   */
+  async syncEnvironmentSecret(
+    params: SyncEnvironmentParams
+  ): Promise<"updated" | "skipped"> {
+    await this.secrets.ensureEnvSecret(
+      params.namespace,
+      params.secretName,
+      params.variables
+    )
+
+    return this.deployments.syncEnvironment({
+      namespace: params.namespace,
+      name: params.name,
+      secretName: params.secretName,
+      variables: params.variables,
+      hash: hashEnvVariables(params.variables),
+    })
   }
 
   /**

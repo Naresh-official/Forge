@@ -16,6 +16,8 @@ export {
   DeploymentStartedResponse,
   DeploymentCompletedRequest,
   DeploymentCompletedResponse,
+  SyncEnvironmentVariablesRequest,
+  SyncEnvironmentVariablesResponse,
   DeployerServiceClient,
   DeployerServiceService,
   DeployerApiServiceClient,

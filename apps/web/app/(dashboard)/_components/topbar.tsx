@@ -18,7 +18,6 @@ const STATIC_TITLES: Record<string, string> = {
   "/projects/new": "New project",
   "/deployments": "Deployments",
   "/domains": "Domains",
-  "/environments": "Environments",
   "/settings": "Settings",
 }
 

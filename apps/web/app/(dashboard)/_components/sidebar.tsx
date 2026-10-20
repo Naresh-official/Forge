@@ -22,7 +22,6 @@ const navigation = [
   { label: "Projects", href: "/projects", icon: Box },
   { label: "Deployments", href: "/deployments", icon: Rocket },
   { label: "Domains", href: "/domains", icon: Globe2 },
-  { label: "Environments", href: "/environments", icon: Server },
 ]
 
 export function Sidebar({

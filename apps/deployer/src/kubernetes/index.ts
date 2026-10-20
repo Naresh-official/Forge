@@ -7,11 +7,13 @@ export {
   envSecretNameForDeployment,
 } from "./naming"
 export type {
+  AutoscalingSnapshot,
   DeployContainerParams,
   ContainerEnvVar,
   EnvSecretParams,
   RegistryPullSecretParams,
   WorkloadRef,
+  WorkloadMetrics,
   ScaleWorkloadParams,
   SyncEnvironmentParams,
 } from "./types"

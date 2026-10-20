@@ -7,6 +7,7 @@ import {
   renameProjectService,
   setProjectStatusService,
 } from "./projects.service"
+import { redeployProjectService } from "@/features/deployment/deployment.service"
 import { handleErrors } from "@/utils/handleErrors"
 import {
   ApiResponse,
@@ -16,6 +17,7 @@ import {
   type ListProjectNamesResponse,
   type ListProjectsResponse,
   type ProjectSettingsResponse,
+  type RedeployProjectResponse,
 } from "@forge/types"
 import { ApiError } from "@forge/types/apiResponses"
 
@@ -72,6 +74,31 @@ export const listProjectDeployments = async (req: Request, res: Response) => {
           200,
           deployments,
           "Deployments fetched successfully"
+        )
+      )
+  } catch (error) {
+    handleErrors(res, error)
+  }
+}
+
+export const redeployProject = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id
+
+    if (!userId) {
+      throw new ApiError(401, "Unauthorized")
+    }
+
+    const projectId = req.params.projectId as string
+    const deployment = await redeployProjectService(projectId, userId)
+
+    return res
+      .status(201)
+      .json(
+        new ApiResponse<RedeployProjectResponse>(
+          201,
+          deployment,
+          `Deployment #${deployment.deploymentNumber} queued`
         )
       )
   } catch (error) {

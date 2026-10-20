@@ -109,6 +109,8 @@ app/
 
 **Auth flow:** `auth.ts` configures NextAuth with the GitHub provider. On sign-in the JWT callback calls `@forge/api-client/auth` to sync the user with the backend and stores the backend `userId` in the session token.
 
+**Route protection:** `proxy.ts` — Next.js 16 renamed Middleware to Proxy, so `middleware.ts` is deprecated — wraps `auth()` around `/dashboard`, `/projects`, `/deployments`, `/domains`, `/environments` and `/settings`. Requests without a valid session redirect to `/login?callbackUrl=…`, and the login page returns the user to that same-origin path after sign-in.
+
 **Server → client user plumbing:** `app/(dashboard)/layout.tsx` is a server component that calls `await auth()` and passes a `SessionUser` (`{ name, email, image }`) into `AppShell` → `Sidebar`/`Topbar`. Client components read the user from that prop — there is **no `SessionProvider`** and `useSession()` will not work.
 
 > ⚠️ Always read `node_modules/next/dist/docs/` before using any Next.js API. The `next` version in this repo (16.x) introduces breaking changes relative to Next.js 13-15.
@@ -137,12 +139,18 @@ app/
 | `/github/setup`                                   | GET    | yes  | `features/github` — GitHub App post-install callback       |
 | `/repositories`                                   | GET    | yes  | `features/repositories` — repos via the GitHub App         |
 | `/deployments/new`                                | POST   | yes  | `features/deployment` — create project + first deployment  |
+| `/deployments`                                    | GET    | yes  | `features/deployment` — all deployments, newest first      |
+| `/deployments/:deploymentId`                      | GET    | yes  | `features/deployment` — one deployment with build          |
+| `/deployments/:deploymentId/redeploy`             | POST   | yes  | `features/deployment` — rebuild this commit                |
 | `/projects/all`                                   | GET    | yes  | `features/projects` — full project list                    |
 | `/projects/list`                                  | GET    | yes  | `features/projects` — `{ id, name }` only                  |
 | `/projects/:projectId/environment-variables`      | GET    | yes  | `features/environment` — keys only, never values           |
 | `/projects/:projectId/environment-variables`      | POST   | yes  | `features/environment` — add a variable + apply the change |
 | `/projects/:projectId/environment-variables/:key` | PATCH  | yes  | `features/environment` — replace a value + apply           |
 | `/projects/:projectId/environment-variables/:key` | DELETE | yes  | `features/environment` — remove a variable + apply         |
+| `/projects/:projectId/resources`                  | GET    | yes  | `features/resources` — live usage + autoscaling state      |
+| `/projects/:projectId/deployments`                | GET    | yes  | `features/projects` — deployment history, newest first     |
+| `/projects/:projectId/deployments`                | POST   | yes  | `features/projects` — redeploy the latest commit           |
 
 Every router except `POST /auth/github` is guarded by the `authenticate` middleware.
 
@@ -164,6 +172,7 @@ Every router except `POST /auth/github` is guarded by the `authenticate` middlew
 - `ApiService.BuildCompleted` (`builder.proto`) — builder calls this with the build result (image URL / static artifact key, status, etc.); on success, api forwards details to `DeployerService.Deploy`
 - `DeployerService.Deploy` (`deployer.proto`) — api calls this on deployer to queue a deployment
 - `DeployerService.SyncEnvironmentVariables` (`deployer.proto`) — api calls this after an environment change; the deployer rewrites each running deployment's env Secret and rolls the workload (plaintext variables travel on this internal channel only)
+- `DeployerService.GetDeploymentMetrics` (`deployer.proto`) — api calls this for a project's Resources tab; the deployer reads the Deployment, its pod metrics (`metrics.k8s.io`) and its HPA, and reports usage, allocation, replica counts and scaling state
 - `DeployerApiService.DeploymentStarted` (`deployer.proto`) — deployer worker calls this when deployment starts; sets deployment status to `DEPLOYING` and returns the project's decrypted environment variables (`environment_variables`) for container deployments only
 - `DeployerApiService.DeploymentCompleted` (`deployer.proto`) — deployer worker reports the final status; sets `READY`/`FAILED` and stores the image URL
 
@@ -458,6 +467,7 @@ Packages also expose `proto:generate` (`packages/contracts`) and `studio` (`apps
 | Docker daemon                           | `builder`                                | Building and tagging images                          |
 | AWS ECR                                 | `builder`, `deployer`, `@forge/registry` | Container image storage (push + pull credentials)    |
 | Kubernetes (kind locally, EKS in cloud) | `deployer`                               | Runtime for deployed applications                    |
+| Kubernetes metrics-server               | `deployer`                               | Live pod usage for the Resources tab (optional)      |
 | GitHub App                              | `api`, `web`, `builder`                  | OAuth + repository access                            |
 
 Local development has been done against Bun, Docker, PostgreSQL, Redis, MinIO and kind; the Kubernetes layer has also been exercised against EKS.

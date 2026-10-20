@@ -87,6 +87,54 @@ export interface SyncEnvironmentVariablesResponse {
   updatedDeploymentIds: string[]
 }
 
+export interface GetDeploymentMetricsRequest {
+  projectId: string
+  deploymentId: string
+}
+
+export interface GetDeploymentMetricsResponse {
+  /**
+   * False when the deployment has no Kubernetes workload (static projects, or
+   * a deployment that never reached the cluster). `message` explains why.
+   */
+  available: boolean
+  message: string
+  /** Replica state of the Deployment. */
+  replicasDesired: number
+  replicasReady: number
+  /** CPU usage and allocation across the workload's pods, in millicores. */
+  cpuUsageMillicores: number
+  cpuRequestMillicores: number
+  /** Memory usage and allocation across the workload's pods, in MiB. */
+  memoryUsageMb: number
+  memoryRequestMb: number
+  /**
+   * Whether pod metrics could be read (the cluster's metrics API is
+   * installed and reporting). Usage fields are 0 when this is false.
+   */
+  metricsAvailable: boolean
+  /** HPA state — only meaningful when `autoscaling_enabled` is true. */
+  autoscalingEnabled: boolean
+  minReplicas: number
+  maxReplicas: number
+  /** Target average CPU utilisation, as a percentage of pod requests. */
+  targetCpuUtilization: number
+  /**
+   * Average CPU utilisation reported by the HPA. -1 when the autoscaler has
+   * no CPU reading yet.
+   */
+  currentCpuUtilization: number
+  /** Replicas the autoscaler currently manages and wants to run. */
+  hpaCurrentReplicas: number
+  hpaDesiredReplicas: number
+  /** Derived scaling state: "Steady", "Scaling up", "Scaling down", ... */
+  scalingStatus: string
+  /** The autoscaler's own explanation, e.g. "All metrics below target". */
+  scalingMessage: string
+  /** RFC 3339 timestamp of the newest pod metric sample; empty when none. */
+  metricsTimestamp: string
+}
+
 export interface DeploymentStartedRequest {
   deploymentId: string
 }
@@ -1253,6 +1301,552 @@ export const SyncEnvironmentVariablesResponse: MessageFns<SyncEnvironmentVariabl
     },
   }
 
+function createBaseGetDeploymentMetricsRequest(): GetDeploymentMetricsRequest {
+  return { projectId: "", deploymentId: "" }
+}
+
+export const GetDeploymentMetricsRequest: MessageFns<GetDeploymentMetricsRequest> =
+  {
+    encode(
+      message: GetDeploymentMetricsRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.projectId !== "") {
+        writer.uint32(10).string(message.projectId)
+      }
+      if (message.deploymentId !== "") {
+        writer.uint32(18).string(message.deploymentId)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): GetDeploymentMetricsRequest {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseGetDeploymentMetricsRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.projectId = reader.string()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.deploymentId = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): GetDeploymentMetricsRequest {
+      return {
+        projectId: isSet(object.projectId)
+          ? globalThis.String(object.projectId)
+          : isSet(object.project_id)
+            ? globalThis.String(object.project_id)
+            : "",
+        deploymentId: isSet(object.deploymentId)
+          ? globalThis.String(object.deploymentId)
+          : isSet(object.deployment_id)
+            ? globalThis.String(object.deployment_id)
+            : "",
+      }
+    },
+
+    toJSON(message: GetDeploymentMetricsRequest): unknown {
+      const obj: any = {}
+      if (message.projectId !== "") {
+        obj.projectId = message.projectId
+      }
+      if (message.deploymentId !== "") {
+        obj.deploymentId = message.deploymentId
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<GetDeploymentMetricsRequest>, I>>(
+      base?: I
+    ): GetDeploymentMetricsRequest {
+      return GetDeploymentMetricsRequest.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<I extends Exact<DeepPartial<GetDeploymentMetricsRequest>, I>>(
+      object: I
+    ): GetDeploymentMetricsRequest {
+      const message = createBaseGetDeploymentMetricsRequest()
+      message.projectId = object.projectId ?? ""
+      message.deploymentId = object.deploymentId ?? ""
+      return message
+    },
+  }
+
+function createBaseGetDeploymentMetricsResponse(): GetDeploymentMetricsResponse {
+  return {
+    available: false,
+    message: "",
+    replicasDesired: 0,
+    replicasReady: 0,
+    cpuUsageMillicores: 0,
+    cpuRequestMillicores: 0,
+    memoryUsageMb: 0,
+    memoryRequestMb: 0,
+    metricsAvailable: false,
+    autoscalingEnabled: false,
+    minReplicas: 0,
+    maxReplicas: 0,
+    targetCpuUtilization: 0,
+    currentCpuUtilization: 0,
+    hpaCurrentReplicas: 0,
+    hpaDesiredReplicas: 0,
+    scalingStatus: "",
+    scalingMessage: "",
+    metricsTimestamp: "",
+  }
+}
+
+export const GetDeploymentMetricsResponse: MessageFns<GetDeploymentMetricsResponse> =
+  {
+    encode(
+      message: GetDeploymentMetricsResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.available !== false) {
+        writer.uint32(8).bool(message.available)
+      }
+      if (message.message !== "") {
+        writer.uint32(18).string(message.message)
+      }
+      if (message.replicasDesired !== 0) {
+        writer.uint32(24).int32(message.replicasDesired)
+      }
+      if (message.replicasReady !== 0) {
+        writer.uint32(32).int32(message.replicasReady)
+      }
+      if (message.cpuUsageMillicores !== 0) {
+        writer.uint32(40).int32(message.cpuUsageMillicores)
+      }
+      if (message.cpuRequestMillicores !== 0) {
+        writer.uint32(48).int32(message.cpuRequestMillicores)
+      }
+      if (message.memoryUsageMb !== 0) {
+        writer.uint32(56).int32(message.memoryUsageMb)
+      }
+      if (message.memoryRequestMb !== 0) {
+        writer.uint32(64).int32(message.memoryRequestMb)
+      }
+      if (message.metricsAvailable !== false) {
+        writer.uint32(72).bool(message.metricsAvailable)
+      }
+      if (message.autoscalingEnabled !== false) {
+        writer.uint32(80).bool(message.autoscalingEnabled)
+      }
+      if (message.minReplicas !== 0) {
+        writer.uint32(88).int32(message.minReplicas)
+      }
+      if (message.maxReplicas !== 0) {
+        writer.uint32(96).int32(message.maxReplicas)
+      }
+      if (message.targetCpuUtilization !== 0) {
+        writer.uint32(104).int32(message.targetCpuUtilization)
+      }
+      if (message.currentCpuUtilization !== 0) {
+        writer.uint32(112).int32(message.currentCpuUtilization)
+      }
+      if (message.hpaCurrentReplicas !== 0) {
+        writer.uint32(120).int32(message.hpaCurrentReplicas)
+      }
+      if (message.hpaDesiredReplicas !== 0) {
+        writer.uint32(128).int32(message.hpaDesiredReplicas)
+      }
+      if (message.scalingStatus !== "") {
+        writer.uint32(138).string(message.scalingStatus)
+      }
+      if (message.scalingMessage !== "") {
+        writer.uint32(146).string(message.scalingMessage)
+      }
+      if (message.metricsTimestamp !== "") {
+        writer.uint32(154).string(message.metricsTimestamp)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): GetDeploymentMetricsResponse {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseGetDeploymentMetricsResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break
+            }
+
+            message.available = reader.bool()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.message = reader.string()
+            continue
+          }
+          case 3: {
+            if (tag !== 24) {
+              break
+            }
+
+            message.replicasDesired = reader.int32()
+            continue
+          }
+          case 4: {
+            if (tag !== 32) {
+              break
+            }
+
+            message.replicasReady = reader.int32()
+            continue
+          }
+          case 5: {
+            if (tag !== 40) {
+              break
+            }
+
+            message.cpuUsageMillicores = reader.int32()
+            continue
+          }
+          case 6: {
+            if (tag !== 48) {
+              break
+            }
+
+            message.cpuRequestMillicores = reader.int32()
+            continue
+          }
+          case 7: {
+            if (tag !== 56) {
+              break
+            }
+
+            message.memoryUsageMb = reader.int32()
+            continue
+          }
+          case 8: {
+            if (tag !== 64) {
+              break
+            }
+
+            message.memoryRequestMb = reader.int32()
+            continue
+          }
+          case 9: {
+            if (tag !== 72) {
+              break
+            }
+
+            message.metricsAvailable = reader.bool()
+            continue
+          }
+          case 10: {
+            if (tag !== 80) {
+              break
+            }
+
+            message.autoscalingEnabled = reader.bool()
+            continue
+          }
+          case 11: {
+            if (tag !== 88) {
+              break
+            }
+
+            message.minReplicas = reader.int32()
+            continue
+          }
+          case 12: {
+            if (tag !== 96) {
+              break
+            }
+
+            message.maxReplicas = reader.int32()
+            continue
+          }
+          case 13: {
+            if (tag !== 104) {
+              break
+            }
+
+            message.targetCpuUtilization = reader.int32()
+            continue
+          }
+          case 14: {
+            if (tag !== 112) {
+              break
+            }
+
+            message.currentCpuUtilization = reader.int32()
+            continue
+          }
+          case 15: {
+            if (tag !== 120) {
+              break
+            }
+
+            message.hpaCurrentReplicas = reader.int32()
+            continue
+          }
+          case 16: {
+            if (tag !== 128) {
+              break
+            }
+
+            message.hpaDesiredReplicas = reader.int32()
+            continue
+          }
+          case 17: {
+            if (tag !== 138) {
+              break
+            }
+
+            message.scalingStatus = reader.string()
+            continue
+          }
+          case 18: {
+            if (tag !== 146) {
+              break
+            }
+
+            message.scalingMessage = reader.string()
+            continue
+          }
+          case 19: {
+            if (tag !== 154) {
+              break
+            }
+
+            message.metricsTimestamp = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): GetDeploymentMetricsResponse {
+      return {
+        available: isSet(object.available)
+          ? globalThis.Boolean(object.available)
+          : false,
+        message: isSet(object.message) ? globalThis.String(object.message) : "",
+        replicasDesired: isSet(object.replicasDesired)
+          ? globalThis.Number(object.replicasDesired)
+          : isSet(object.replicas_desired)
+            ? globalThis.Number(object.replicas_desired)
+            : 0,
+        replicasReady: isSet(object.replicasReady)
+          ? globalThis.Number(object.replicasReady)
+          : isSet(object.replicas_ready)
+            ? globalThis.Number(object.replicas_ready)
+            : 0,
+        cpuUsageMillicores: isSet(object.cpuUsageMillicores)
+          ? globalThis.Number(object.cpuUsageMillicores)
+          : isSet(object.cpu_usage_millicores)
+            ? globalThis.Number(object.cpu_usage_millicores)
+            : 0,
+        cpuRequestMillicores: isSet(object.cpuRequestMillicores)
+          ? globalThis.Number(object.cpuRequestMillicores)
+          : isSet(object.cpu_request_millicores)
+            ? globalThis.Number(object.cpu_request_millicores)
+            : 0,
+        memoryUsageMb: isSet(object.memoryUsageMb)
+          ? globalThis.Number(object.memoryUsageMb)
+          : isSet(object.memory_usage_mb)
+            ? globalThis.Number(object.memory_usage_mb)
+            : 0,
+        memoryRequestMb: isSet(object.memoryRequestMb)
+          ? globalThis.Number(object.memoryRequestMb)
+          : isSet(object.memory_request_mb)
+            ? globalThis.Number(object.memory_request_mb)
+            : 0,
+        metricsAvailable: isSet(object.metricsAvailable)
+          ? globalThis.Boolean(object.metricsAvailable)
+          : isSet(object.metrics_available)
+            ? globalThis.Boolean(object.metrics_available)
+            : false,
+        autoscalingEnabled: isSet(object.autoscalingEnabled)
+          ? globalThis.Boolean(object.autoscalingEnabled)
+          : isSet(object.autoscaling_enabled)
+            ? globalThis.Boolean(object.autoscaling_enabled)
+            : false,
+        minReplicas: isSet(object.minReplicas)
+          ? globalThis.Number(object.minReplicas)
+          : isSet(object.min_replicas)
+            ? globalThis.Number(object.min_replicas)
+            : 0,
+        maxReplicas: isSet(object.maxReplicas)
+          ? globalThis.Number(object.maxReplicas)
+          : isSet(object.max_replicas)
+            ? globalThis.Number(object.max_replicas)
+            : 0,
+        targetCpuUtilization: isSet(object.targetCpuUtilization)
+          ? globalThis.Number(object.targetCpuUtilization)
+          : isSet(object.target_cpu_utilization)
+            ? globalThis.Number(object.target_cpu_utilization)
+            : 0,
+        currentCpuUtilization: isSet(object.currentCpuUtilization)
+          ? globalThis.Number(object.currentCpuUtilization)
+          : isSet(object.current_cpu_utilization)
+            ? globalThis.Number(object.current_cpu_utilization)
+            : 0,
+        hpaCurrentReplicas: isSet(object.hpaCurrentReplicas)
+          ? globalThis.Number(object.hpaCurrentReplicas)
+          : isSet(object.hpa_current_replicas)
+            ? globalThis.Number(object.hpa_current_replicas)
+            : 0,
+        hpaDesiredReplicas: isSet(object.hpaDesiredReplicas)
+          ? globalThis.Number(object.hpaDesiredReplicas)
+          : isSet(object.hpa_desired_replicas)
+            ? globalThis.Number(object.hpa_desired_replicas)
+            : 0,
+        scalingStatus: isSet(object.scalingStatus)
+          ? globalThis.String(object.scalingStatus)
+          : isSet(object.scaling_status)
+            ? globalThis.String(object.scaling_status)
+            : "",
+        scalingMessage: isSet(object.scalingMessage)
+          ? globalThis.String(object.scalingMessage)
+          : isSet(object.scaling_message)
+            ? globalThis.String(object.scaling_message)
+            : "",
+        metricsTimestamp: isSet(object.metricsTimestamp)
+          ? globalThis.String(object.metricsTimestamp)
+          : isSet(object.metrics_timestamp)
+            ? globalThis.String(object.metrics_timestamp)
+            : "",
+      }
+    },
+
+    toJSON(message: GetDeploymentMetricsResponse): unknown {
+      const obj: any = {}
+      if (message.available !== false) {
+        obj.available = message.available
+      }
+      if (message.message !== "") {
+        obj.message = message.message
+      }
+      if (message.replicasDesired !== 0) {
+        obj.replicasDesired = Math.round(message.replicasDesired)
+      }
+      if (message.replicasReady !== 0) {
+        obj.replicasReady = Math.round(message.replicasReady)
+      }
+      if (message.cpuUsageMillicores !== 0) {
+        obj.cpuUsageMillicores = Math.round(message.cpuUsageMillicores)
+      }
+      if (message.cpuRequestMillicores !== 0) {
+        obj.cpuRequestMillicores = Math.round(message.cpuRequestMillicores)
+      }
+      if (message.memoryUsageMb !== 0) {
+        obj.memoryUsageMb = Math.round(message.memoryUsageMb)
+      }
+      if (message.memoryRequestMb !== 0) {
+        obj.memoryRequestMb = Math.round(message.memoryRequestMb)
+      }
+      if (message.metricsAvailable !== false) {
+        obj.metricsAvailable = message.metricsAvailable
+      }
+      if (message.autoscalingEnabled !== false) {
+        obj.autoscalingEnabled = message.autoscalingEnabled
+      }
+      if (message.minReplicas !== 0) {
+        obj.minReplicas = Math.round(message.minReplicas)
+      }
+      if (message.maxReplicas !== 0) {
+        obj.maxReplicas = Math.round(message.maxReplicas)
+      }
+      if (message.targetCpuUtilization !== 0) {
+        obj.targetCpuUtilization = Math.round(message.targetCpuUtilization)
+      }
+      if (message.currentCpuUtilization !== 0) {
+        obj.currentCpuUtilization = Math.round(message.currentCpuUtilization)
+      }
+      if (message.hpaCurrentReplicas !== 0) {
+        obj.hpaCurrentReplicas = Math.round(message.hpaCurrentReplicas)
+      }
+      if (message.hpaDesiredReplicas !== 0) {
+        obj.hpaDesiredReplicas = Math.round(message.hpaDesiredReplicas)
+      }
+      if (message.scalingStatus !== "") {
+        obj.scalingStatus = message.scalingStatus
+      }
+      if (message.scalingMessage !== "") {
+        obj.scalingMessage = message.scalingMessage
+      }
+      if (message.metricsTimestamp !== "") {
+        obj.metricsTimestamp = message.metricsTimestamp
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<GetDeploymentMetricsResponse>, I>>(
+      base?: I
+    ): GetDeploymentMetricsResponse {
+      return GetDeploymentMetricsResponse.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<I extends Exact<DeepPartial<GetDeploymentMetricsResponse>, I>>(
+      object: I
+    ): GetDeploymentMetricsResponse {
+      const message = createBaseGetDeploymentMetricsResponse()
+      message.available = object.available ?? false
+      message.message = object.message ?? ""
+      message.replicasDesired = object.replicasDesired ?? 0
+      message.replicasReady = object.replicasReady ?? 0
+      message.cpuUsageMillicores = object.cpuUsageMillicores ?? 0
+      message.cpuRequestMillicores = object.cpuRequestMillicores ?? 0
+      message.memoryUsageMb = object.memoryUsageMb ?? 0
+      message.memoryRequestMb = object.memoryRequestMb ?? 0
+      message.metricsAvailable = object.metricsAvailable ?? false
+      message.autoscalingEnabled = object.autoscalingEnabled ?? false
+      message.minReplicas = object.minReplicas ?? 0
+      message.maxReplicas = object.maxReplicas ?? 0
+      message.targetCpuUtilization = object.targetCpuUtilization ?? 0
+      message.currentCpuUtilization = object.currentCpuUtilization ?? 0
+      message.hpaCurrentReplicas = object.hpaCurrentReplicas ?? 0
+      message.hpaDesiredReplicas = object.hpaDesiredReplicas ?? 0
+      message.scalingStatus = object.scalingStatus ?? ""
+      message.scalingMessage = object.scalingMessage ?? ""
+      message.metricsTimestamp = object.metricsTimestamp ?? ""
+      return message
+    },
+  }
+
 function createBaseDeploymentStartedRequest(): DeploymentStartedRequest {
   return { deploymentId: "" }
 }
@@ -1874,6 +2468,23 @@ export const DeployerServiceService = {
     responseDeserialize: (value: Buffer): SyncEnvironmentVariablesResponse =>
       SyncEnvironmentVariablesResponse.decode(value),
   },
+  /**
+   * Read a deployment's live resource usage (Kubernetes metrics API) together
+   * with its allocation, replica counts and HPA state.
+   */
+  getDeploymentMetrics: {
+    path: "/deployer.DeployerService/GetDeploymentMetrics" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetDeploymentMetricsRequest): Buffer =>
+      Buffer.from(GetDeploymentMetricsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetDeploymentMetricsRequest =>
+      GetDeploymentMetricsRequest.decode(value),
+    responseSerialize: (value: GetDeploymentMetricsResponse): Buffer =>
+      Buffer.from(GetDeploymentMetricsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetDeploymentMetricsResponse =>
+      GetDeploymentMetricsResponse.decode(value),
+  },
 } as const
 
 export interface DeployerServiceServer extends UntypedServiceImplementation {
@@ -1892,6 +2503,14 @@ export interface DeployerServiceServer extends UntypedServiceImplementation {
   syncEnvironmentVariables: handleUnaryCall<
     SyncEnvironmentVariablesRequest,
     SyncEnvironmentVariablesResponse
+  >
+  /**
+   * Read a deployment's live resource usage (Kubernetes metrics API) together
+   * with its allocation, replica counts and HPA state.
+   */
+  getDeploymentMetrics: handleUnaryCall<
+    GetDeploymentMetricsRequest,
+    GetDeploymentMetricsResponse
   >
 }
 
@@ -1978,6 +2597,34 @@ export interface DeployerServiceClient extends Client {
     callback: (
       error: ServiceError | null,
       response: SyncEnvironmentVariablesResponse
+    ) => void
+  ): ClientUnaryCall
+  /**
+   * Read a deployment's live resource usage (Kubernetes metrics API) together
+   * with its allocation, replica counts and HPA state.
+   */
+  getDeploymentMetrics(
+    request: GetDeploymentMetricsRequest,
+    callback: (
+      error: ServiceError | null,
+      response: GetDeploymentMetricsResponse
+    ) => void
+  ): ClientUnaryCall
+  getDeploymentMetrics(
+    request: GetDeploymentMetricsRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: GetDeploymentMetricsResponse
+    ) => void
+  ): ClientUnaryCall
+  getDeploymentMetrics(
+    request: GetDeploymentMetricsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: GetDeploymentMetricsResponse
     ) => void
   ): ClientUnaryCall
 }

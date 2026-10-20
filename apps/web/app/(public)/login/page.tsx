@@ -3,7 +3,26 @@ import { signIn } from "@/auth"
 import { Button } from "@forge/ui/components/button"
 import { FaGithub } from "react-icons/fa"
 
-export default function LoginPage() {
+/**
+ * Only same-origin paths are accepted as a post-login destination, so the
+ * `callbackUrl` query parameter cannot turn into an open redirect.
+ */
+function safeRedirectPath(value: string | undefined): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/dashboard"
+  }
+
+  return value
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>
+}) {
+  const { callbackUrl } = await searchParams
+  const redirectTo = safeRedirectPath(callbackUrl)
+
   return (
     <div className="grid min-h-screen place-items-center bg-background px-4 text-foreground">
       <div className="w-full max-w-sm text-center">
@@ -21,7 +40,7 @@ export default function LoginPage() {
           action={async () => {
             "use server"
             await signIn("github", {
-              redirectTo: "/dashboard",
+              redirectTo,
             })
           }}
         >

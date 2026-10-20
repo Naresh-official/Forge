@@ -3,6 +3,8 @@ import type {
   DeleteDeploymentsResponse,
   DeployRequest,
   DeployResponse,
+  GetDeploymentMetricsRequest,
+  GetDeploymentMetricsResponse,
   ScaleRequest,
   ScaleResponse,
   SyncEnvironmentVariablesRequest,
@@ -61,6 +63,25 @@ export function syncEnvironmentVariablesWrapper(
         resolve(response)
       }
     )
+  })
+}
+
+/**
+ * Read a deployment's live resource usage and autoscaler state. The deployer
+ * is the only service that talks to the Kubernetes API, so the metrics are
+ * always read there and forwarded to the API.
+ */
+export function getDeploymentMetricsWrapper(
+  request: GetDeploymentMetricsRequest
+): Promise<GetDeploymentMetricsResponse> {
+  return new Promise((resolve, reject) => {
+    deployer.deployerClient.getDeploymentMetrics(request, (error, response) => {
+      if (error) {
+        reject(error)
+        return
+      }
+      resolve(response)
+    })
   })
 }
 

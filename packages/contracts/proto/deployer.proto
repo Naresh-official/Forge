@@ -11,6 +11,9 @@ service DeployerService {
   // Push a project's current environment variables into the env Secret of
   // its running deployments and roll the workload so pods pick them up.
   rpc SyncEnvironmentVariables(SyncEnvironmentVariablesRequest) returns (SyncEnvironmentVariablesResponse);
+  // Read a deployment's live resource usage (Kubernetes metrics API) together
+  // with its allocation, replica counts and HPA state.
+  rpc GetDeploymentMetrics(GetDeploymentMetricsRequest) returns (GetDeploymentMetricsResponse);
 }
 
 message DeployRequest {
@@ -77,6 +80,54 @@ message SyncEnvironmentVariablesResponse {
   string message = 1;
   // Deployments whose namespace actually had a running workload updated.
   repeated string updated_deployment_ids = 2;
+}
+
+message GetDeploymentMetricsRequest {
+  string project_id = 1;
+  string deployment_id = 2;
+}
+
+message GetDeploymentMetricsResponse {
+  // False when the deployment has no Kubernetes workload (static projects, or
+  // a deployment that never reached the cluster). `message` explains why.
+  bool available = 1;
+  string message = 2;
+
+  // Replica state of the Deployment.
+  int32 replicas_desired = 3;
+  int32 replicas_ready = 4;
+
+  // CPU usage and allocation across the workload's pods, in millicores.
+  int32 cpu_usage_millicores = 5;
+  int32 cpu_request_millicores = 6;
+
+  // Memory usage and allocation across the workload's pods, in MiB.
+  int32 memory_usage_mb = 7;
+  int32 memory_request_mb = 8;
+
+  // Whether pod metrics could be read (the cluster's metrics API is
+  // installed and reporting). Usage fields are 0 when this is false.
+  bool metrics_available = 9;
+
+  // HPA state — only meaningful when `autoscaling_enabled` is true.
+  bool autoscaling_enabled = 10;
+  int32 min_replicas = 11;
+  int32 max_replicas = 12;
+  // Target average CPU utilisation, as a percentage of pod requests.
+  int32 target_cpu_utilization = 13;
+  // Average CPU utilisation reported by the HPA. -1 when the autoscaler has
+  // no CPU reading yet.
+  int32 current_cpu_utilization = 14;
+  // Replicas the autoscaler currently manages and wants to run.
+  int32 hpa_current_replicas = 15;
+  int32 hpa_desired_replicas = 16;
+  // Derived scaling state: "Steady", "Scaling up", "Scaling down", ...
+  string scaling_status = 17;
+  // The autoscaler's own explanation, e.g. "All metrics below target".
+  string scaling_message = 18;
+
+  // RFC 3339 timestamp of the newest pod metric sample; empty when none.
+  string metrics_timestamp = 19;
 }
 
 service DeployerApiService {

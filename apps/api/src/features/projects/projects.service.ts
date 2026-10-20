@@ -131,7 +131,6 @@ async function findOwnedProjectOrThrow(projectId: string, userId: string) {
 
   return project
 }
-
 export const renameProjectService = async (
   projectId: string,
   userId: string,

@@ -4,6 +4,8 @@ import type {
   DeleteDeploymentsResponse,
   DeployRequest,
   DeployResponse,
+  GetDeploymentMetricsRequest,
+  GetDeploymentMetricsResponse,
   ScaleRequest,
   ScaleResponse,
   SyncEnvironmentVariablesRequest,
@@ -149,6 +151,61 @@ export const deployerService = {
       callback(null, {
         message: `Updated ${updatedDeploymentIds.length} deployment(s)`,
         updatedDeploymentIds,
+      })
+    } catch (error) {
+      callback(error as Error, null)
+    }
+  },
+
+  /**
+   * Reports a deployment's live resource usage, allocation, replica state and
+   * autoscaler state. Read-only: the API calls this for the Resources tab, so
+   * it must never mutate the cluster.
+   */
+  async getDeploymentMetrics(
+    call: ServerUnaryCall<
+      GetDeploymentMetricsRequest,
+      GetDeploymentMetricsResponse
+    >,
+    callback: sendUnaryData<GetDeploymentMetricsResponse>
+  ) {
+    try {
+      const { projectId, deploymentId } = call.request
+
+      if (!projectId || !deploymentId) {
+        throw new Error(
+          "projectId and deploymentId are required to read metrics"
+        )
+      }
+
+      const metrics = await getKubernetes().getWorkloadMetrics({
+        namespace: namespaceForDeployment(projectId, deploymentId),
+        name: appNameForDeployment(deploymentId),
+      })
+
+      const autoscaling = metrics.autoscaling
+
+      callback(null, {
+        available: metrics.available,
+        message: metrics.message,
+        replicasDesired: metrics.replicasDesired,
+        replicasReady: metrics.replicasReady,
+        cpuUsageMillicores: metrics.cpuUsageMillicores,
+        cpuRequestMillicores: metrics.cpuRequestMillicores,
+        memoryUsageMb: metrics.memoryUsageMb,
+        memoryRequestMb: metrics.memoryRequestMb,
+        metricsAvailable: metrics.metricsAvailable,
+        autoscalingEnabled: autoscaling !== null,
+        minReplicas: autoscaling?.minReplicas ?? 0,
+        maxReplicas: autoscaling?.maxReplicas ?? 0,
+        targetCpuUtilization: autoscaling?.targetCpuUtilization ?? 0,
+        // -1 means "the autoscaler has no CPU reading yet".
+        currentCpuUtilization: autoscaling?.currentCpuUtilization ?? -1,
+        hpaCurrentReplicas: autoscaling?.currentReplicas ?? 0,
+        hpaDesiredReplicas: autoscaling?.desiredReplicas ?? 0,
+        scalingStatus: autoscaling?.status ?? "",
+        scalingMessage: autoscaling?.message ?? "",
+        metricsTimestamp: metrics.metricsTimestamp ?? "",
       })
     } catch (error) {
       callback(error as Error, null)

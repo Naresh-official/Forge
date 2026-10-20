@@ -46,6 +46,50 @@ export interface SyncEnvironmentParams extends WorkloadRef {
   variables: Record<string, string>
 }
 
+/**
+ * Autoscaler state for a workload. Only present when the deployment runs
+ * with an HPA. `currentCpuUtilization` is a percentage of pod requests and
+ * is null until the autoscaler has a CPU reading.
+ */
+export interface AutoscalingSnapshot {
+  minReplicas: number
+  maxReplicas: number
+  targetCpuUtilization: number
+  currentCpuUtilization: number | null
+  currentReplicas: number
+  desiredReplicas: number
+  /** Short state label, e.g. "Steady", "Scaling up", "At maximum replicas". */
+  status: string
+  /** The autoscaler's own explanation for the current state. */
+  message: string
+}
+
+/**
+ * A deployment's live resource picture: what it was granted, what it uses
+ * right now, how many replicas run and (when enabled) its autoscaler state.
+ */
+export interface WorkloadMetrics {
+  /** False when the deployment has no Kubernetes workload at all. */
+  available: boolean
+  /** Why the workload is unavailable — empty when `available` is true. */
+  message: string
+  replicasDesired: number
+  replicasReady: number
+  /** CPU consumption across the workload's pods, in millicores. */
+  cpuUsageMillicores: number
+  /** CPU granted across the workload's replicas, in millicores. */
+  cpuRequestMillicores: number
+  /** Memory consumption across the workload's pods, in MiB. */
+  memoryUsageMb: number
+  /** Memory granted across the workload's replicas, in MiB. */
+  memoryRequestMb: number
+  /** False when the cluster's metrics API has no readings. */
+  metricsAvailable: boolean
+  /** Newest pod metric sample (RFC 3339), null when there is none. */
+  metricsTimestamp: string | null
+  autoscaling: AutoscalingSnapshot | null
+}
+
 /** Identifies a workload (Deployment + Service [+ HPA]) by namespace/name. */
 export interface WorkloadRef {
   /** Namespace for the deployment — e.g. forge-project-<projectId>-<deploymentId> */

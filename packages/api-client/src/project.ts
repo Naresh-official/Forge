@@ -6,6 +6,7 @@ import type {
   ListProjectsResponse,
   ProjectSettingsResponse,
   ProjectStatus,
+  RedeployProjectResponse,
 } from "@forge/types"
 import { api } from "./client"
 
@@ -28,6 +29,17 @@ export function listProjectDeployments(projectId: string) {
   return api<ApiResponse<ListProjectDeploymentsResponse>>(
     `/projects/${projectId}/deployments`,
     { method: "GET" }
+  )
+}
+
+/**
+ * Queues a new deployment of the project's latest commit, reusing its
+ * resource plan. This is the Deploy action on the deployments page.
+ */
+export function redeployProject(projectId: string) {
+  return api<ApiResponse<RedeployProjectResponse>>(
+    `/projects/${projectId}/deployments`,
+    { method: "POST" }
   )
 }
 

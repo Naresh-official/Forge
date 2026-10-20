@@ -1,4 +1,5 @@
 import z from "zod"
+import type { ProjectFramework, ProjectStatus } from "./project"
 
 export const deploymentPlanSchema = z.enum(["basic", "standard", "pro"])
 
@@ -110,6 +111,86 @@ export type DeploymentStatus =
 
 export type BuildStatus =
   "QUEUED" | "BUILDING" | "SUCCEEDED" | "FAILED" | "CANCELLED"
+
+/**
+ * The deployment queued by a redeploy: a new build of the project's current
+ * source (the latest deployment's commit).
+ */
+export type RedeployProjectResponse = {
+  deploymentId: string
+  buildId: string
+  deploymentNumber: number
+}
+
+/**
+ * Which plane a deployment's output lives on. Static deployments are served
+ * from object storage; container deployments run on Kubernetes.
+ */
+export type DeploymentRuntime = "KUBERNETES" | "STATIC"
+
+/** One deployment in the cross-project deployments list. */
+export type DeploymentListItem = {
+  id: string
+  deploymentNumber: number
+  status: DeploymentStatus
+  branch: string
+  commitSha: string
+  commitMessage: string | null
+  createdAt: Date
+  startedAt: Date | null
+  completedAt: Date | null
+  runtime: DeploymentRuntime
+  project: {
+    id: string
+    name: string
+  }
+}
+
+export type ListDeploymentsResponse = DeploymentListItem[]
+
+/** The project a deployment belongs to, as the detail view shows it. */
+export type DeploymentDetailProject = {
+  id: string
+  name: string
+  slug: string
+  status: ProjectStatus
+  repoFullName: string | null
+  framework: ProjectFramework | null
+}
+
+/** Everything the deployment detail page renders. */
+export type DeploymentDetailResponse = {
+  id: string
+  deploymentNumber: number
+  status: DeploymentStatus
+  branch: string
+  commitSha: string
+  commitMessage: string | null
+  createdAt: Date
+  startedAt: Date | null
+  completedAt: Date | null
+  runtime: DeploymentRuntime
+  /** Container image tag (container deployments only). */
+  imageTag: string | null
+  project: DeploymentDetailProject
+  build: {
+    id: string
+    status: BuildStatus
+    startedAt: Date | null
+    completedAt: Date | null
+  } | null
+  resources: {
+    cpuMillicores: number
+    memoryMb: number
+    ephemeralStorageMb: number
+    autoscalingEnabled: boolean
+  } | null
+  /** Who started the deployment (the project owner, in practice). */
+  createdBy: {
+    name: string | null
+    email: string
+  } | null
+}
 
 /**
  * The build returned when a deployment is started. Mirrors the `Build`

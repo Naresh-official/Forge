@@ -3,7 +3,14 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, Loader2, Pause, Play, RefreshCw, Trash2 } from "lucide-react"
+import {
+  AlertCircle,
+  Loader2,
+  Pause,
+  Play,
+  RefreshCw,
+  Trash2,
+} from "lucide-react"
 import {
   deleteProject,
   listProjects,
@@ -212,7 +219,9 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
               variant="outline"
               size="lg"
               disabled={statusMutation.isPending}
-              onClick={() => statusMutation.mutate(isPaused ? "ACTIVE" : "PAUSED")}
+              onClick={() =>
+                statusMutation.mutate(isPaused ? "ACTIVE" : "PAUSED")
+              }
               className="gap-2 text-[11px] font-medium"
             >
               {statusMutation.isPending ? (

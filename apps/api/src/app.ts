@@ -13,6 +13,7 @@ import repositoriesRouter from "@/features/repositories/repositories.routes"
 import deploymentRouter from "@/features/deployment/deployment.routes"
 import projectsRouter from "@/features/projects/projects.routes"
 import environmentRouter from "@/features/environment/environment.routes"
+import resourcesRouter from "@/features/resources/resources.routes"
 import logsRouter from "@/features/logs/logs.routes"
 
 const app: Express = express()
@@ -66,5 +67,8 @@ app.use("/api/v1/projects", projectsRouter)
 // Environment variables are their own feature (encrypt + apply lifecycle),
 // mounted under a project so the id arrives via mergeParams.
 app.use("/api/v1/projects/:projectId/environment-variables", environmentRouter)
+// Live resource usage for a project — the API reads it from the deployer,
+// which is the only service that talks to Kubernetes.
+app.use("/api/v1/projects/:projectId/resources", resourcesRouter)
 
 export default app

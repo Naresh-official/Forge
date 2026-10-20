@@ -82,10 +82,7 @@ export function ProjectHeader({ project }: { project: ProjectHeaderData }) {
       >
         <TabsList variant="line" className="gap-5">
           {projectTabs.map((tab) => (
-            <TabsTrigger
-              key={tab}
-              value={tab}
-            >
+            <TabsTrigger key={tab} value={tab}>
               {tab}
             </TabsTrigger>
           ))}

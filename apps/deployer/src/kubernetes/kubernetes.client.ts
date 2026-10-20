@@ -3,12 +3,16 @@ import { NamespaceApi } from "./resources/namespace.api"
 import { DeploymentApi } from "./resources/deployment.api"
 import { ServiceApi } from "./resources/service.api"
 import { SecretApi } from "./resources/secret.api"
-import { HpaApi } from "./resources/hpa.api"
+import { HpaApi, type HpaSnapshot } from "./resources/hpa.api"
+import { MetricsApi } from "./resources/metrics.api"
 import type {
+  AutoscalingSnapshot,
   DeployContainerParams,
   RegistryPullSecretParams,
   ScaleWorkloadParams,
   SyncEnvironmentParams,
+  WorkloadMetrics,
+  WorkloadRef,
 } from "./types"
 import { hashEnvVariables } from "./manifests/env-secret.manifest"
 import logger from "@/utils/logger"
@@ -17,6 +21,80 @@ import logger from "@/utils/logger"
 const ROLLOUT_TIMEOUT_MS = 120_000
 /** Interval between pod status checks while waiting for readiness. */
 const ROLLOUT_POLL_INTERVAL_MS = 5_000
+
+/**
+ * Turns the HPA's observed state into a label a human can act on.
+ *
+ * `ScalingLimited` is checked first: an autoscaler sitting at its maximum is
+ * technically "desired == current" but is not steady, and reporting it as
+ * steady would hide why the service is not growing.
+ */
+function describeScaling(
+  hpa: HpaSnapshot,
+  replicasDesired: number
+): AutoscalingSnapshot {
+  const currentReplicas = hpa.currentReplicas || replicasDesired
+  const desiredReplicas = hpa.desiredReplicas || currentReplicas
+
+  const limited = hpa.conditions.find(
+    (condition) =>
+      condition.type === "ScalingLimited" && condition.status === "True"
+  )
+  const active = hpa.conditions.find(
+    (condition) => condition.type === "ScalingActive"
+  )
+
+  const base = {
+    minReplicas: hpa.minReplicas,
+    maxReplicas: hpa.maxReplicas,
+    targetCpuUtilization: hpa.targetCpuUtilization,
+    currentCpuUtilization: hpa.currentCpuUtilization,
+    currentReplicas,
+    desiredReplicas,
+  }
+
+  if (limited?.reason === "TooManyReplicas") {
+    return {
+      ...base,
+      status: "At maximum replicas",
+      message:
+        limited.message ??
+        `The autoscaler is capped at ${hpa.maxReplicas} replicas.`,
+    }
+  }
+
+  if (desiredReplicas > currentReplicas) {
+    return {
+      ...base,
+      status: "Scaling up",
+      message: `The autoscaler wants ${desiredReplicas} replicas, up from ${currentReplicas}.`,
+    }
+  }
+
+  if (desiredReplicas < currentReplicas) {
+    return {
+      ...base,
+      status: "Scaling down",
+      message: `The autoscaler wants ${desiredReplicas} replicas, down from ${currentReplicas}.`,
+    }
+  }
+
+  if (active && active.status === "False") {
+    return {
+      ...base,
+      status: "Scaling paused",
+      message:
+        active.message ??
+        "The autoscaler cannot read metrics right now, so it is not scaling.",
+    }
+  }
+
+  return {
+    ...base,
+    status: "Steady",
+    message: `The autoscaler is holding ${currentReplicas} replica(s).`,
+  }
+}
 
 /**
  * High-level facade for Kubernetes operations.
@@ -36,6 +114,7 @@ export class KubernetesClient {
   private readonly services: ServiceApi
   private readonly secrets: SecretApi
   private readonly hpas: HpaApi
+  private readonly metrics: MetricsApi
 
   constructor(http?: KubeHttpClient) {
     this.http = http ?? new KubeHttpClient()
@@ -44,6 +123,7 @@ export class KubernetesClient {
     this.services = new ServiceApi(this.http)
     this.secrets = new SecretApi(this.http)
     this.hpas = new HpaApi(this.http)
+    this.metrics = new MetricsApi(this.http)
   }
 
   async listNamespaces(): Promise<string[]> {
@@ -183,6 +263,60 @@ export class KubernetesClient {
 
     if (autoscalingEnabled) {
       await this.hpas.ensure({ namespace, name })
+    }
+  }
+
+  /**
+   * Reads the live resource picture of a workload: its replica state, the
+   * CPU/memory it was granted versus what it consumes right now (from the
+   * cluster's metrics API) and, when autoscaled, the HPA's state.
+   *
+   * Usage is summed over the pods matching the workload's `app` label, so a
+   * scaled-out workload reports the whole footprint, not just one pod.
+   */
+  async getWorkloadMetrics(ref: WorkloadRef): Promise<WorkloadMetrics> {
+    const { namespace, name } = ref
+
+    const workload = await this.deployments.describe(namespace, name)
+
+    if (!workload) {
+      return {
+        available: false,
+        message:
+          "This deployment has no Kubernetes workload — it is served from object storage.",
+        replicasDesired: 0,
+        replicasReady: 0,
+        cpuUsageMillicores: 0,
+        cpuRequestMillicores: 0,
+        memoryUsageMb: 0,
+        memoryRequestMb: 0,
+        metricsAvailable: false,
+        metricsTimestamp: null,
+        autoscaling: null,
+      }
+    }
+
+    // Reads run in parallel: none of them depends on another's result.
+    const [usage, hpa] = await Promise.all([
+      this.metrics.podUsage(namespace, `app=${name}`),
+      this.hpas.find(namespace, name),
+    ])
+
+    return {
+      available: true,
+      message: "",
+      replicasDesired: workload.desiredReplicas,
+      replicasReady: workload.readyReplicas,
+      cpuUsageMillicores: usage.cpuMillicores,
+      // Allocation is what the user asked for: the per-pod request times the
+      // replicas the workload is meant to run.
+      cpuRequestMillicores:
+        workload.cpuRequestMillicores * workload.desiredReplicas,
+      memoryUsageMb: usage.memoryMb,
+      memoryRequestMb: workload.memoryRequestMb * workload.desiredReplicas,
+      metricsAvailable: usage.available,
+      metricsTimestamp: usage.timestamp,
+      autoscaling: hpa ? describeScaling(hpa, workload.desiredReplicas) : null,
     }
   }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Copy, Plus, X } from "lucide-react"
+import { Check, Copy, Loader2, Plus, X } from "lucide-react"
 import { useState } from "react"
 import { Alert, AlertTitle } from "@forge/ui/components/alert"
 import { Badge } from "@forge/ui/components/badge"
@@ -60,12 +60,19 @@ export function PageHeader({
   description,
   action,
   onAction,
+  actionIcon,
+  actionDisabled = false,
+  actionLoading = false,
 }: {
   eyebrow?: string
   title: string
   description?: string
   action?: string
   onAction?: () => void
+  /** Replaces the default plus icon, e.g. a rocket for "Deploy". */
+  actionIcon?: React.ReactNode
+  actionDisabled?: boolean
+  actionLoading?: boolean
 }) {
   return (
     <div className="mb-8 flex items-end justify-between gap-5 max-sm:flex-col max-sm:items-start">
@@ -87,9 +94,14 @@ export function PageHeader({
           type="button"
           size="lg"
           onClick={onAction}
+          disabled={actionDisabled}
           className="gap-2 px-3.5 py-2.5 text-[11px] font-bold max-sm:w-full"
         >
-          <Plus className="size-3.5" />
+          {actionLoading ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            (actionIcon ?? <Plus className="size-3.5" />)
+          )}
           {action}
         </Button>
       )}
@@ -148,9 +160,7 @@ export function CopyButton({ value }: { value: string }) {
 export function DataTable({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-4">
-      <Table>
-        {children}
-      </Table>
+      <Table>{children}</Table>
     </div>
   )
 }

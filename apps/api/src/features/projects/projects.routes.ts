@@ -5,6 +5,7 @@ import {
   listAllProjects,
   listProjectDeployments,
   listProjectNames,
+  redeployProject,
   renameProject,
   setProjectStatus,
 } from "./projects.controller"
@@ -16,6 +17,7 @@ router.use(authenticate)
 router.get("/all", listAllProjects)
 router.get("/list", listProjectNames)
 router.get("/:projectId/deployments", listProjectDeployments)
+router.post("/:projectId/deployments", redeployProject)
 router.patch("/:projectId", renameProject)
 router.patch("/:projectId/status", setProjectStatus)
 router.delete("/:projectId", deleteProject)

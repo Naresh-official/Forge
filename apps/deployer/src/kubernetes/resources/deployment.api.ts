@@ -1,6 +1,7 @@
 import { KubeHttpClient, hasHttpStatus } from "../http/kube-http.client"
 import { buildDeploymentManifest } from "../manifests/deployment.manifest"
 import { ENV_SECRET_HASH_ANNOTATION } from "../constants"
+import { parseCpuMillicores, parseMemoryMb } from "../quantity"
 import type { DeployContainerParams } from "../types"
 
 /** The subset of a container env entry this API needs to reason about. */
@@ -9,18 +10,90 @@ interface ContainerEnvEntry {
   valueFrom?: { secretKeyRef?: { name?: string; key?: string } }
 }
 
+interface ContainerResourcesEntry {
+  requests?: { cpu?: string; memory?: string }
+}
+
 interface RunningDeployment {
   spec?: {
+    replicas?: number
     template?: {
       spec?: {
-        containers?: Array<{ name?: string; env?: ContainerEnvEntry[] }>
+        containers?: Array<{
+          name?: string
+          env?: ContainerEnvEntry[]
+          resources?: ContainerResourcesEntry
+        }>
       }
     }
   }
+  status?: {
+    replicas?: number
+    readyReplicas?: number
+    availableReplicas?: number
+  }
+}
+
+/**
+ * The slice of a running Deployment needed to report resources: how many
+ * replicas it runs and what each pod has been granted.
+ */
+export interface WorkloadSnapshot {
+  desiredReplicas: number
+  readyReplicas: number
+  /** CPU request of a single pod (summed over its containers), millicores. */
+  cpuRequestMillicores: number
+  /** Memory request of a single pod (summed over its containers), MiB. */
+  memoryRequestMb: number
 }
 
 export class DeploymentApi {
   constructor(private readonly http: KubeHttpClient) {}
+
+  /**
+   * Reads the Deployment's replica state and per-pod resource requests.
+   * Returns null when the namespace holds no Deployment (e.g. a static
+   * deployment, which never reaches Kubernetes).
+   */
+  async describe(
+    namespace: string,
+    name: string
+  ): Promise<WorkloadSnapshot | null> {
+    let deployment: RunningDeployment
+
+    try {
+      deployment = await this.http.get<RunningDeployment>(
+        `/apis/apps/v1/namespaces/${namespace}/deployments/${name}`
+      )
+    } catch (error) {
+      if (hasHttpStatus(error, 404)) {
+        return null
+      }
+      throw error
+    }
+
+    const containers = deployment.spec?.template?.spec?.containers ?? []
+
+    let cpuRequestMillicores = 0
+    let memoryRequestMb = 0
+
+    for (const container of containers) {
+      cpuRequestMillicores +=
+        parseCpuMillicores(container.resources?.requests?.cpu) ?? 0
+      memoryRequestMb +=
+        parseMemoryMb(container.resources?.requests?.memory) ?? 0
+    }
+
+    return {
+      desiredReplicas: deployment.spec?.replicas ?? 0,
+      readyReplicas:
+        deployment.status?.readyReplicas ??
+        deployment.status?.availableReplicas ??
+        0,
+      cpuRequestMillicores: Math.round(cpuRequestMillicores),
+      memoryRequestMb: Math.round(memoryRequestMb),
+    }
+  }
 
   async create(params: DeployContainerParams): Promise<void> {
     const { namespace, name } = params

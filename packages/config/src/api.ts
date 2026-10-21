@@ -22,8 +22,15 @@ export const apiSchema = z.object({
       appSlug: z.string().default(""),
       appId: z.string().default(""),
       privateKeyPath: z.string().default(""),
+      /** Secret the GitHub App signs webhook deliveries with. */
+      webhookSecret: z.string().default(""),
     })
-    .default({ appSlug: "", appId: "", privateKeyPath: "" }),
+    .default({
+      appSlug: "",
+      appId: "",
+      privateKeyPath: "",
+      webhookSecret: "",
+    }),
   allowedOrigins: z.array(z.url()).default(["http://localhost:3000"]),
   builderGRPCUrl: z.string().default("localhost:8002"),
   deployerGRPCUrl: z.string().default("localhost:8003"),
@@ -72,6 +79,7 @@ const merged = {
     appSlug: process.env.GITHUB_APP_SLUG || undefined,
     appId: process.env.GITHUB_APP_ID || undefined,
     privateKeyPath: process.env.GITHUB_APP_PRIVATE_KEY_PATH || undefined,
+    webhookSecret: process.env.GITHUB_WEBHOOK_SECRET || undefined,
   },
   allowedOrigins: process.env.ALLOWED_ORIGIN_1
     ? [process.env.ALLOWED_ORIGIN_1]

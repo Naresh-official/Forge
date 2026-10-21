@@ -52,7 +52,7 @@ export const streamDeploymentLogs = async (req: Request, res: Response) => {
       throw new ApiError(401, "Unauthorized")
     }
 
-    const deploymentId = req.params.deploymentId
+    const deploymentId = req.params.deploymentId as string
 
     if (!deploymentId) {
       throw new ApiError(400, "Deployment ID is required")
@@ -155,7 +155,7 @@ export const getDeploymentLogs = async (req: Request, res: Response) => {
       throw new ApiError(401, "Unauthorized")
     }
 
-    const deploymentId = req.params.deploymentId
+    const deploymentId = req.params.deploymentId as string
 
     if (!deploymentId) {
       throw new ApiError(400, "Deployment ID is required")

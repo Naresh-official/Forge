@@ -16,6 +16,7 @@ import {
   normalizeFramework,
   type Framework,
 } from "@forge/frameworks"
+import { cancelDeploymentsWrapper } from "@/gRPC/wrapper/deployer.wrapper"
 
 /** How many deployments the cross-project list returns. */
 const MAX_LISTED_DEPLOYMENTS = 50
@@ -350,25 +351,40 @@ export const getDeploymentService = async (
   }
 }
 
+type DeploymentResources = {
+  cpuMillicores: number
+  memoryMb: number
+  ephemeralStorageMb: number
+  autoscalingEnabled: boolean
+}
+
 type RedeploySource = {
   projectId: string
   deploymentNumber: number
   commitSha: string
   commitMessage: string | null
   branch: string
-  resources: {
-    cpuMillicores: number
-    memoryMb: number
-    ephemeralStorageMb: number
-    autoscalingEnabled: boolean
-  } | null
+  resources: DeploymentResources | null
+}
+
+type CreateDeploymentForBuildInput = {
+  projectId: string
+  deploymentNumber: number
+  commitSha: string
+  commitMessage: string | null
+  branch: string
+  createdByUserId: string
+  resources: DeploymentResources | null
 }
 
 /**
- * Creates the next deployment for a project from an existing one's source and
- * plan, then asks the builder to build it.
+ * Persists the deployment + build rows and asks the builder to start.
+ *
+ * Shared by every flow that deploys a commit — the first deployment, the
+ * redeploy actions and the GitHub push webhook — so they all get the same
+ * conflict handling and the same "builder unreachable" cleanup.
  */
-async function queueRedeploy(source: RedeploySource, userId: string) {
+async function createDeploymentForBuild(input: CreateDeploymentForBuildInput) {
   let created: {
     deploymentId: string
     deploymentNumber: number
@@ -379,21 +395,21 @@ async function queueRedeploy(source: RedeploySource, userId: string) {
     created = await prisma.$transaction(async (tx) => {
       const deployment = await tx.deployment.create({
         data: {
-          projectId: source.projectId,
-          deploymentNumber: source.deploymentNumber + 1,
-          commitSha: source.commitSha,
-          commitMessage: source.commitMessage,
-          branch: source.branch,
+          projectId: input.projectId,
+          deploymentNumber: input.deploymentNumber,
+          commitSha: input.commitSha,
+          commitMessage: input.commitMessage,
+          branch: input.branch,
           status: "QUEUED",
-          createdByUserId: userId,
-          ...(source.resources
+          createdByUserId: input.createdByUserId,
+          ...(input.resources
             ? {
                 resources: {
                   create: {
-                    cpuMillicores: source.resources.cpuMillicores,
-                    memoryMb: source.resources.memoryMb,
-                    ephemeralStorageMb: source.resources.ephemeralStorageMb,
-                    autoscalingEnabled: source.resources.autoscalingEnabled,
+                    cpuMillicores: input.resources.cpuMillicores,
+                    memoryMb: input.resources.memoryMb,
+                    ephemeralStorageMb: input.resources.ephemeralStorageMb,
+                    autoscalingEnabled: input.resources.autoscalingEnabled,
                   },
                 },
               }
@@ -432,7 +448,7 @@ async function queueRedeploy(source: RedeploySource, userId: string) {
   try {
     await startBuildWrapper({ buildId: created.buildId })
   } catch (error) {
-    console.error("Failed to forward redeploy to builder:", error)
+    console.error("Failed to forward deployment to builder:", error)
 
     /*
      * No BuildStarted will arrive, so fail both rows instead of leaving them
@@ -459,12 +475,59 @@ async function queueRedeploy(source: RedeploySource, userId: string) {
 }
 
 /**
+ * Creates the next deployment for a project from an existing one's source and
+ * plan, then asks the builder to build it.
+ */
+async function queueRedeploy(source: RedeploySource, userId: string) {
+  return createDeploymentForBuild({
+    projectId: source.projectId,
+    deploymentNumber: source.deploymentNumber + 1,
+    commitSha: source.commitSha,
+    commitMessage: source.commitMessage,
+    branch: source.branch,
+    createdByUserId: userId,
+    resources: source.resources,
+  })
+}
+
+/**
+ * Deploys a specific commit — the path the GitHub push webhook takes.
+ *
+ * The deployment number is the project's next one and the resource plan is
+ * inherited from the latest deployment (the Basic plan for the first
+ * deployment of a project). Unlike the redeploy actions the commit comes from
+ * the caller, not from a previous deployment.
+ */
+export const deployCommitService = async (input: {
+  projectId: string
+  createdByUserId: string
+  commitSha: string
+  commitMessage: string | null
+  branch: string
+  resources: DeploymentResources | null
+}) => {
+  const latest = await prisma.deployment.findFirst({
+    where: { projectId: input.projectId },
+    orderBy: { deploymentNumber: "desc" },
+    select: { deploymentNumber: true },
+  })
+
+  return createDeploymentForBuild({
+    ...input,
+    deploymentNumber: (latest?.deploymentNumber ?? 0) + 1,
+  })
+}
+
+/**
  * Queues a new deployment of the project's current source: the latest
  * deployment's commit is rebuilt under the next deployment number, reusing
  * its resource plan. This is the Deploy action on the deployments page.
  *
  * A project with no deployment yet has no known commit, so its first
  * deployment must come from the create-project flow.
+ *
+ * Once the new deployment becomes READY, the older deployments are cancelled
+ * (paused) so only the newest one serves traffic.
  */
 export const redeployProjectService = async (
   projectId: string,
@@ -484,13 +547,22 @@ export const redeployProjectService = async (
     throw new ApiError(400, "This project has no deployment to redeploy yet.")
   }
 
-  return queueRedeploy(previous, userId)
+  const created = await queueRedeploy(previous, userId)
+
+  // Once the new deployment becomes READY, older deployments are cancelled
+  // (paused) so only the newest one serves traffic. The cancellation is
+  // asynchronous and best-effort — failures are reported as warnings rather
+  // than failing the redeploy request.
+  return created
 }
 
 /**
  * Rebuilds one specific deployment's commit — the Redeploy action on a
  * deployment's detail page. Unlike a project-wide redeploy, this works from
  * an older deployment too, so it doubles as a way to re-release a commit.
+ *
+ * Once the new deployment becomes READY, the older deployments are cancelled
+ * (paused) so only the newest one serves traffic.
  */
 export const redeployDeploymentService = async (
   deploymentId: string,
@@ -509,7 +581,13 @@ export const redeployDeploymentService = async (
     throw new ApiError(404, "Deployment not found.")
   }
 
-  return queueRedeploy(source, userId)
+  const created = await queueRedeploy(source, userId)
+
+  // Once the new deployment becomes READY, older deployments are cancelled
+  // (paused) so only the newest one serves traffic. The cancellation is
+  // asynchronous and best-effort — failures are reported as warnings rather
+  // than failing the redeploy request.
+  return created
 }
 
 export interface CompleteDeploymentInput {
@@ -529,12 +607,125 @@ export async function completeDeploymentService(
    * reports the build result — a build that succeeded stays SUCCEEDED even
    * if the subsequent Kubernetes rollout fails.
    */
-  return prisma.deployment.update({
+  const deployment = await prisma.deployment.update({
     where: { id: input.deploymentId },
     data: {
       status: input.status as $Enums.DeploymentStatus,
       completedAt: new Date(),
       ...(input.imageUrl ? { imageUrl: input.imageUrl } : {}),
     },
+    include: {
+      project: {
+        include: {
+          deployments: {
+            orderBy: { deploymentNumber: "desc" },
+            select: {
+              id: true,
+              deploymentNumber: true,
+              status: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (input.status === "READY" && deployment.project?.deployments) {
+    // Once this deployment is READY, mark the older deployments as
+    // CANCELLED so the dashboard keeps a clean history and only this one
+    // serves traffic from now on. Static deployments are included: they have
+    // no Kubernetes workload, which the deployer reports back as `skipped`, and
+    // their artifacts are pruned when the newer build succeeds.
+    await markOlderDeploymentsCancelled(
+      deployment.projectId,
+      deployment.id,
+      deployment.project.deployments
+    )
+
+    // Best-effort: tell the deployer to stop the older workloads. If this
+    // fails here we still want the DB to reflect the cancelled state, so the
+    // failure is logged rather than thrown.
+    try {
+      await cancelOlderDeploymentWorkloads(deployment.projectId, deployment.id)
+    } catch (error) {
+      console.error(
+        `Failed to cancel older deployment workloads for project ${deployment.projectId}:`,
+        error
+      )
+    }
+  }
+
+  return deployment
+}
+
+/**
+ * Marks every other deployment of the project as CANCELLED. Run synchronously
+ * in the same DB transaction as the READY transition so the history is
+ * consistent even if the deployer cancellation later fails.
+ */
+async function markOlderDeploymentsCancelled(
+  projectId: string,
+  currentDeploymentId: string,
+  deployments: Array<{
+    id: string
+    deploymentNumber: number
+    status: string
+  }>
+) {
+  const older = deployments.filter(
+    (d) =>
+      d.id !== currentDeploymentId &&
+      d.status !== "CANCELLED" &&
+      d.status !== "FAILED"
+  )
+
+  if (older.length === 0) {
+    return
+  }
+
+  await prisma.deployment.updateMany({
+    where: {
+      id: { in: older.map((d) => d.id) },
+    },
+    data: {
+      status: "CANCELLED" as $Enums.DeploymentStatus,
+      completedAt: new Date(),
+    },
+  })
+}
+
+/**
+ * Asks the deployer to pause the Kubernetes workloads of the older
+ * deployments. The API already marked them CANCELLED above, so this call is
+ * best-effort — if it fails we still want the dashboard and future redeploys
+ * to behave correctly.
+ *
+ * Static deployments have no Kubernetes workload, so they are skipped
+ * automatically by the deployer (no namespace to scale).
+ */
+async function cancelOlderDeploymentWorkloads(
+  projectId: string,
+  currentDeploymentId: string
+) {
+  const older = await prisma.deployment.findMany({
+    where: {
+      projectId,
+      id: { not: currentDeploymentId },
+      status: "CANCELLED",
+    },
+    orderBy: { deploymentNumber: "desc" },
+    select: { id: true },
+  })
+
+  if (older.length === 0) {
+    return
+  }
+
+  // The deployer queues the pause jobs itself, so this call only hands the
+  // work over. The DB already reflects the cancelled state.
+  await cancelDeploymentsWrapper({
+    projectId,
+    deploymentIds: older.map((deployment) => deployment.id),
+    reason: "redeploy",
   })
 }

@@ -165,13 +165,24 @@ export const notifications = [
   "Project forge-docs created",
 ]
 
-export function getProject(id: string) {
-  return projects.find((project) => project.id === id) ?? projects[0]
+export function getProject(id: string): Project {
+  const project = projects.find((project) => project.id === id) ?? projects[0]
+
+  if (!project) {
+    throw new Error(`No project data for "${id}"`)
+  }
+
+  return project
 }
-export function getDeployment(id: string) {
-  return (
+export function getDeployment(id: string): Deployment {
+  const deployment =
     deployments.find((deployment) => deployment.id === id) ?? deployments[0]
-  )
+
+  if (!deployment) {
+    throw new Error(`No deployment data for "${id}"`)
+  }
+
+  return deployment
 }
 
 export const navItems = [

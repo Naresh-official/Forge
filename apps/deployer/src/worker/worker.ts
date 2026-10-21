@@ -1,7 +1,14 @@
 import { Worker } from "bullmq"
 import { deployerConfig } from "@forge/config"
 import { getEcrAuthorizationToken } from "@forge/registry"
-import { connection, type DeployerQueueJob } from "@/queue/queue"
+import {
+  connection,
+  type CancelDeploymentJob,
+  type CancelDeploymentsJob,
+  type DeployerQueueJob,
+  deployerCancelQueue,
+} from "@/queue/queue"
+import { cancelDeployment, cancelDeployments } from "./cancel"
 import {
   deploymentStarted,
   deploymentCompleted,
@@ -18,7 +25,7 @@ const workerId = process.env.WERKER_ID ?? process.env.WORKER_ID ?? "unknown"
 
 const k8s = new KubernetesClient()
 
-const worker = new Worker<DeployerQueueJob>(
+const deployWorker = new Worker<DeployerQueueJob>(
   deployerConfig.defaultQueueOptions.name,
   async (job) => {
     const {
@@ -233,26 +240,26 @@ const worker = new Worker<DeployerQueueJob>(
   }
 )
 
-worker.on("ready", () => {
+deployWorker.on("ready", () => {
   logger.info(`[Worker ${workerId}] Ready`)
 })
 
-worker.on("error", (error) => {
+deployWorker.on("error", (error) => {
   logger.error(error, `[Worker ${workerId}] Error`)
 })
 
-worker.on("failed", (job, error) => {
+deployWorker.on("failed", (job, error) => {
   logger.error(error, `[Worker ${workerId}] Job ${job?.id} failed`)
 })
 
-worker.on("completed", (job, result) => {
+deployWorker.on("completed", (job, result) => {
   logger.info({ result }, `[Worker ${workerId}] Job ${job?.id} completed`)
 })
 
 async function shutdown(signal: string) {
   logger.info(`[Worker ${workerId}] Received ${signal}, shutting down...`)
 
-  await worker.close()
+  await Promise.all([deployWorker.close(), cancelWorker.close()])
 
   logger.info(`[Worker ${workerId}] Shutdown complete`)
 
@@ -265,4 +272,38 @@ process.on("SIGINT", () => {
 
 process.on("SIGTERM", () => {
   void shutdown("SIGTERM")
+})
+
+const cancelWorker = new Worker<
+  CancelDeploymentJob | CancelDeploymentsJob,
+  | { deploymentId: string; paused: boolean; skipped: boolean }
+  | { projectId: string; canceled: string[]; skipped: string[] }
+>(
+  deployerCancelQueue.name,
+  async (job) => {
+    if ("deploymentIds" in job.data) {
+      return cancelDeployments(job.data)
+    }
+
+    return cancelDeployment(job.data)
+  },
+  {
+    connection,
+  }
+)
+
+cancelWorker.on("ready", () => {
+  logger.info(`[CancelWorker ${workerId}] Ready`)
+})
+
+cancelWorker.on("error", (error) => {
+  logger.error(error, `[CancelWorker ${workerId}] Error`)
+})
+
+cancelWorker.on("failed", (job, error) => {
+  logger.error(error, `[CancelWorker ${workerId}] Job ${job?.id} failed`)
+})
+
+cancelWorker.on("completed", (job, result) => {
+  logger.info({ result }, `[CancelWorker ${workerId}] Job ${job?.id} completed`)
 })

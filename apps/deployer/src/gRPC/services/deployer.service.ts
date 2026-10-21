@@ -1,5 +1,9 @@
 import type { ServerUnaryCall, sendUnaryData } from "@grpc/grpc-js"
 import type {
+  CancelDeploymentsRequest,
+  CancelDeploymentsResponse,
+  CancelDeploymentRequest,
+  CancelDeploymentResponse,
   DeleteDeploymentsRequest,
   DeleteDeploymentsResponse,
   DeployRequest,
@@ -10,8 +14,14 @@ import type {
   ScaleResponse,
   SyncEnvironmentVariablesRequest,
   SyncEnvironmentVariablesResponse,
+  UpdateDeploymentResourcesRequest,
+  UpdateDeploymentResourcesResponse,
 } from "@forge/contracts"
-import { deployerQueue } from "@/queue/queue"
+import {
+  deployerCancelQueue,
+  deployerQueue,
+  type CancelReason,
+} from "@/queue/queue"
 import {
   KubernetesClient,
   appNameForDeployment,
@@ -28,6 +38,18 @@ import logger from "@/utils/logger"
 let kubernetes: KubernetesClient | undefined
 function getKubernetes(): KubernetesClient {
   return (kubernetes ??= new KubernetesClient())
+}
+
+const CANCEL_REASONS = ["redeploy", "project_deleted", "manual"] as const
+
+/**
+ * The reason is a free-form string on the wire (it is informational only), so
+ * unknown values are normalised rather than rejected.
+ */
+function toCancelReason(reason: string): CancelReason {
+  return (CANCEL_REASONS as readonly string[]).includes(reason)
+    ? (reason as CancelReason)
+    : "manual"
 }
 
 export const deployerService = {
@@ -151,6 +173,142 @@ export const deployerService = {
       callback(null, {
         message: `Updated ${updatedDeploymentIds.length} deployment(s)`,
         updatedDeploymentIds,
+      })
+    } catch (error) {
+      callback(error as Error, null)
+    }
+  },
+
+  /**
+   * Cancel (pause) a single deployment's workload. Typically called by the
+   * API after a newer deployment becomes READY, so the older deployment stops
+   * serving traffic. The work is queued: the worker pauses the workload and
+   * treats a deployment with no running workload as a no-op.
+   */
+  async cancelDeployment(
+    call: ServerUnaryCall<CancelDeploymentRequest, CancelDeploymentResponse>,
+    callback: sendUnaryData<CancelDeploymentResponse>
+  ) {
+    try {
+      const { deploymentId, projectId, reason } = call.request
+
+      if (!deploymentId || !projectId) {
+        throw new Error(
+          "deploymentId and projectId are required to cancel a deployment"
+        )
+      }
+
+      await deployerCancelQueue.add("cancel-deployment", {
+        deploymentId,
+        projectId,
+        reason: toCancelReason(reason),
+      })
+
+      callback(null, {
+        canceled: true,
+        skipped: false,
+        message: `Queued cancellation of deployment ${deploymentId}`,
+      })
+    } catch (error) {
+      callback(error as Error, null)
+    }
+  },
+
+  /**
+   * Cancel (pause) several deployments of one project. Used by the redeploy
+   * path to stop the older deployments once the newer one is READY. Queued
+   * like the single-deployment variant; the worker skips deployments with no
+   * running workload.
+   */
+  async cancelDeployments(
+    call: ServerUnaryCall<CancelDeploymentsRequest, CancelDeploymentsResponse>,
+    callback: sendUnaryData<CancelDeploymentsResponse>
+  ) {
+    try {
+      const { projectId, deploymentIds, reason } = call.request
+
+      if (!projectId) {
+        throw new Error("projectId is required to cancel deployments")
+      }
+
+      if (deploymentIds.length === 0) {
+        callback(null, {
+          canceled: [],
+          skipped: [],
+          message: `No deployments to cancel for project ${projectId}`,
+        })
+        return
+      }
+
+      await deployerCancelQueue.add("cancel-deployments", {
+        projectId,
+        deploymentIds: [...deploymentIds],
+        reason: toCancelReason(reason),
+      })
+
+      callback(null, {
+        canceled: [...deploymentIds],
+        skipped: [],
+        message: `Queued cancellation of ${deploymentIds.length} deployment(s) for project ${projectId}`,
+      })
+    } catch (error) {
+      callback(error as Error, null)
+    }
+  },
+
+  /**
+   * Applies a new resource plan to an already-deployed workload. Called by the
+   * project settings, so a plan change takes effect without a rebuild: the
+   * container resources are patched, the HPA is created or removed to match,
+   * and the rollout is awaited.
+   *
+   * Idempotent and safe to retry. A deployment with no Kubernetes workload is
+   * reported as `skipped` instead of failing — static projects never reach
+   * the cluster.
+   */
+  async updateDeploymentResources(
+    call: ServerUnaryCall<
+      UpdateDeploymentResourcesRequest,
+      UpdateDeploymentResourcesResponse
+    >,
+    callback: sendUnaryData<UpdateDeploymentResourcesResponse>
+  ) {
+    try {
+      const {
+        projectId,
+        deploymentId,
+        cpuMillicores,
+        memoryMb,
+        ephemeralStorageMb,
+        autoscalingEnabled,
+      } = call.request
+
+      if (!projectId || !deploymentId) {
+        throw new Error(
+          "projectId and deploymentId are required to update resources"
+        )
+      }
+
+      const result = await getKubernetes().updateWorkloadResources({
+        namespace: namespaceForDeployment(projectId, deploymentId),
+        name: appNameForDeployment(deploymentId),
+        resources: { cpuMillicores, memoryMb, ephemeralStorageMb },
+        autoscalingEnabled,
+      })
+
+      logger.info(
+        `Updated resources for deployment ${deploymentId}: updated=${result.updated} skipped=${result.skipped} rolloutReady=${result.rolloutReady}`
+      )
+
+      callback(null, {
+        updated: result.updated,
+        skipped: result.skipped,
+        rolloutReady: result.rolloutReady,
+        message: result.skipped
+          ? "No Kubernetes workload to update"
+          : result.rolloutReady
+            ? "Resource plan applied and the rollout is available"
+            : "Resource plan applied but the rollout did not become available in time",
       })
     } catch (error) {
       callback(error as Error, null)

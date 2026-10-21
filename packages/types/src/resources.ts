@@ -1,3 +1,6 @@
+import z from "zod"
+import { deploymentPlanSchema } from "./deployment"
+
 /**
  * A project's live resource picture, as shown on the Resources tab.
  *
@@ -74,5 +77,32 @@ export type ProjectResourcesResponse = {
   /** Timestamp of the newest Kubernetes sample (ISO), null when none. */
   metricsTimestamp: string | null
   /** Non-fatal problems, e.g. the deployer being unreachable. */
+  warnings: string[]
+}
+
+/**
+ * The resource plan a project's deployments run with. Changing it updates the
+ * project's current deployment and is inherited by every later deployment.
+ */
+export const updateProjectResourcesSchema = z.object({
+  plan: deploymentPlanSchema,
+  /** Run the workload with a HorizontalPodAutoscaler instead of a fixed count. */
+  autoscalingEnabled: z.boolean(),
+})
+
+export type UpdateProjectResourcesInput = z.infer<
+  typeof updateProjectResourcesSchema
+>
+
+/** What the settings save produced, including whether it reached the cluster. */
+export type ProjectResourceSettings = {
+  projectId: string
+  /** Deployment the plan was written to (the project's newest one). */
+  deploymentId: string
+  runtime: ProjectRuntime
+  allocation: ResourceAllocation
+  autoscalingEnabled: boolean
+  /** True when the running workload was resized in place. */
+  applied: boolean
   warnings: string[]
 }

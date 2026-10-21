@@ -6,10 +6,6 @@ import { AlertCircle, GitBranch, RefreshCw, Search, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { listDeployments } from "@forge/api-client/deployment"
 import {
-  deployments as mockDeployments,
-  type Deployment,
-} from "@/lib/forge-data"
-import {
   formatDeploymentDuration,
   formatRelativeTime,
   isDeploymentActive,
@@ -37,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@forge/ui/components/table"
-import { DataTable, PageHeader, StatusBadge } from "../../_components/ui"
+import { PageHeader, StatusBadge } from "../../_components/ui"
 
 /** How often the list refreshes while a deployment is in flight. */
 const ACTIVE_REFETCH_INTERVAL_MS = 5_000
@@ -347,70 +343,5 @@ export function DeploymentsView() {
         </p>
       )}
     </>
-  )
-}
-
-/**
- * Static table used by the project overview tab, which still reads the mock
- * project data. The deployments page itself uses the API-backed view above.
- */
-export function DeploymentTable({
-  onSelect,
-}: {
-  onSelect: (deployment: Deployment) => void
-}) {
-  return (
-    <DataTable>
-      <thead>
-        <tr className="text-[9px] tracking-widest text-muted-foreground uppercase">
-          {[
-            "Status",
-            "Deployment",
-            "Project",
-            "Branch",
-            "Commit",
-            "Environment",
-            "Duration",
-            "Created",
-          ].map((h) => (
-            <th key={h} className="px-3 pb-2 text-left font-semibold">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {mockDeployments.map((d) => (
-          <tr
-            key={d.id}
-            onClick={() => onSelect(d)}
-            className="cursor-pointer border-t border-border hover:bg-primary/[.035]"
-          >
-            <td className="px-3 py-3">
-              <StatusBadge status={d.status} />
-            </td>
-            <td className="px-3 py-3">
-              <strong className="text-[11px]">{d.id}</strong>
-              <small className="mt-1 block text-[9px] text-muted-foreground">
-                {d.message}
-              </small>
-            </td>
-            <td className="px-3 py-3 text-[11px]">{d.project}</td>
-            <td className="px-3 py-3 font-mono text-sm text-muted-foreground">
-              <GitBranch className="mr-1 inline size-3.5" />
-              {d.branch}
-            </td>
-            <td className="px-3 py-3 font-mono text-sm text-primary">
-              {d.commit}
-            </td>
-            <td className="px-3 py-3 text-[11px]">{d.environment}</td>
-            <td className="px-3 py-3 text-[11px]">{d.duration}</td>
-            <td className="px-3 py-3 text-sm text-muted-foreground">
-              {d.created}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </DataTable>
   )
 }

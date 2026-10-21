@@ -1,5 +1,9 @@
 import type { ApiResponse } from "@forge/types/apiResponses"
-import type { ProjectResourcesResponse } from "@forge/types/resources"
+import type {
+  ProjectResourcesResponse,
+  ProjectResourceSettings,
+  UpdateProjectResourcesInput,
+} from "@forge/types/resources"
 import { api } from "./client"
 
 /**
@@ -12,5 +16,20 @@ export function getProjectResources(projectId: string) {
   return api<ApiResponse<ProjectResourcesResponse>>(
     `/projects/${projectId}/resources`,
     { method: "GET" }
+  )
+}
+
+/**
+ * Changes the project's resource plan (and autoscaling). The plan is written
+ * to the project's current deployment — which later deployments inherit — and
+ * applied to the running workload without a rebuild.
+ */
+export function updateProjectResources(
+  projectId: string,
+  input: UpdateProjectResourcesInput
+) {
+  return api<ApiResponse<ProjectResourceSettings>>(
+    `/projects/${projectId}/resources`,
+    { method: "PATCH", body: JSON.stringify(input) }
   )
 }

@@ -14,6 +14,20 @@ service DeployerService {
   // Read a deployment's live resource usage (Kubernetes metrics API) together
   // with its allocation, replica counts and HPA state.
   rpc GetDeploymentMetrics(GetDeploymentMetricsRequest) returns (GetDeploymentMetricsResponse);
+  // Cancel (pause) a single deployment's workload. Typically called by the API
+  // after a newer deployment becomes READY, so the older deployment stops
+  // serving traffic. Idempotent: a deployment with no running workload is a
+  // no-op.
+  rpc CancelDeployment(CancelDeploymentRequest) returns (CancelDeploymentResponse);
+  // Cancel (pause) several deployments of one project. Used by the redeploy
+  // path to stop older deployments once the new one is READY.
+  rpc CancelDeployments(CancelDeploymentsRequest) returns (CancelDeploymentsResponse);
+  // Apply a new resource plan to an already-deployed workload. Used by the
+  // project settings so a plan change takes effect without a rebuild: the
+  // container resources are patched, the HPA is created or removed to match,
+  // and the rollout is awaited. Idempotent — a deployment with no running
+  // workload is reported back as `skipped`.
+  rpc UpdateDeploymentResources(UpdateDeploymentResourcesRequest) returns (UpdateDeploymentResourcesResponse);
 }
 
 message DeployRequest {
@@ -85,6 +99,49 @@ message SyncEnvironmentVariablesResponse {
 message GetDeploymentMetricsRequest {
   string project_id = 1;
   string deployment_id = 2;
+}
+
+message CancelDeploymentRequest {
+  string deployment_id = 1;
+  string project_id = 2;
+  // Why this deployment is being cancelled ("redeploy", "project_deleted", "manual").
+  string reason = 3;
+}
+
+message CancelDeploymentResponse {
+  bool canceled = 1;
+  bool skipped = 2;
+  string message = 3;
+}
+
+message CancelDeploymentsRequest {
+  string project_id = 1;
+  repeated string deployment_ids = 2;
+  string reason = 3;
+}
+
+message CancelDeploymentsResponse {
+  repeated string canceled = 1;
+  repeated string skipped = 2;
+  string message = 3;
+}
+
+message UpdateDeploymentResourcesRequest {
+  string project_id = 1;
+  string deployment_id = 2;
+  // Per-pod resources (MiB / millicores). Requests equal limits.
+  int32 cpu_millicores = 3;
+  int32 memory_mb = 4;
+  int32 ephemeral_storage_mb = 5;
+  // When true an HPA is ensured; when false any existing HPA is removed.
+  bool autoscaling_enabled = 6;
+}
+
+message UpdateDeploymentResourcesResponse {
+  bool updated = 1;
+  bool skipped = 2;
+  bool rollout_ready = 3;
+  string message = 4;
 }
 
 message GetDeploymentMetricsResponse {

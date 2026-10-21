@@ -92,6 +92,49 @@ export interface GetDeploymentMetricsRequest {
   deploymentId: string
 }
 
+export interface CancelDeploymentRequest {
+  deploymentId: string
+  projectId: string
+  /** Why this deployment is being cancelled ("redeploy", "project_deleted", "manual"). */
+  reason: string
+}
+
+export interface CancelDeploymentResponse {
+  canceled: boolean
+  skipped: boolean
+  message: string
+}
+
+export interface CancelDeploymentsRequest {
+  projectId: string
+  deploymentIds: string[]
+  reason: string
+}
+
+export interface CancelDeploymentsResponse {
+  canceled: string[]
+  skipped: string[]
+  message: string
+}
+
+export interface UpdateDeploymentResourcesRequest {
+  projectId: string
+  deploymentId: string
+  /** Per-pod resources (MiB / millicores). Requests equal limits. */
+  cpuMillicores: number
+  memoryMb: number
+  ephemeralStorageMb: number
+  /** When true an HPA is ensured; when false any existing HPA is removed. */
+  autoscalingEnabled: boolean
+}
+
+export interface UpdateDeploymentResourcesResponse {
+  updated: boolean
+  skipped: boolean
+  rolloutReady: boolean
+  message: string
+}
+
 export interface GetDeploymentMetricsResponse {
   /**
    * False when the deployment has no Kubernetes workload (static projects, or
@@ -1397,6 +1440,754 @@ export const GetDeploymentMetricsRequest: MessageFns<GetDeploymentMetricsRequest
     },
   }
 
+function createBaseCancelDeploymentRequest(): CancelDeploymentRequest {
+  return { deploymentId: "", projectId: "", reason: "" }
+}
+
+export const CancelDeploymentRequest: MessageFns<CancelDeploymentRequest> = {
+  encode(
+    message: CancelDeploymentRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.deploymentId !== "") {
+      writer.uint32(10).string(message.deploymentId)
+    }
+    if (message.projectId !== "") {
+      writer.uint32(18).string(message.projectId)
+    }
+    if (message.reason !== "") {
+      writer.uint32(26).string(message.reason)
+    }
+    return writer
+  },
+
+  decode(
+    input: BinaryReader | Uint8Array,
+    length?: number
+  ): CancelDeploymentRequest {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCancelDeploymentRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
+
+          message.deploymentId = reader.string()
+          continue
+        }
+        case 2: {
+          if (tag !== 18) {
+            break
+          }
+
+          message.projectId = reader.string()
+          continue
+        }
+        case 3: {
+          if (tag !== 26) {
+            break
+          }
+
+          message.reason = reader.string()
+          continue
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
+
+  fromJSON(object: any): CancelDeploymentRequest {
+    return {
+      deploymentId: isSet(object.deploymentId)
+        ? globalThis.String(object.deploymentId)
+        : isSet(object.deployment_id)
+          ? globalThis.String(object.deployment_id)
+          : "",
+      projectId: isSet(object.projectId)
+        ? globalThis.String(object.projectId)
+        : isSet(object.project_id)
+          ? globalThis.String(object.project_id)
+          : "",
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
+    }
+  },
+
+  toJSON(message: CancelDeploymentRequest): unknown {
+    const obj: any = {}
+    if (message.deploymentId !== "") {
+      obj.deploymentId = message.deploymentId
+    }
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId
+    }
+    if (message.reason !== "") {
+      obj.reason = message.reason
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<CancelDeploymentRequest>, I>>(
+    base?: I
+  ): CancelDeploymentRequest {
+    return CancelDeploymentRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<CancelDeploymentRequest>, I>>(
+    object: I
+  ): CancelDeploymentRequest {
+    const message = createBaseCancelDeploymentRequest()
+    message.deploymentId = object.deploymentId ?? ""
+    message.projectId = object.projectId ?? ""
+    message.reason = object.reason ?? ""
+    return message
+  },
+}
+
+function createBaseCancelDeploymentResponse(): CancelDeploymentResponse {
+  return { canceled: false, skipped: false, message: "" }
+}
+
+export const CancelDeploymentResponse: MessageFns<CancelDeploymentResponse> = {
+  encode(
+    message: CancelDeploymentResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.canceled !== false) {
+      writer.uint32(8).bool(message.canceled)
+    }
+    if (message.skipped !== false) {
+      writer.uint32(16).bool(message.skipped)
+    }
+    if (message.message !== "") {
+      writer.uint32(26).string(message.message)
+    }
+    return writer
+  },
+
+  decode(
+    input: BinaryReader | Uint8Array,
+    length?: number
+  ): CancelDeploymentResponse {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCancelDeploymentResponse()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break
+          }
+
+          message.canceled = reader.bool()
+          continue
+        }
+        case 2: {
+          if (tag !== 16) {
+            break
+          }
+
+          message.skipped = reader.bool()
+          continue
+        }
+        case 3: {
+          if (tag !== 26) {
+            break
+          }
+
+          message.message = reader.string()
+          continue
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
+
+  fromJSON(object: any): CancelDeploymentResponse {
+    return {
+      canceled: isSet(object.canceled)
+        ? globalThis.Boolean(object.canceled)
+        : false,
+      skipped: isSet(object.skipped)
+        ? globalThis.Boolean(object.skipped)
+        : false,
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
+    }
+  },
+
+  toJSON(message: CancelDeploymentResponse): unknown {
+    const obj: any = {}
+    if (message.canceled !== false) {
+      obj.canceled = message.canceled
+    }
+    if (message.skipped !== false) {
+      obj.skipped = message.skipped
+    }
+    if (message.message !== "") {
+      obj.message = message.message
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<CancelDeploymentResponse>, I>>(
+    base?: I
+  ): CancelDeploymentResponse {
+    return CancelDeploymentResponse.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<CancelDeploymentResponse>, I>>(
+    object: I
+  ): CancelDeploymentResponse {
+    const message = createBaseCancelDeploymentResponse()
+    message.canceled = object.canceled ?? false
+    message.skipped = object.skipped ?? false
+    message.message = object.message ?? ""
+    return message
+  },
+}
+
+function createBaseCancelDeploymentsRequest(): CancelDeploymentsRequest {
+  return { projectId: "", deploymentIds: [], reason: "" }
+}
+
+export const CancelDeploymentsRequest: MessageFns<CancelDeploymentsRequest> = {
+  encode(
+    message: CancelDeploymentsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.projectId !== "") {
+      writer.uint32(10).string(message.projectId)
+    }
+    for (const v of message.deploymentIds) {
+      writer.uint32(18).string(v!)
+    }
+    if (message.reason !== "") {
+      writer.uint32(26).string(message.reason)
+    }
+    return writer
+  },
+
+  decode(
+    input: BinaryReader | Uint8Array,
+    length?: number
+  ): CancelDeploymentsRequest {
+    const reader =
+      input instanceof BinaryReader ? input : new BinaryReader(input)
+    const end = length === undefined ? reader.len : reader.pos + length
+    const message = createBaseCancelDeploymentsRequest()
+    while (reader.pos < end) {
+      const tag = reader.uint32()
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break
+          }
+
+          message.projectId = reader.string()
+          continue
+        }
+        case 2: {
+          if (tag !== 18) {
+            break
+          }
+
+          message.deploymentIds.push(reader.string())
+          continue
+        }
+        case 3: {
+          if (tag !== 26) {
+            break
+          }
+
+          message.reason = reader.string()
+          continue
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break
+      }
+      reader.skip(tag & 7)
+    }
+    return message
+  },
+
+  fromJSON(object: any): CancelDeploymentsRequest {
+    return {
+      projectId: isSet(object.projectId)
+        ? globalThis.String(object.projectId)
+        : isSet(object.project_id)
+          ? globalThis.String(object.project_id)
+          : "",
+      deploymentIds: globalThis.Array.isArray(object?.deploymentIds)
+        ? object.deploymentIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.deployment_ids)
+          ? object.deployment_ids.map((e: any) => globalThis.String(e))
+          : [],
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
+    }
+  },
+
+  toJSON(message: CancelDeploymentsRequest): unknown {
+    const obj: any = {}
+    if (message.projectId !== "") {
+      obj.projectId = message.projectId
+    }
+    if (message.deploymentIds?.length) {
+      obj.deploymentIds = message.deploymentIds
+    }
+    if (message.reason !== "") {
+      obj.reason = message.reason
+    }
+    return obj
+  },
+
+  create<I extends Exact<DeepPartial<CancelDeploymentsRequest>, I>>(
+    base?: I
+  ): CancelDeploymentsRequest {
+    return CancelDeploymentsRequest.fromPartial(base ?? ({} as any))
+  },
+  fromPartial<I extends Exact<DeepPartial<CancelDeploymentsRequest>, I>>(
+    object: I
+  ): CancelDeploymentsRequest {
+    const message = createBaseCancelDeploymentsRequest()
+    message.projectId = object.projectId ?? ""
+    message.deploymentIds = object.deploymentIds?.map((e) => e) || []
+    message.reason = object.reason ?? ""
+    return message
+  },
+}
+
+function createBaseCancelDeploymentsResponse(): CancelDeploymentsResponse {
+  return { canceled: [], skipped: [], message: "" }
+}
+
+export const CancelDeploymentsResponse: MessageFns<CancelDeploymentsResponse> =
+  {
+    encode(
+      message: CancelDeploymentsResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      for (const v of message.canceled) {
+        writer.uint32(10).string(v!)
+      }
+      for (const v of message.skipped) {
+        writer.uint32(18).string(v!)
+      }
+      if (message.message !== "") {
+        writer.uint32(26).string(message.message)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): CancelDeploymentsResponse {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseCancelDeploymentsResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.canceled.push(reader.string())
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.skipped.push(reader.string())
+            continue
+          }
+          case 3: {
+            if (tag !== 26) {
+              break
+            }
+
+            message.message = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): CancelDeploymentsResponse {
+      return {
+        canceled: globalThis.Array.isArray(object?.canceled)
+          ? object.canceled.map((e: any) => globalThis.String(e))
+          : [],
+        skipped: globalThis.Array.isArray(object?.skipped)
+          ? object.skipped.map((e: any) => globalThis.String(e))
+          : [],
+        message: isSet(object.message) ? globalThis.String(object.message) : "",
+      }
+    },
+
+    toJSON(message: CancelDeploymentsResponse): unknown {
+      const obj: any = {}
+      if (message.canceled?.length) {
+        obj.canceled = message.canceled
+      }
+      if (message.skipped?.length) {
+        obj.skipped = message.skipped
+      }
+      if (message.message !== "") {
+        obj.message = message.message
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<CancelDeploymentsResponse>, I>>(
+      base?: I
+    ): CancelDeploymentsResponse {
+      return CancelDeploymentsResponse.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<I extends Exact<DeepPartial<CancelDeploymentsResponse>, I>>(
+      object: I
+    ): CancelDeploymentsResponse {
+      const message = createBaseCancelDeploymentsResponse()
+      message.canceled = object.canceled?.map((e) => e) || []
+      message.skipped = object.skipped?.map((e) => e) || []
+      message.message = object.message ?? ""
+      return message
+    },
+  }
+
+function createBaseUpdateDeploymentResourcesRequest(): UpdateDeploymentResourcesRequest {
+  return {
+    projectId: "",
+    deploymentId: "",
+    cpuMillicores: 0,
+    memoryMb: 0,
+    ephemeralStorageMb: 0,
+    autoscalingEnabled: false,
+  }
+}
+
+export const UpdateDeploymentResourcesRequest: MessageFns<UpdateDeploymentResourcesRequest> =
+  {
+    encode(
+      message: UpdateDeploymentResourcesRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.projectId !== "") {
+        writer.uint32(10).string(message.projectId)
+      }
+      if (message.deploymentId !== "") {
+        writer.uint32(18).string(message.deploymentId)
+      }
+      if (message.cpuMillicores !== 0) {
+        writer.uint32(24).int32(message.cpuMillicores)
+      }
+      if (message.memoryMb !== 0) {
+        writer.uint32(32).int32(message.memoryMb)
+      }
+      if (message.ephemeralStorageMb !== 0) {
+        writer.uint32(40).int32(message.ephemeralStorageMb)
+      }
+      if (message.autoscalingEnabled !== false) {
+        writer.uint32(48).bool(message.autoscalingEnabled)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): UpdateDeploymentResourcesRequest {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseUpdateDeploymentResourcesRequest()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break
+            }
+
+            message.projectId = reader.string()
+            continue
+          }
+          case 2: {
+            if (tag !== 18) {
+              break
+            }
+
+            message.deploymentId = reader.string()
+            continue
+          }
+          case 3: {
+            if (tag !== 24) {
+              break
+            }
+
+            message.cpuMillicores = reader.int32()
+            continue
+          }
+          case 4: {
+            if (tag !== 32) {
+              break
+            }
+
+            message.memoryMb = reader.int32()
+            continue
+          }
+          case 5: {
+            if (tag !== 40) {
+              break
+            }
+
+            message.ephemeralStorageMb = reader.int32()
+            continue
+          }
+          case 6: {
+            if (tag !== 48) {
+              break
+            }
+
+            message.autoscalingEnabled = reader.bool()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): UpdateDeploymentResourcesRequest {
+      return {
+        projectId: isSet(object.projectId)
+          ? globalThis.String(object.projectId)
+          : isSet(object.project_id)
+            ? globalThis.String(object.project_id)
+            : "",
+        deploymentId: isSet(object.deploymentId)
+          ? globalThis.String(object.deploymentId)
+          : isSet(object.deployment_id)
+            ? globalThis.String(object.deployment_id)
+            : "",
+        cpuMillicores: isSet(object.cpuMillicores)
+          ? globalThis.Number(object.cpuMillicores)
+          : isSet(object.cpu_millicores)
+            ? globalThis.Number(object.cpu_millicores)
+            : 0,
+        memoryMb: isSet(object.memoryMb)
+          ? globalThis.Number(object.memoryMb)
+          : isSet(object.memory_mb)
+            ? globalThis.Number(object.memory_mb)
+            : 0,
+        ephemeralStorageMb: isSet(object.ephemeralStorageMb)
+          ? globalThis.Number(object.ephemeralStorageMb)
+          : isSet(object.ephemeral_storage_mb)
+            ? globalThis.Number(object.ephemeral_storage_mb)
+            : 0,
+        autoscalingEnabled: isSet(object.autoscalingEnabled)
+          ? globalThis.Boolean(object.autoscalingEnabled)
+          : isSet(object.autoscaling_enabled)
+            ? globalThis.Boolean(object.autoscaling_enabled)
+            : false,
+      }
+    },
+
+    toJSON(message: UpdateDeploymentResourcesRequest): unknown {
+      const obj: any = {}
+      if (message.projectId !== "") {
+        obj.projectId = message.projectId
+      }
+      if (message.deploymentId !== "") {
+        obj.deploymentId = message.deploymentId
+      }
+      if (message.cpuMillicores !== 0) {
+        obj.cpuMillicores = Math.round(message.cpuMillicores)
+      }
+      if (message.memoryMb !== 0) {
+        obj.memoryMb = Math.round(message.memoryMb)
+      }
+      if (message.ephemeralStorageMb !== 0) {
+        obj.ephemeralStorageMb = Math.round(message.ephemeralStorageMb)
+      }
+      if (message.autoscalingEnabled !== false) {
+        obj.autoscalingEnabled = message.autoscalingEnabled
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<UpdateDeploymentResourcesRequest>, I>>(
+      base?: I
+    ): UpdateDeploymentResourcesRequest {
+      return UpdateDeploymentResourcesRequest.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<
+      I extends Exact<DeepPartial<UpdateDeploymentResourcesRequest>, I>,
+    >(object: I): UpdateDeploymentResourcesRequest {
+      const message = createBaseUpdateDeploymentResourcesRequest()
+      message.projectId = object.projectId ?? ""
+      message.deploymentId = object.deploymentId ?? ""
+      message.cpuMillicores = object.cpuMillicores ?? 0
+      message.memoryMb = object.memoryMb ?? 0
+      message.ephemeralStorageMb = object.ephemeralStorageMb ?? 0
+      message.autoscalingEnabled = object.autoscalingEnabled ?? false
+      return message
+    },
+  }
+
+function createBaseUpdateDeploymentResourcesResponse(): UpdateDeploymentResourcesResponse {
+  return { updated: false, skipped: false, rolloutReady: false, message: "" }
+}
+
+export const UpdateDeploymentResourcesResponse: MessageFns<UpdateDeploymentResourcesResponse> =
+  {
+    encode(
+      message: UpdateDeploymentResourcesResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.updated !== false) {
+        writer.uint32(8).bool(message.updated)
+      }
+      if (message.skipped !== false) {
+        writer.uint32(16).bool(message.skipped)
+      }
+      if (message.rolloutReady !== false) {
+        writer.uint32(24).bool(message.rolloutReady)
+      }
+      if (message.message !== "") {
+        writer.uint32(34).string(message.message)
+      }
+      return writer
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): UpdateDeploymentResourcesResponse {
+      const reader =
+        input instanceof BinaryReader ? input : new BinaryReader(input)
+      const end = length === undefined ? reader.len : reader.pos + length
+      const message = createBaseUpdateDeploymentResourcesResponse()
+      while (reader.pos < end) {
+        const tag = reader.uint32()
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break
+            }
+
+            message.updated = reader.bool()
+            continue
+          }
+          case 2: {
+            if (tag !== 16) {
+              break
+            }
+
+            message.skipped = reader.bool()
+            continue
+          }
+          case 3: {
+            if (tag !== 24) {
+              break
+            }
+
+            message.rolloutReady = reader.bool()
+            continue
+          }
+          case 4: {
+            if (tag !== 34) {
+              break
+            }
+
+            message.message = reader.string()
+            continue
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break
+        }
+        reader.skip(tag & 7)
+      }
+      return message
+    },
+
+    fromJSON(object: any): UpdateDeploymentResourcesResponse {
+      return {
+        updated: isSet(object.updated)
+          ? globalThis.Boolean(object.updated)
+          : false,
+        skipped: isSet(object.skipped)
+          ? globalThis.Boolean(object.skipped)
+          : false,
+        rolloutReady: isSet(object.rolloutReady)
+          ? globalThis.Boolean(object.rolloutReady)
+          : isSet(object.rollout_ready)
+            ? globalThis.Boolean(object.rollout_ready)
+            : false,
+        message: isSet(object.message) ? globalThis.String(object.message) : "",
+      }
+    },
+
+    toJSON(message: UpdateDeploymentResourcesResponse): unknown {
+      const obj: any = {}
+      if (message.updated !== false) {
+        obj.updated = message.updated
+      }
+      if (message.skipped !== false) {
+        obj.skipped = message.skipped
+      }
+      if (message.rolloutReady !== false) {
+        obj.rolloutReady = message.rolloutReady
+      }
+      if (message.message !== "") {
+        obj.message = message.message
+      }
+      return obj
+    },
+
+    create<I extends Exact<DeepPartial<UpdateDeploymentResourcesResponse>, I>>(
+      base?: I
+    ): UpdateDeploymentResourcesResponse {
+      return UpdateDeploymentResourcesResponse.fromPartial(base ?? ({} as any))
+    },
+    fromPartial<
+      I extends Exact<DeepPartial<UpdateDeploymentResourcesResponse>, I>,
+    >(object: I): UpdateDeploymentResourcesResponse {
+      const message = createBaseUpdateDeploymentResourcesResponse()
+      message.updated = object.updated ?? false
+      message.skipped = object.skipped ?? false
+      message.rolloutReady = object.rolloutReady ?? false
+      message.message = object.message ?? ""
+      return message
+    },
+  }
+
 function createBaseGetDeploymentMetricsResponse(): GetDeploymentMetricsResponse {
   return {
     available: false,
@@ -2485,6 +3276,62 @@ export const DeployerServiceService = {
     responseDeserialize: (value: Buffer): GetDeploymentMetricsResponse =>
       GetDeploymentMetricsResponse.decode(value),
   },
+  /**
+   * Cancel (pause) a single deployment's workload. Typically called by the API
+   * after a newer deployment becomes READY, so the older deployment stops
+   * serving traffic. Idempotent: a deployment with no running workload is a
+   * no-op.
+   */
+  cancelDeployment: {
+    path: "/deployer.DeployerService/CancelDeployment" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CancelDeploymentRequest): Buffer =>
+      Buffer.from(CancelDeploymentRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CancelDeploymentRequest =>
+      CancelDeploymentRequest.decode(value),
+    responseSerialize: (value: CancelDeploymentResponse): Buffer =>
+      Buffer.from(CancelDeploymentResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CancelDeploymentResponse =>
+      CancelDeploymentResponse.decode(value),
+  },
+  /**
+   * Cancel (pause) several deployments of one project. Used by the redeploy
+   * path to stop older deployments once the new one is READY.
+   */
+  cancelDeployments: {
+    path: "/deployer.DeployerService/CancelDeployments" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CancelDeploymentsRequest): Buffer =>
+      Buffer.from(CancelDeploymentsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CancelDeploymentsRequest =>
+      CancelDeploymentsRequest.decode(value),
+    responseSerialize: (value: CancelDeploymentsResponse): Buffer =>
+      Buffer.from(CancelDeploymentsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CancelDeploymentsResponse =>
+      CancelDeploymentsResponse.decode(value),
+  },
+  /**
+   * Apply a new resource plan to an already-deployed workload. Used by the
+   * project settings so a plan change takes effect without a rebuild: the
+   * container resources are patched, the HPA is created or removed to match,
+   * and the rollout is awaited. Idempotent — a deployment with no running
+   * workload is reported back as `skipped`.
+   */
+  updateDeploymentResources: {
+    path: "/deployer.DeployerService/UpdateDeploymentResources" as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateDeploymentResourcesRequest): Buffer =>
+      Buffer.from(UpdateDeploymentResourcesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateDeploymentResourcesRequest =>
+      UpdateDeploymentResourcesRequest.decode(value),
+    responseSerialize: (value: UpdateDeploymentResourcesResponse): Buffer =>
+      Buffer.from(UpdateDeploymentResourcesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateDeploymentResourcesResponse =>
+      UpdateDeploymentResourcesResponse.decode(value),
+  },
 } as const
 
 export interface DeployerServiceServer extends UntypedServiceImplementation {
@@ -2511,6 +3358,35 @@ export interface DeployerServiceServer extends UntypedServiceImplementation {
   getDeploymentMetrics: handleUnaryCall<
     GetDeploymentMetricsRequest,
     GetDeploymentMetricsResponse
+  >
+  /**
+   * Cancel (pause) a single deployment's workload. Typically called by the API
+   * after a newer deployment becomes READY, so the older deployment stops
+   * serving traffic. Idempotent: a deployment with no running workload is a
+   * no-op.
+   */
+  cancelDeployment: handleUnaryCall<
+    CancelDeploymentRequest,
+    CancelDeploymentResponse
+  >
+  /**
+   * Cancel (pause) several deployments of one project. Used by the redeploy
+   * path to stop older deployments once the new one is READY.
+   */
+  cancelDeployments: handleUnaryCall<
+    CancelDeploymentsRequest,
+    CancelDeploymentsResponse
+  >
+  /**
+   * Apply a new resource plan to an already-deployed workload. Used by the
+   * project settings so a plan change takes effect without a rebuild: the
+   * container resources are patched, the HPA is created or removed to match,
+   * and the rollout is awaited. Idempotent — a deployment with no running
+   * workload is reported back as `skipped`.
+   */
+  updateDeploymentResources: handleUnaryCall<
+    UpdateDeploymentResourcesRequest,
+    UpdateDeploymentResourcesResponse
   >
 }
 
@@ -2625,6 +3501,95 @@ export interface DeployerServiceClient extends Client {
     callback: (
       error: ServiceError | null,
       response: GetDeploymentMetricsResponse
+    ) => void
+  ): ClientUnaryCall
+  /**
+   * Cancel (pause) a single deployment's workload. Typically called by the API
+   * after a newer deployment becomes READY, so the older deployment stops
+   * serving traffic. Idempotent: a deployment with no running workload is a
+   * no-op.
+   */
+  cancelDeployment(
+    request: CancelDeploymentRequest,
+    callback: (
+      error: ServiceError | null,
+      response: CancelDeploymentResponse
+    ) => void
+  ): ClientUnaryCall
+  cancelDeployment(
+    request: CancelDeploymentRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: CancelDeploymentResponse
+    ) => void
+  ): ClientUnaryCall
+  cancelDeployment(
+    request: CancelDeploymentRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: CancelDeploymentResponse
+    ) => void
+  ): ClientUnaryCall
+  /**
+   * Cancel (pause) several deployments of one project. Used by the redeploy
+   * path to stop older deployments once the new one is READY.
+   */
+  cancelDeployments(
+    request: CancelDeploymentsRequest,
+    callback: (
+      error: ServiceError | null,
+      response: CancelDeploymentsResponse
+    ) => void
+  ): ClientUnaryCall
+  cancelDeployments(
+    request: CancelDeploymentsRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: CancelDeploymentsResponse
+    ) => void
+  ): ClientUnaryCall
+  cancelDeployments(
+    request: CancelDeploymentsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: CancelDeploymentsResponse
+    ) => void
+  ): ClientUnaryCall
+  /**
+   * Apply a new resource plan to an already-deployed workload. Used by the
+   * project settings so a plan change takes effect without a rebuild: the
+   * container resources are patched, the HPA is created or removed to match,
+   * and the rollout is awaited. Idempotent — a deployment with no running
+   * workload is reported back as `skipped`.
+   */
+  updateDeploymentResources(
+    request: UpdateDeploymentResourcesRequest,
+    callback: (
+      error: ServiceError | null,
+      response: UpdateDeploymentResourcesResponse
+    ) => void
+  ): ClientUnaryCall
+  updateDeploymentResources(
+    request: UpdateDeploymentResourcesRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: UpdateDeploymentResourcesResponse
+    ) => void
+  ): ClientUnaryCall
+  updateDeploymentResources(
+    request: UpdateDeploymentResourcesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: UpdateDeploymentResourcesResponse
     ) => void
   ): ClientUnaryCall
 }

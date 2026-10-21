@@ -11,6 +11,7 @@ import type {
   RegistryPullSecretParams,
   ScaleWorkloadParams,
   SyncEnvironmentParams,
+  UpdateWorkloadResourcesParams,
   WorkloadMetrics,
   WorkloadRef,
 } from "./types"
@@ -241,6 +242,33 @@ export class KubernetesClient {
   }
 
   /**
+   * Reads the current state of an already-deployed workload and exposes the
+   * subset the cancel path needs: whether there is a workload at all, its
+   * desired replica count, and whether it is autoscaled.
+   */
+  async describeWorkload(ref: WorkloadRef): Promise<{
+    exists: boolean
+    desiredReplicas: number
+    readyReplicas: number
+    autoscalingEnabled: boolean
+  } | null> {
+    const workload = await this.deployments.describe(ref.namespace, ref.name)
+
+    if (!workload) {
+      return null
+    }
+
+    const hpa = await this.hpas.find(ref.namespace, ref.name)
+
+    return {
+      exists: true,
+      desiredReplicas: workload.desiredReplicas,
+      readyReplicas: workload.readyReplicas,
+      autoscalingEnabled: hpa !== null,
+    }
+  }
+
+  /**
    * Scales an existing workload to `replicas` (pause = 0, resume = 1).
    *
    * When the workload autoscales, the HPA is removed before scaling to zero
@@ -264,6 +292,46 @@ export class KubernetesClient {
     if (autoscalingEnabled) {
       await this.hpas.ensure({ namespace, name })
     }
+  }
+
+  /**
+   * Applies a new resource plan to an already-running workload without a
+   * rebuild: the container's requests/limits are patched (which rolls the
+   * pods) and the HPA is created or removed to match the new autoscaling
+   * setting, then the rollout is awaited.
+   *
+   * Idempotent. A deployment with no workload in the cluster (static builds,
+   * or one that never reached Kubernetes) is reported as `skipped` rather
+   * than failing — there is simply nothing to resize.
+   */
+  async updateWorkloadResources(
+    params: UpdateWorkloadResourcesParams
+  ): Promise<{ updated: boolean; skipped: boolean; rolloutReady: boolean }> {
+    const { namespace, name, resources, autoscalingEnabled } = params
+
+    const result = await this.deployments.updateResources(
+      namespace,
+      name,
+      resources
+    )
+
+    if (result === "skipped") {
+      return { updated: false, skipped: true, rolloutReady: false }
+    }
+
+    if (autoscalingEnabled) {
+      await this.hpas.ensure({ namespace, name })
+    } else {
+      await this.hpas.remove(namespace, name)
+    }
+
+    const rolloutReady = await this.waitForRollout(
+      namespace,
+      name,
+      ROLLOUT_TIMEOUT_MS
+    )
+
+    return { updated: true, skipped: false, rolloutReady }
   }
 
   /**

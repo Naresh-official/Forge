@@ -1,6 +1,9 @@
 import { Router } from "express"
 import { authenticate } from "@/middleware/auth.middleware"
-import { getProjectResources } from "./resources.controller"
+import {
+  getProjectResources,
+  updateProjectResources,
+} from "./resources.controller"
 
 /*
  * Mounted under `/api/v1/projects/:projectId/resources`, so the project id
@@ -11,5 +14,7 @@ const router: Router = Router({ mergeParams: true })
 router.use(authenticate)
 
 router.get("/", getProjectResources)
+// Change the project's resource plan (and autoscaling).
+router.patch("/", updateProjectResources)
 
 export default router

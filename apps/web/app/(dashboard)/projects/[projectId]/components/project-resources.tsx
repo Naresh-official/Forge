@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 import { getProjectResources } from "@forge/api-client/resources"
 import { listProjects } from "@forge/api-client/project"
-import { DEPLOYMENT_PLANS } from "@forge/types/deployment"
 import type {
   ProjectAutoscalingStatus,
   ResourceUsage,
@@ -26,6 +25,11 @@ import { Card, CardContent } from "@forge/ui/components/card"
 import { Progress } from "@forge/ui/components/progress"
 import { Skeleton } from "@forge/ui/components/skeleton"
 import { cn } from "@forge/ui/lib/utils"
+import {
+  formatCpu,
+  formatMemory,
+  planForAllocation,
+} from "@/lib/resource-format"
 import { PageHeader } from "../../../_components/ui"
 import { ProjectHeader } from "./project-header"
 
@@ -38,35 +42,6 @@ function formatInterval(ms: number) {
   return seconds >= 60 && seconds % 60 === 0
     ? `${seconds / 60} min`
     : `${seconds}s`
-}
-
-function formatCpu(millicores: number) {
-  if (millicores >= 1000) {
-    return `${(millicores / 1000).toFixed(millicores % 1000 === 0 ? 0 : 1)} cores`
-  }
-  return `${Math.round(millicores)}m`
-}
-
-function formatMemory(mb: number) {
-  if (mb >= 1024) {
-    return `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB`
-  }
-  return `${Math.round(mb)} MB`
-}
-
-/** Plan label for the stored allocation, when it matches a known tier. */
-function allocationLabel(allocation: {
-  cpuMillicores: number
-  memoryMb: number
-  ephemeralStorageMb: number
-}) {
-  const plan = Object.values(DEPLOYMENT_PLANS).find(
-    (candidate) =>
-      candidate.cpuMillicores === allocation.cpuMillicores &&
-      candidate.memoryMb === allocation.memoryMb &&
-      candidate.ephemeralStorageMb === allocation.ephemeralStorageMb
-  )
-  return plan?.label ?? null
 }
 
 /**
@@ -340,7 +315,7 @@ export function ProjectResources({ projectId }: { projectId: string }) {
   }
 
   const planLabel = resources?.allocation
-    ? allocationLabel(resources.allocation)
+    ? (planForAllocation(resources.allocation)?.label ?? null)
     : null
 
   return (

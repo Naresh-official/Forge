@@ -1,4 +1,8 @@
 import type {
+  CancelDeploymentRequest,
+  CancelDeploymentResponse,
+  CancelDeploymentsRequest,
+  CancelDeploymentsResponse,
   DeleteDeploymentsRequest,
   DeleteDeploymentsResponse,
   DeployRequest,
@@ -9,6 +13,8 @@ import type {
   ScaleResponse,
   SyncEnvironmentVariablesRequest,
   SyncEnvironmentVariablesResponse,
+  UpdateDeploymentResourcesRequest,
+  UpdateDeploymentResourcesResponse,
 } from "@forge/contracts"
 import { deployer } from "../clients/deployer.client"
 
@@ -94,6 +100,69 @@ export function deleteDeploymentsWrapper(
 ): Promise<DeleteDeploymentsResponse> {
   return new Promise((resolve, reject) => {
     deployer.deployerClient.deleteDeployments(request, (error, response) => {
+      if (error) {
+        reject(error)
+        return
+      }
+      resolve(response)
+    })
+  })
+}
+
+/**
+ * Ask the deployer to apply a new resource plan to an already-deployed
+ * workload. The deployer patches the container's requests/limits, creates or
+ * removes the HPA and waits for the rollout — the API never talks to
+ * Kubernetes directly.
+ */
+export function updateDeploymentResourcesWrapper(
+  request: UpdateDeploymentResourcesRequest
+): Promise<UpdateDeploymentResourcesResponse> {
+  return new Promise((resolve, reject) => {
+    deployer.deployerClient.updateDeploymentResources(
+      request,
+      (error, response) => {
+        if (error) {
+          reject(error)
+          return
+        }
+        resolve(response)
+      }
+    )
+  })
+}
+
+/**
+ * Ask the deployer to cancel (pause) a single deployment's workload.
+ * The API typically uses this after a newer deployment becomes READY, so the
+ * old deployment stops serving traffic. Cancellation is asynchronous and
+ * best-effort: the returned job id can be used to reconcile later if the
+ * caller wants, but the API does not wait on it.
+ */
+export function cancelDeploymentWrapper(
+  request: CancelDeploymentRequest
+): Promise<CancelDeploymentResponse> {
+  return new Promise((resolve, reject) => {
+    deployer.deployerClient.cancelDeployment(request, (error, response) => {
+      if (error) {
+        reject(error)
+        return
+      }
+      resolve(response)
+    })
+  })
+}
+
+/**
+ * Ask the deployer to cancel (pause) several deployments of a project.
+ * Used by the redeploy path to stop older deployments once the new one is
+ * READY.
+ */
+export function cancelDeploymentsWrapper(
+  request: CancelDeploymentsRequest
+): Promise<CancelDeploymentsResponse> {
+  return new Promise((resolve, reject) => {
+    deployer.deployerClient.cancelDeployments(request, (error, response) => {
       if (error) {
         reject(error)
         return

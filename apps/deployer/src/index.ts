@@ -1,7 +1,7 @@
 import { deployerConfig } from "@forge/config"
 import createServer from "./gRPC/server"
 import grpc from "@grpc/grpc-js"
-import { deployerQueue, rawClient } from "./queue/queue"
+import { deployerCancelQueue, deployerQueue, rawClient } from "./queue/queue"
 import { spawn, type Subprocess } from "bun"
 import logger from "@/utils/logger"
 
@@ -98,8 +98,8 @@ async function shutdown(signal: string) {
   // Wait for workers to exit
   await Promise.all(workerProcesses.map((worker) => worker.exited))
 
-  // Close BullMQ queue connection
-  await deployerQueue.close()
+  // Close BullMQ queue connections
+  await Promise.all([deployerQueue.close(), deployerCancelQueue.close()])
 
   logger.info("Deployer shutdown complete")
 

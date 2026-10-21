@@ -1,15 +1,20 @@
 import prisma from "@/utils/db"
 import { isUuid } from "@/utils/uuid"
 import { ApiError } from "@forge/types/apiResponses"
-import { AUTOSCALING } from "@forge/types/deployment"
+import { AUTOSCALING, DEPLOYMENT_PLANS } from "@forge/types/deployment"
 import type {
   ProjectAutoscalingStatus,
   ProjectResourcesResponse,
+  ProjectResourceSettings,
   ResourceUsage,
+  UpdateProjectResourcesInput,
 } from "@forge/types/resources"
 import { isStaticFramework, normalizeFramework } from "@forge/frameworks"
 import type { GetDeploymentMetricsResponse } from "@forge/contracts"
-import { getDeploymentMetricsWrapper } from "@/gRPC/wrapper/deployer.wrapper"
+import {
+  getDeploymentMetricsWrapper,
+  updateDeploymentResourcesWrapper,
+} from "@/gRPC/wrapper/deployer.wrapper"
 
 /** Usage of one resource, with the percentage of the allocation consumed. */
 function toUsage(used: number, allocated: number): ResourceUsage {
@@ -201,6 +206,106 @@ export const getProjectResourcesService = async (
     autoscaling: toAutoscaling(metrics, autoscalingEnabled),
     metricsAvailable: metrics?.metricsAvailable ?? false,
     metricsTimestamp: metrics?.metricsTimestamp || null,
+    warnings,
+  }
+}
+
+/**
+ * Changes a project's resource plan (and autoscaling setting).
+ *
+ * The plan is written to the project's newest deployment, which is both the
+ * deployment whose workload is serving traffic and the row later deployments
+ * inherit their plan from — so one write covers both the running workload and
+ * every future deployment. Container workloads are resized in place by the
+ * deployer; static deployments have nothing to resize, so the plan only takes
+ * effect on the next container deployment.
+ *
+ * A deployer failure does not fail the request: the plan is the user's
+ * stated intent and is already persisted, so it is reported as a warning.
+ */
+export const updateProjectResourcesService = async (
+  projectId: string,
+  userId: string,
+  input: UpdateProjectResourcesInput
+): Promise<ProjectResourceSettings> => {
+  const project = await findOwnedProjectOrThrow(projectId, userId)
+  const plan = DEPLOYMENT_PLANS[input.plan]
+
+  const deployment = await prisma.deployment.findFirst({
+    where: { projectId: project.id },
+    orderBy: { deploymentNumber: "desc" },
+    select: { id: true, imageUrl: true },
+  })
+
+  if (!deployment) {
+    throw new ApiError(
+      400,
+      "This project has no deployment yet — deploy it once before changing its resources."
+    )
+  }
+
+  const allocation = {
+    cpuMillicores: plan.cpuMillicores,
+    memoryMb: plan.memoryMb,
+    ephemeralStorageMb: plan.ephemeralStorageMb,
+  }
+
+  await prisma.deploymentResource.upsert({
+    where: { deploymentId: deployment.id },
+    create: {
+      deploymentId: deployment.id,
+      ...allocation,
+      autoscalingEnabled: input.autoscalingEnabled,
+    },
+    update: {
+      ...allocation,
+      autoscalingEnabled: input.autoscalingEnabled,
+    },
+  })
+
+  const runtime = deployment.imageUrl ? "KUBERNETES" : "STATIC"
+  const warnings: string[] = []
+  let applied = false
+
+  if (runtime === "KUBERNETES") {
+    try {
+      const result = await updateDeploymentResourcesWrapper({
+        projectId: project.id,
+        deploymentId: deployment.id,
+        ...allocation,
+        autoscalingEnabled: input.autoscalingEnabled,
+      })
+
+      applied = result.updated
+
+      if (result.skipped) {
+        warnings.push(
+          "No running Kubernetes workload was found — the new plan applies to the next deployment."
+        )
+      } else if (!result.rolloutReady) {
+        warnings.push(
+          "The new plan was applied, but the rollout did not become available in time."
+        )
+      }
+    } catch (error) {
+      console.error("Failed to apply the resource plan on the deployer:", error)
+      warnings.push(
+        "The plan was saved but could not be applied to the running workload — it will apply to the next deployment."
+      )
+    }
+  } else {
+    warnings.push(
+      "Static deployments are served from object storage — the plan applies to the next container deployment."
+    )
+  }
+
+  return {
+    projectId: project.id,
+    deploymentId: deployment.id,
+    runtime,
+    allocation,
+    autoscalingEnabled: input.autoscalingEnabled,
+    applied,
     warnings,
   }
 }

@@ -1,8 +1,11 @@
 import { KubeHttpClient, hasHttpStatus } from "../http/kube-http.client"
 import { buildDeploymentManifest } from "../manifests/deployment.manifest"
-import { ENV_SECRET_HASH_ANNOTATION } from "../constants"
+import {
+  buildContainerResources,
+  ENV_SECRET_HASH_ANNOTATION,
+} from "../constants"
 import { parseCpuMillicores, parseMemoryMb } from "../quantity"
-import type { DeployContainerParams } from "../types"
+import type { ContainerResources, DeployContainerParams } from "../types"
 
 /** The subset of a container env entry this API needs to reason about. */
 interface ContainerEnvEntry {
@@ -115,6 +118,57 @@ export class DeploymentApi {
       `/apis/apps/v1/namespaces/${namespace}/deployments/${name}`,
       buildDeploymentManifest(params)
     )
+  }
+
+  /**
+   * Patches the container's resource requests/limits in place, which rewrites
+   * the pod template and therefore rolls the workload.
+   *
+   * The container name is read from the live Deployment rather than assumed:
+   * a strategic merge patch matches containers by name, and a name that does
+   * not exist would be appended as an extra container instead of updating the
+   * app's. Returns `"skipped"` when the namespace holds no Deployment.
+   */
+  async updateResources(
+    namespace: string,
+    name: string,
+    resources: ContainerResources
+  ): Promise<"updated" | "skipped"> {
+    const path = `/apis/apps/v1/namespaces/${namespace}/deployments/${name}`
+
+    let deployment: RunningDeployment
+
+    try {
+      deployment = await this.http.get<RunningDeployment>(path)
+    } catch (error) {
+      if (hasHttpStatus(error, 404)) {
+        return "skipped"
+      }
+      throw error
+    }
+
+    const container = deployment.spec?.template?.spec?.containers?.[0]
+
+    if (!container?.name) {
+      return "skipped"
+    }
+
+    await this.http.strategicPatch(path, {
+      spec: {
+        template: {
+          spec: {
+            containers: [
+              {
+                name: container.name,
+                resources: buildContainerResources(resources),
+              },
+            ],
+          },
+        },
+      },
+    })
+
+    return "updated"
   }
 
   /**

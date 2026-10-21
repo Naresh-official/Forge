@@ -16,4 +16,5 @@ export type {
   WorkloadMetrics,
   ScaleWorkloadParams,
   SyncEnvironmentParams,
+  UpdateWorkloadResourcesParams,
 } from "./types"

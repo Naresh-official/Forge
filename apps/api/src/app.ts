@@ -15,11 +15,10 @@ import projectsRouter from "@/features/projects/projects.routes"
 import environmentRouter from "@/features/environment/environment.routes"
 import resourcesRouter from "@/features/resources/resources.routes"
 import logsRouter from "@/features/logs/logs.routes"
+import webhooksRouter from "@/features/webhooks/github.routes"
 
 const app: Express = express()
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(
   cors({
@@ -27,6 +26,26 @@ app.use(
     credentials: true,
   })
 )
+
+/*
+ * GitHub webhooks are mounted before the global JSON parser: the HMAC
+ * signature covers the exact request bytes, so this route keeps the raw
+ * buffer while parsing. Push payloads are larger than the 100kb default, and
+ * only this endpoint gets the raised limit.
+ */
+app.use(
+  "/api/v1/webhooks",
+  express.json({
+    limit: "5mb",
+    verify: (req, _res, buffer) => {
+      ;(req as { rawBody?: Buffer }).rawBody = Buffer.from(buffer)
+    },
+  }),
+  webhooksRouter
+)
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
 // Logger middleware
 
@@ -70,5 +89,6 @@ app.use("/api/v1/projects/:projectId/environment-variables", environmentRouter)
 // Live resource usage for a project — the API reads it from the deployer,
 // which is the only service that talks to Kubernetes.
 app.use("/api/v1/projects/:projectId/resources", resourcesRouter)
+// Webhooks are mounted above, before the JSON body parser.
 
 export default app

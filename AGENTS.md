@@ -130,29 +130,30 @@ app/
 
 **REST routes (prefix `/api/v1`, mounted in `src/app.ts`):**
 
-| Path                                              | Method | Auth | Handler                                                    |
-| ------------------------------------------------- | ------ | ---- | ---------------------------------------------------------- |
-| `/health`                                         | GET    | no   | inline health check                                        |
-| `/auth/github`                                    | POST   | no   | `features/auth` — sync GitHub user into the DB             |
-| `/auth/me`                                        | GET    | yes  | `features/auth` — current user                             |
-| `/github/install`                                 | GET    | yes  | `features/github` — 302 redirect to the GitHub App install |
-| `/github/setup`                                   | GET    | yes  | `features/github` — GitHub App post-install callback       |
-| `/repositories`                                   | GET    | yes  | `features/repositories` — repos via the GitHub App         |
-| `/deployments/new`                                | POST   | yes  | `features/deployment` — create project + first deployment  |
-| `/deployments`                                    | GET    | yes  | `features/deployment` — all deployments, newest first      |
-| `/deployments/:deploymentId`                      | GET    | yes  | `features/deployment` — one deployment with build          |
-| `/deployments/:deploymentId/redeploy`             | POST   | yes  | `features/deployment` — rebuild this commit                |
-| `/projects/all`                                   | GET    | yes  | `features/projects` — full project list                    |
-| `/projects/list`                                  | GET    | yes  | `features/projects` — `{ id, name }` only                  |
-| `/projects/:projectId/environment-variables`      | GET    | yes  | `features/environment` — keys only, never values           |
-| `/projects/:projectId/environment-variables`      | POST   | yes  | `features/environment` — add a variable + apply the change |
-| `/projects/:projectId/environment-variables/:key` | PATCH  | yes  | `features/environment` — replace a value + apply           |
-| `/projects/:projectId/environment-variables/:key` | DELETE | yes  | `features/environment` — remove a variable + apply         |
-| `/projects/:projectId/resources`                  | GET    | yes  | `features/resources` — live usage + autoscaling state      |
-| `/projects/:projectId/deployments`                | GET    | yes  | `features/projects` — deployment history, newest first     |
-| `/projects/:projectId/deployments`                | POST   | yes  | `features/projects` — redeploy the latest commit           |
+| Path                                              | Method | Auth | Handler                                                       |
+| ------------------------------------------------- | ------ | ---- | ------------------------------------------------------------- |
+| `/health`                                         | GET    | no   | inline health check                                           |
+| `/auth/github`                                    | POST   | no   | `features/auth` — sync GitHub user into the DB                |
+| `/auth/me`                                        | GET    | yes  | `features/auth` — current user                                |
+| `/github/install`                                 | GET    | yes  | `features/github` — 302 redirect to the GitHub App install    |     | `/github/setup` | GET | yes | `features/github` — GitHub App post-install callback |
+| `/webhooks/github`                                | POST   | no   | `features/webhooks` — GitHub `push` delivery (HMAC-signed)    |
+| `/repositories`                                   | GET    | yes  | `features/repositories` — repos via the GitHub App            |
+| `/deployments/new`                                | POST   | yes  | `features/deployment` — create project + first deployment     |
+| `/deployments`                                    | GET    | yes  | `features/deployment` — all deployments, newest first         |
+| `/deployments/:deploymentId`                      | GET    | yes  | `features/deployment` — one deployment with build             |
+| `/deployments/:deploymentId/redeploy`             | POST   | yes  | `features/deployment` — rebuild this commit                   |
+| `/projects/all`                                   | GET    | yes  | `features/projects` — full project list                       |
+| `/projects/list`                                  | GET    | yes  | `features/projects` — `{ id, name }` only                     |
+| `/projects/:projectId/environment-variables`      | GET    | yes  | `features/environment` — keys only, never values              |
+| `/projects/:projectId/environment-variables`      | POST   | yes  | `features/environment` — add a variable + apply the change    |
+| `/projects/:projectId/environment-variables/:key` | PATCH  | yes  | `features/environment` — replace a value + apply              |
+| `/projects/:projectId/environment-variables/:key` | DELETE | yes  | `features/environment` — remove a variable + apply            |
+| `/projects/:projectId/resources`                  | GET    | yes  | `features/resources` — live usage + autoscaling state         |
+| `/projects/:projectId/resources`                  | PATCH  | yes  | `features/resources` — change the resource plan + autoscaling |
+| `/projects/:projectId/deployments`                | GET    | yes  | `features/projects` — deployment history, newest first        |
+| `/projects/:projectId/deployments`                | POST   | yes  | `features/projects` — redeploy the latest commit              |
 
-Every router except `POST /auth/github` is guarded by the `authenticate` middleware.
+Every router except `POST /auth/github` and `POST /webhooks/github` is guarded by the `authenticate` middleware. Those two are unauthenticated by design (next-auth sync, GitHub delivery) and do their own verification; the webhook checks GitHub's HMAC signature over the raw body.
 
 **Routing structure:** `feature.routes.ts → feature.controller.ts → feature.service.ts`. Controllers are thin: parse/validate input, call the service, wrap the result in `ApiResponse`, and funnel failures through `handleErrors(res, error)`.
 
@@ -173,6 +174,7 @@ Every router except `POST /auth/github` is guarded by the `authenticate` middlew
 - `DeployerService.Deploy` (`deployer.proto`) — api calls this on deployer to queue a deployment
 - `DeployerService.SyncEnvironmentVariables` (`deployer.proto`) — api calls this after an environment change; the deployer rewrites each running deployment's env Secret and rolls the workload (plaintext variables travel on this internal channel only)
 - `DeployerService.GetDeploymentMetrics` (`deployer.proto`) — api calls this for a project's Resources tab; the deployer reads the Deployment, its pod metrics (`metrics.k8s.io`) and its HPA, and reports usage, allocation, replica counts and scaling state
+- `DeployerService.UpdateDeploymentResources` (`deployer.proto`) — api calls this when a project's resource plan changes; the deployer patches the container's requests/limits (which rolls the pods), creates or removes the HPA to match the autoscaling flag, and waits for the rollout. A deployment with no workload is reported as `skipped`.
 - `DeployerApiService.DeploymentStarted` (`deployer.proto`) — deployer worker calls this when deployment starts; sets deployment status to `DEPLOYING` and returns the project's decrypted environment variables (`environment_variables`) for container deployments only
 - `DeployerApiService.DeploymentCompleted` (`deployer.proto`) — deployer worker reports the final status; sets `READY`/`FAILED` and stores the image URL
 
@@ -432,6 +434,7 @@ Shared linting config, layered as base (JS/TS + Turbo) → Next.js/React/React H
 - Forge uses a **GitHub App** (not just the user's OAuth token) for repository access. Installation-scoped tokens are minted per operation via `githubApp.getInstallationOctokit(installationId)`; the builder receives one from `ApiService.BuildStarted`.
 - `syncInstallationRepositories()` in `features/github/github.service.ts` is the single place that mirrors GitHub repositories into the database: it upserts new/renamed repos and prunes repos the installation can no longer access — **except** those already attached to a project.
 - `GET /repositories` refreshes from GitHub on every read, so treat it as a write-on-read path (it mutates `githubRepositories`) and do not cache it aggressively.
+- **Auto deployments:** the GitHub App posts `push` deliveries to `POST /api/v1/webhooks/github`, which verifies `X-Hub-Signature-256` against `GITHUB_WEBHOOK_SECRET` over the raw body (the route is mounted before the global JSON parser to keep those bytes). Only pushes to the branch a project deploys are deployed — the latest deployment's branch, falling back to the repository's default branch. `deployCommitService` creates the next deployment + build; when it reports `READY`, `completeDeploymentService` cancels the older deployments and pauses their workloads. A push whose head SHA is already the latest deployment is ignored, so redeliveries are idempotent.
 
 ### Testing
 

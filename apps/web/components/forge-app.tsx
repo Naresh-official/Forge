@@ -153,7 +153,7 @@ export default function ForgeApp() {
     router.push(href)
   }
   const projectMatch = pathname.match(/^\/projects\/([^/]+)/)
-  const project = projectMatch ? getProject(projectMatch[1]) : null
+  const project = projectMatch ? getProject(projectMatch[1] ?? "") : null
   const isPublic =
     pathname === "/" || pathname === "/login" || pathname === "/docs"
   if (pathname === "/login")
@@ -704,7 +704,9 @@ function NewProject({
                     className={repo === name ? "repo-row selected" : "repo-row"}
                     onClick={() => setRepo(name)}
                   >
-                    <span className="repo-avatar">{name[0].toUpperCase()}</span>
+                    <span className="repo-avatar">
+                      {(name[0] ?? "").toUpperCase()}
+                    </span>
                     <span>
                       <strong>acme/{name}</strong>
                       <small>Updated 2 hours ago · main</small>
@@ -1033,18 +1035,18 @@ function ProjectWorkspace({
           <div className="panel-heading">
             <div>
               <h2>Production deployment</h2>
-              <p>{deployments[0].message}</p>
+              <p>{deployments[0]?.message}</p>
             </div>
             <StatusBadge status="Ready" />
           </div>
           <div className="info-grid">
             <div>
               <span>Deployment</span>
-              <strong>{deployments[0].id}</strong>
+              <strong>{deployments[0]?.id}</strong>
             </div>
             <div>
               <span>Commit</span>
-              <strong>{deployments[0].commit}</strong>
+              <strong>{deployments[0]?.commit}</strong>
             </div>
             <div>
               <span>Branch</span>
@@ -1472,7 +1474,7 @@ function Environments({ notify }: { notify: (text: string) => void }) {
             <div className="info-grid">
               <div>
                 <span>Latest deployment</span>
-                <strong>{deployments[0].id}</strong>
+                <strong>{deployments[0]?.id}</strong>
               </div>
               <div>
                 <span>Last deployed</span>
@@ -1632,7 +1634,7 @@ function CommandPalette({
               key={href}
               onClick={() => {
                 onClose()
-                onNavigate(href)
+                onNavigate(href ?? "/")
               }}
             >
               <ArrowUpRight size={15} />

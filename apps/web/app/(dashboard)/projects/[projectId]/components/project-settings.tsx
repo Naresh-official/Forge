@@ -17,6 +17,15 @@ import {
   renameProject,
   setProjectStatus,
 } from "@forge/api-client/project"
+import {
+  getProjectResources,
+  updateProjectResources,
+} from "@forge/api-client/resources"
+import {
+  AUTOSCALING,
+  DEPLOYMENT_PLANS,
+  type DeploymentPlanId,
+} from "@forge/types/deployment"
 import type { ProjectStatus } from "@forge/types"
 import {
   AlertDialog,
@@ -40,9 +49,32 @@ import {
 } from "@forge/ui/components/card"
 import { Input } from "@forge/ui/components/input"
 import { Label } from "@forge/ui/components/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@forge/ui/components/select"
+import {
+  formatCpu,
+  formatMemory,
+  planForAllocation,
+} from "@/lib/resource-format"
 import { PageHeader, StatusBadge } from "../../../_components/ui"
 import { useToast } from "../../../_components/toast-provider"
 import { ProjectHeader } from "./project-header"
+
+/** Plan choices for the resources card, with their per-replica footprint. */
+const PLAN_OPTIONS = Object.values(DEPLOYMENT_PLANS).map((plan) => ({
+  value: plan.id,
+  label: `${plan.label} — ${formatCpu(plan.cpuMillicores)} CPU · ${formatMemory(plan.memoryMb)} memory`,
+}))
+
+const AUTOSCALING_OPTIONS = [
+  { value: "enabled", label: "Enabled" },
+  { value: "disabled", label: "Disabled" },
+] as const
 
 export function ProjectSettings({ projectId }: { projectId: string }) {
   const router = useRouter()
@@ -56,8 +88,27 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
 
   const project = projectsQuery.data?.data.find((p) => p.id === projectId)
 
+  const resourcesQuery = useQuery({
+    queryKey: ["project-resources", projectId],
+    queryFn: () => getProjectResources(projectId),
+  })
+
+  const resources = resourcesQuery.data?.data
+  const currentPlan: DeploymentPlanId = resources?.allocation
+    ? (planForAllocation(resources.allocation)?.id ?? "basic")
+    : "basic"
+  const currentAutoscaling = resources?.autoscalingEnabled ?? false
+
   // `null` means "show the server value" — the user has not edited yet.
   const [draftName, setDraftName] = useState<string | null>(null)
+  const [draftPlan, setDraftPlan] = useState<DeploymentPlanId | null>(null)
+  const [draftAutoscaling, setDraftAutoscaling] = useState<boolean | null>(null)
+
+  const plan = draftPlan ?? currentPlan
+  const autoscaling = draftAutoscaling ?? currentAutoscaling
+  const resourcesDirty =
+    (draftPlan !== null && draftPlan !== currentPlan) ||
+    (draftAutoscaling !== null && draftAutoscaling !== currentAutoscaling)
 
   const invalidateProject = () => {
     void queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -83,6 +134,30 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
       invalidateProject()
       notify(status === "PAUSED" ? "Project paused" : "Project resumed")
     },
+  })
+
+  const resourcesMutation = useMutation({
+    mutationFn: () =>
+      updateProjectResources(projectId, {
+        plan,
+        autoscalingEnabled: autoscaling,
+      }),
+    onSuccess: (response) => {
+      setDraftPlan(null)
+      setDraftAutoscaling(null)
+      invalidateProject()
+      void queryClient.invalidateQueries({
+        queryKey: ["project-resources", projectId],
+      })
+
+      const warnings = response.data.warnings
+      notify(
+        warnings.length > 0
+          ? `Resource plan saved — ${warnings.join(" ")}`
+          : "Resource plan updated"
+      )
+    },
+    onError: (error: Error) => notify(error.message),
   })
 
   const deleteMutation = useMutation({
@@ -236,6 +311,108 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
           </div>
           {statusMutation.isError && (
             <InlineError message="Could not update the project's workload. Please try again." />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 max-w-2xl [--card-spacing:--spacing(4.5)]">
+        <CardHeader>
+          <CardTitle className="text-xs">Resources</CardTitle>
+          <CardDescription className="text-[11px]">
+            CPU, memory and ephemeral storage per replica. Saving applies the
+            plan to the running deployment and to every future deployment — no
+            rebuild needed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="mt-4 grid gap-4">
+          {resourcesQuery.isLoading && (
+            <p className="text-[11px] text-muted-foreground">
+              Loading resource settings…
+            </p>
+          )}
+
+          {!resourcesQuery.isLoading && resourcesQuery.isError && (
+            <InlineError message="Could not load this project's resource settings." />
+          )}
+
+          {resources && (
+            <>
+              <Label className="flex-col items-start gap-1.5 text-sm font-normal text-muted-foreground">
+                Resource plan
+                <Select
+                  items={PLAN_OPTIONS}
+                  value={plan}
+                  onValueChange={(value) =>
+                    setDraftPlan(value as DeploymentPlanId)
+                  }
+                >
+                  <SelectTrigger
+                    aria-label="Resource plan"
+                    className="h-9 w-full bg-card text-[11px]"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLAN_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Label>
+
+              <Label className="flex-col items-start gap-1.5 text-sm font-normal text-muted-foreground">
+                Autoscaling
+                <Select
+                  items={[...AUTOSCALING_OPTIONS]}
+                  value={autoscaling ? "enabled" : "disabled"}
+                  onValueChange={(value) =>
+                    setDraftAutoscaling(value === "enabled")
+                  }
+                >
+                  <SelectTrigger
+                    aria-label="Autoscaling"
+                    className="h-9 w-full bg-card text-[11px]"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AUTOSCALING_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Label>
+
+              <p className="text-[9px] text-muted-foreground">
+                {autoscaling
+                  ? `Runs between ${AUTOSCALING.minReplicas} and ${AUTOSCALING.maxReplicas} replicas, scaling at ${AUTOSCALING.targetCpuUtilization}% CPU.`
+                  : "Runs a single replica."}{" "}
+                {resources.runtime === "STATIC"
+                  ? "This is a static deployment served from object storage — the plan applies to the next container deployment."
+                  : "Changing the plan restarts the workload with the new limits."}
+              </p>
+
+              {resourcesMutation.isError && (
+                <InlineError message="Could not save the resource plan. Please try again." />
+              )}
+
+              <Button
+                type="button"
+                size="lg"
+                disabled={!resourcesDirty || resourcesMutation.isPending}
+                onClick={() => resourcesMutation.mutate()}
+                className="w-fit gap-2 text-[11px] font-bold"
+              >
+                {resourcesMutation.isPending && (
+                  <Loader2 className="size-3.5 animate-spin" />
+                )}
+                Save resources
+              </Button>
+            </>
           )}
         </CardContent>
       </Card>

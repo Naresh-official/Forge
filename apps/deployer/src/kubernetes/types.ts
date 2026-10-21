@@ -106,6 +106,17 @@ export interface ScaleWorkloadParams extends WorkloadRef {
   autoscalingEnabled?: boolean
 }
 
+/**
+ * Reconcile params for applying a new resource plan to a running workload.
+ * Only the container resources (and the optional HPA) change — the image,
+ * environment and replica count are left alone.
+ */
+export interface UpdateWorkloadResourcesParams extends WorkloadRef {
+  resources: ContainerResources
+  /** When true an HPA is ensured; when false any existing HPA is removed. */
+  autoscalingEnabled: boolean
+}
+
 export interface DeployContainerParams extends WorkloadRef {
   /** Full container image reference including registry, repo and tag */
   image: string

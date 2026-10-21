@@ -139,22 +139,6 @@ export function Sidebar({
       </div>
 
       <div className="mt-auto flex flex-col gap-0.5">
-        <button
-          type="button"
-          onClick={() => go("/docs")}
-          className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <LifeBuoy className="size-4" />
-          Documentation
-        </button>
-        <button
-          type="button"
-          onClick={() => go("/settings")}
-          className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <Settings2 className="size-4" />
-          Settings
-        </button>
         <div className="mt-2 flex items-center gap-2 border-t border-border px-2 py-3">
           <UserAvatar user={user} className="size-7 text-sm" />
           <span className="flex min-w-0 flex-col gap-0.5">

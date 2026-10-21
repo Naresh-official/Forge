@@ -78,43 +78,6 @@ export function Topbar({
         <Button
           type="button"
           variant="outline"
-          size="icon-sm"
-          aria-label="Theme"
-        >
-          <CircleDot className="size-4" />
-        </Button>
-
-        <div className="relative">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label="Notifications"
-            onClick={() => setNotificationsOpen((v) => !v)}
-            className="relative"
-          >
-            <Bell className="size-4" />
-            <span className="absolute top-1.5 right-1.5 size-1 rounded-full bg-rose-400" />
-          </Button>
-          {notificationsOpen && (
-            <div className="absolute top-10 right-0 z-50 w-64 rounded-lg border border-border bg-popover p-3 shadow-2xl">
-              <strong className="text-xs">Notifications</strong>
-              {notifications.map((item) => (
-                <p
-                  key={item}
-                  className="mt-2.5 flex gap-2 border-t border-border pt-2.5 text-sm text-muted-foreground"
-                >
-                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-emerald-400" />
-                  {item}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
           aria-label={`Account: ${displayName}`}
           onClick={() => router.push("/settings/profile")}
           className="h-8 gap-2 pr-2.5 pl-1"

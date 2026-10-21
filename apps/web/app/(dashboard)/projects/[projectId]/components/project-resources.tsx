@@ -347,6 +347,7 @@ export function ProjectResources({ projectId }: { projectId: string }) {
           disabled={resourcesQuery.isFetching}
           onClick={() => resourcesQuery.refetch()}
           className="gap-1.5 text-[11px]"
+          title="Refresh resource usage metrics"
         >
           <RefreshCw
             className={cn(

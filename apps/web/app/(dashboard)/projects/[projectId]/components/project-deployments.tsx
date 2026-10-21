@@ -280,6 +280,12 @@ export function ProjectDeployments({ projectId }: { projectId: string }) {
           Running deployments refresh automatically every 5s.
         </p>
       )}
+
+      {deploymentsQuery.isLoading && (
+        <p className="mt-2 text-[10px] text-muted-foreground">
+          Refreshing deployment list...
+        </p>
+      )}
     </>
   )
 }

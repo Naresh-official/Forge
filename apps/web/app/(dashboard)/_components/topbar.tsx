@@ -67,6 +67,7 @@ export function Topbar({
           size="icon-sm"
           onClick={onMenu}
           aria-label="Open navigation"
+          title="Open navigation"
           className="md:hidden"
         >
           <Menu className="size-4" />
@@ -79,6 +80,7 @@ export function Topbar({
           type="button"
           variant="outline"
           aria-label={`Account: ${displayName}`}
+          title={`Account: ${displayName}`}
           onClick={() => router.push("/settings/profile")}
           className="h-8 gap-2 pr-2.5 pl-1"
         >

@@ -295,6 +295,7 @@ export function ProjectEnvironmentVariables({
                 size="lg"
                 disabled={!canAdd || createMutation.isPending}
                 className="gap-1.5 text-[11px] font-bold"
+                title="Add a new environment variable"
               >
                 {createMutation.isPending && (
                   <Loader2 className="size-3.5 animate-spin" />

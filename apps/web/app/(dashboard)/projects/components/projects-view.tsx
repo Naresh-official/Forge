@@ -217,6 +217,7 @@ export function ProjectsView({
               onClick={() => setQuery("")}
               className="absolute right-1.5 text-muted-foreground hover:text-foreground"
               aria-label="Clear search"
+              title="Clear search"
             >
               <X className="size-3.5" />
             </Button>

@@ -269,6 +269,7 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
             disabled={!canRename}
             onClick={() => renameMutation.mutate(trimmedName)}
             className="w-fit gap-2 text-[11px] font-bold"
+            title="Rename this project"
           >
             {renameMutation.isPending && (
               <Loader2 className="size-3.5 animate-spin" />

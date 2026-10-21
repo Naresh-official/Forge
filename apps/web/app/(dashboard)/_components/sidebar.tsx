@@ -80,6 +80,7 @@ export function Sidebar({
               key={href}
               type="button"
               onClick={() => go(href)}
+              title={label}
               className={[
                 "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-xs transition-colors",
                 active
@@ -100,6 +101,7 @@ export function Sidebar({
           type="button"
           onClick={() => go("/projects/new")}
           aria-label="Create project"
+          title="Create project"
         >
           <Plus className="size-3.5" />
         </button>

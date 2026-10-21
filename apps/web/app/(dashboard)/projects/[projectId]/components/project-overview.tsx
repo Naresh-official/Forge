@@ -282,6 +282,7 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
                 router.push(`/projects/${projectId}/deployments/${latest.id}`)
               }
               className="gap-2"
+              title="Open deployment details in a new view"
             >
               Open <ExternalLink className="size-3.5" />
             </Button>
@@ -290,6 +291,7 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
               variant="outline"
               disabled={!latest || deployMutation.isPending}
               onClick={() => deployMutation.mutate()}
+              title="Redeploy the latest commit"
             >
               Redeploy
             </Button>

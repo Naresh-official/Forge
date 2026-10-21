@@ -169,6 +169,7 @@ export function DeploymentsView() {
           disabled={deploymentsQuery.isFetching}
           onClick={() => deploymentsQuery.refetch()}
           className="h-9 gap-1.5 text-[11px]"
+          title="Refresh deployment list"
         >
           <RefreshCw
             className={

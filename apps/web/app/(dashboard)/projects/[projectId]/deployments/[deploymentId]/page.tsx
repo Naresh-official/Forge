@@ -1,4 +1,4 @@
-import { DeploymentDetail } from "../../components/deployment-detail"
+import { DeploymentDetail } from "./components/deployment-detail"
 
 export default async function Page({
   params,

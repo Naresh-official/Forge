@@ -4,11 +4,10 @@ import { ArrowUpRight, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 const routes = [
+  ["Overview", "/dashboard"],
   ["Projects", "/projects"],
+  ["New project", "/projects/new"],
   ["Deployments", "/deployments"],
-  ["Domains", "/domains"],
-  ["Documentation", "/docs"],
-  ["Settings", "/settings"],
 ] as const
 
 export function CommandPalette({ onClose }: { onClose: () => void }) {

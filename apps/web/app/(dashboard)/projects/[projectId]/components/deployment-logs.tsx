@@ -19,7 +19,7 @@ import {
 } from "./use-deployment-logs"
 
 /** Deployment states in which the application is up and serving traffic. */
-export function isDeploymentRunning(status?: DeploymentStatus): boolean {
+function isDeploymentRunning(status?: DeploymentStatus): boolean {
   return status === "READY"
 }
 
@@ -27,7 +27,7 @@ export function isDeploymentRunning(status?: DeploymentStatus): boolean {
  * Tab to open with. An explicit `initialType` wins; otherwise a running
  * deployment opens on runtime logs and everything else on build logs.
  */
-export function initialLogType(
+function initialLogType(
   initialType: DeploymentLogType | undefined,
   status?: DeploymentStatus
 ): DeploymentLogType {
@@ -38,7 +38,7 @@ export function initialLogType(
  * Tab to move to as status/output changes. Switches to runtime once the
  * deployment is running or emitting runtime output; otherwise stays put.
  */
-export function autoLogType(
+function autoLogType(
   current: DeploymentLogType,
   status: DeploymentStatus | undefined,
   hasRuntimeLogs: boolean

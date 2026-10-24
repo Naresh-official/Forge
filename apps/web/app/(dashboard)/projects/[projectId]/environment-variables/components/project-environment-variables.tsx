@@ -45,9 +45,10 @@ import {
   TableHeader,
   TableRow,
 } from "@forge/ui/components/table"
-import { PageHeader } from "../../../_components/ui"
-import { useToast } from "../../../_components/toast-provider"
-import { ProjectHeader } from "./project-header"
+import { InlineError } from "../../../../_components/inline-error"
+import { PageHeader } from "../../../../_components/page-header"
+import { useToast } from "../../../../_components/toast-provider"
+import { ProjectHeader } from "../../components/project-header"
 
 const ENV_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/
 const MASKED_VALUE = "••••••••••••••"
@@ -372,7 +373,8 @@ export function ProjectEnvironmentVariables({
           <AlertTitle className="flex-1 text-[11px] font-normal text-inherit">
             {unreadableKeys.join(", ")} can no longer be decrypted (the value
             was stored with an older key). Replace the value to re-encrypt it —
-            until then it is skipped when applying this project's environment.
+            until then it is skipped when applying this project&apos;s
+            environment.
           </AlertTitle>
         </Alert>
       )}
@@ -566,37 +568,5 @@ export function ProjectEnvironmentVariables({
         <InlineError message={deleteMutation.error.message} />
       )}
     </>
-  )
-}
-
-function InlineError({
-  message,
-  onRetry,
-}: {
-  message: string
-  onRetry?: () => void
-}) {
-  return (
-    <Alert
-      variant="destructive"
-      className="mt-3 flex items-center gap-2 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2.5 text-[11px] text-rose-300"
-    >
-      <AlertCircle className="size-3.5 shrink-0" />
-      <AlertTitle className="flex-1 text-[11px] font-normal text-inherit">
-        {message}
-      </AlertTitle>
-      {onRetry && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          onClick={onRetry}
-          className="shrink-0 gap-1 text-rose-200 hover:bg-transparent hover:text-rose-100"
-        >
-          <RefreshCw className="size-3" />
-          Retry
-        </Button>
-      )}
-    </Alert>
   )
 }

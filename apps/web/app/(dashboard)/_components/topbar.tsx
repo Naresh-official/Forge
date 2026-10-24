@@ -1,15 +1,11 @@
 "use client"
 
-import { Bell, CircleDot, Menu } from "lucide-react"
-import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { Menu } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@forge/ui/components/button"
+import { Button, buttonVariants } from "@forge/ui/components/button"
 import { listProjectNames } from "@forge/api-client/project"
-import { notifications } from "@/lib/forge-data"
 import { UserAvatar, displayNameFor, type SessionUser } from "./user-avatar"
-
-export type TopbarUser = SessionUser
 
 /** Page titles for the routes that are not named after a path segment. */
 const STATIC_TITLES: Record<string, string> = {
@@ -17,20 +13,16 @@ const STATIC_TITLES: Record<string, string> = {
   "/projects": "Projects",
   "/projects/new": "New project",
   "/deployments": "Deployments",
-  "/domains": "Domains",
-  "/settings": "Settings",
 }
 
 export function Topbar({
   user,
   onMenu,
 }: {
-  user: TopbarUser
+  user: SessionUser
   onMenu: () => void
 }) {
   const pathname = usePathname()
-  const router = useRouter()
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   const projectId = pathname.match(/^\/projects\/([^/]+)/)?.[1]
   const isProjectDetail = Boolean(projectId) && projectId !== "new"
@@ -75,20 +67,14 @@ export function Topbar({
         <strong className="font-medium text-foreground">{title}</strong>
       </div>
 
-      <div className="flex items-center gap-2.5">
-        <Button
-          type="button"
-          variant="outline"
-          aria-label={`Account: ${displayName}`}
-          title={`Account: ${displayName}`}
-          onClick={() => router.push("/settings/profile")}
-          className="h-8 gap-2 pr-2.5 pl-1"
-        >
-          <UserAvatar user={user} className="size-6" />
-          <span className="max-w-32 truncate text-[11px] font-medium">
-            {displayName}
-          </span>
-        </Button>
+      <div
+        className={`${buttonVariants({ variant: "outline" })} h-8 cursor-default gap-2 pr-2.5 pl-1`}
+        title={`Signed in as ${displayName}`}
+      >
+        <UserAvatar user={user} className="size-6" />
+        <span className="max-w-32 truncate text-[11px] font-medium">
+          {displayName}
+        </span>
       </div>
     </header>
   )

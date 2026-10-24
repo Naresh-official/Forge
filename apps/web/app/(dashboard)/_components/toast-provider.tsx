@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useMemo, useState } from "react"
-import { Toast } from "./ui"
+import { Toast } from "./toast"
 
 type ToastContextValue = {
   notify: (message: string) => void

@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  AlertCircle,
   ArrowLeft,
   ArrowUpRight,
   Check,
@@ -33,15 +32,18 @@ import {
   deploymentPlanIds,
   type DeploymentPlanId,
 } from "@forge/types"
-import { Alert, AlertTitle } from "@forge/ui/components/alert"
 import { Button, buttonVariants } from "@forge/ui/components/button"
 import { Card } from "@forge/ui/components/card"
 import { Input } from "@forge/ui/components/input"
 import { Label } from "@forge/ui/components/label"
 import { Skeleton } from "@forge/ui/components/skeleton"
 import { cn } from "@forge/ui/lib/utils"
-import { FrameworkLogo } from "@/app/(dashboard)/_components/framework-logo"
-import { useToast } from "@/app/(dashboard)/_components/toast-provider"
+import { FrameworkLogo } from "../../../_components/framework-logo"
+import { InlineError } from "../../../_components/inline-error"
+import { useToast } from "../../../_components/toast-provider"
+import { Actions } from "./wizard-actions"
+import { StepTitle } from "./wizard-step-title"
+import { Summary } from "./wizard-summary"
 
 /**
  * The Resources step is only shown for non-static (server/container)
@@ -760,69 +762,4 @@ export function CreateProjectWizard() {
       </div>
     </>
   )
-}
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[9px] text-muted-foreground">{label}</span>
-      <strong className="truncate text-[11px] font-medium">{value}</strong>
-    </div>
-  )
-}
-
-function InlineError({
-  message,
-  onRetry,
-}: {
-  message: string
-  onRetry?: () => void
-}) {
-  return (
-    <Alert
-      variant="destructive"
-      className="mt-3 flex items-center gap-2 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2.5 text-[11px] text-rose-300"
-    >
-      <AlertCircle className="size-3.5 shrink-0" />
-      <AlertTitle className="flex-1 text-[11px] font-normal text-inherit">
-        {message}
-      </AlertTitle>
-      {onRetry && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          onClick={onRetry}
-          className="shrink-0 gap-1 text-rose-200 hover:bg-transparent hover:text-rose-100"
-        >
-          <RefreshCw className="size-3" />
-          Retry
-        </Button>
-      )}
-    </Alert>
-  )
-}
-
-function StepTitle({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode
-  title: string
-  description: string
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="text-primary">{icon}</span>
-      <div>
-        <h2 className="text-[15px] font-semibold">{title}</h2>
-        <p className="mt-1 text-[11px] text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  )
-}
-
-function Actions({ children }: { children: React.ReactNode }) {
-  return <div className="mt-6 flex justify-end gap-2">{children}</div>
 }

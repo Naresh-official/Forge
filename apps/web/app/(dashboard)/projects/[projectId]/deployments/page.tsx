@@ -1,4 +1,4 @@
-import { ProjectDeployments } from "../components/project-deployments"
+import { ProjectDeployments } from "./components/project-deployments"
 
 export default async function Page({
   params,

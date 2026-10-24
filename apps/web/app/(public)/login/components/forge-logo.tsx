@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react"
 
-function ForgeLogo() {
+export function ForgeLogo() {
   return (
     <div className="mb-12 flex items-center justify-center gap-2 text-4xl font-bold">
       <span className="grid size-8 place-items-center rounded-md bg-primary text-primary-foreground">
@@ -10,5 +10,3 @@ function ForgeLogo() {
     </div>
   )
 }
-
-export default ForgeLogo

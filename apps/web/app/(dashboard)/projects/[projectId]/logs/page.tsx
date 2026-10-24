@@ -1,4 +1,4 @@
-import { ProjectLogs } from "../components/project-logs"
+import { ProjectLogs } from "./components/project-logs"
 
 export default async function Page({
   params,

@@ -20,49 +20,19 @@ import {
   TableHeader,
   TableRow,
 } from "@forge/ui/components/table"
-import { PageHeader, StatusBadge } from "../../../_components/ui"
-import { useToast } from "../../../_components/toast-provider"
+import { InlineError } from "../../../../_components/inline-error"
+import { PageHeader } from "../../../../_components/page-header"
+import { StatusBadge } from "../../../../_components/status-badge"
+import { useToast } from "../../../../_components/toast-provider"
 import {
   formatDeploymentDuration,
   formatRelativeTime,
   isDeploymentActive,
 } from "@/lib/deployment-format"
-import { ProjectHeader } from "./project-header"
+import { ProjectHeader } from "../../components/project-header"
 
 /** How often the list refreshes while a deployment is in flight. */
 const ACTIVE_REFETCH_INTERVAL_MS = 5_000
-
-function InlineError({
-  message,
-  onRetry,
-}: {
-  message: string
-  onRetry?: () => void
-}) {
-  return (
-    <Alert
-      variant="destructive"
-      className="mt-3 flex items-center gap-2 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2.5 text-[11px] text-rose-300"
-    >
-      <AlertCircle className="size-3.5 shrink-0" />
-      <AlertTitle className="flex-1 text-[11px] font-normal text-inherit">
-        {message}
-      </AlertTitle>
-      {onRetry && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          onClick={onRetry}
-          className="shrink-0 gap-1 text-rose-200 hover:bg-transparent hover:text-rose-100"
-        >
-          <RefreshCw className="size-3" />
-          Retry
-        </Button>
-      )}
-    </Alert>
-  )
-}
 
 export function ProjectDeployments({ projectId }: { projectId: string }) {
   const router = useRouter()

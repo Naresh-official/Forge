@@ -7,9 +7,11 @@ import { listProjectDeployments, listProjects } from "@forge/api-client/project"
 import { Alert, AlertTitle } from "@forge/ui/components/alert"
 import { Button } from "@forge/ui/components/button"
 import { cn } from "@forge/ui/lib/utils"
-import { EmptyState, PageHeader, StatusBadge } from "../../../_components/ui"
-import { ProjectHeader } from "./project-header"
-import { DeploymentLogs } from "./deployment-logs"
+import { EmptyState } from "../../../../_components/empty-state"
+import { PageHeader } from "../../../../_components/page-header"
+import { StatusBadge } from "../../../../_components/status-badge"
+import { ProjectHeader } from "../../components/project-header"
+import { DeploymentLogs } from "../../components/deployment-logs"
 
 export function ProjectLogs({ projectId }: { projectId: string }) {
   const projectsQuery = useQuery({

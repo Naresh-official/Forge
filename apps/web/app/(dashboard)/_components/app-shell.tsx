@@ -40,7 +40,7 @@ export function AppShell({
           />
           <main className="min-w-0 flex-1">
             <Topbar user={user} onMenu={() => setMobileNav(true)} />
-            <div className="mx-auto max-w-[1440px] px-[clamp(17px,4vw,50px)] py-10 max-sm:py-7">
+            <div className="mx-auto max-w-360 px-[clamp(17px,4vw,50px)] py-10 max-sm:py-7">
               {children}
             </div>
           </main>

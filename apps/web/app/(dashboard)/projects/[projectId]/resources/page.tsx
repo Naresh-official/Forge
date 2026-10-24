@@ -1,4 +1,4 @@
-import { ProjectResources } from "../components/project-resources"
+import { ProjectResources } from "./components/project-resources"
 
 export default async function Page({
   params,

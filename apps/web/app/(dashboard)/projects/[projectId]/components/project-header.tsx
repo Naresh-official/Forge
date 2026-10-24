@@ -2,14 +2,24 @@
 
 import { ArrowLeft, Rocket } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
-import { projectTabs } from "@/lib/forge-data"
 import { Button } from "@forge/ui/components/button"
 import { Tabs, TabsList, TabsTrigger } from "@forge/ui/components/tabs"
-import { StatusBadge } from "../../../_components/ui"
+import { StatusBadge } from "../../../_components/status-badge"
+
+/** Tabs of the project workspace, in navigation order. */
+const PROJECT_TABS = [
+  "Overview",
+  "Deployments",
+  "Logs",
+  "Environment Variables",
+  "Resources",
+  "Settings",
+] as const
+
+export type ProjectTab = (typeof PROJECT_TABS)[number]
 
 /**
- * The subset of project fields the header renders. Structural, so both the
- * mock project shape and the real API project shape satisfy it.
+ * The subset of project fields the header renders.
  */
 export type ProjectHeaderData = {
   id: string
@@ -23,20 +33,13 @@ export function ProjectHeader({ project }: { project: ProjectHeaderData }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  /*
-   * Navigate relative to the id in the URL, not the passed-in project. Some
-   * pages still read from mock data and fall back to the first mock project
-   * when the real id is unknown, which would otherwise send every tab (e.g.
-   * Logs) to the wrong project.
-   */
-  const pathProjectId =
-    pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? project.id
-
-  const tabHref = (tab: string) =>
-    `/projects/${pathProjectId}${tab === "Overview" ? "" : `/${tab.toLowerCase().replaceAll(" ", "-")}`}`
+  const tabHref = (tab: ProjectTab) =>
+    tab === "Overview"
+      ? `/projects/${project.id}`
+      : `/projects/${project.id}/${tab.toLowerCase().replaceAll(" ", "-")}`
 
   const activeTab =
-    projectTabs.find((tab) => pathname === tabHref(tab)) ?? "Overview"
+    PROJECT_TABS.find((tab) => pathname === tabHref(tab)) ?? "Overview"
 
   return (
     <div className="relative mb-7 border-b border-border pb-4">
@@ -70,7 +73,7 @@ export function ProjectHeader({ project }: { project: ProjectHeaderData }) {
         <Button
           type="button"
           size="lg"
-          onClick={() => router.push(`/projects/${pathProjectId}/deployments`)}
+          onClick={() => router.push(`/projects/${project.id}/deployments`)}
           className="gap-2 text-[11px] font-bold"
         >
           Deploy <Rocket className="size-3.5" />
@@ -78,10 +81,10 @@ export function ProjectHeader({ project }: { project: ProjectHeaderData }) {
       </div>
       <Tabs
         value={activeTab}
-        onValueChange={(value) => router.push(tabHref(value as string))}
+        onValueChange={(value) => router.push(tabHref(value as ProjectTab))}
       >
         <TabsList variant="line" className="gap-5">
-          {projectTabs.map((tab) => (
+          {PROJECT_TABS.map((tab) => (
             <TabsTrigger key={tab} value={tab}>
               {tab}
             </TabsTrigger>

@@ -1,17 +1,6 @@
 "use client"
 
-import {
-  Box,
-  Globe2,
-  LayoutDashboard,
-  LifeBuoy,
-  Plus,
-  Rocket,
-  Server,
-  Settings2,
-  Sparkles,
-  X,
-} from "lucide-react"
+import { Box, LayoutDashboard, Plus, Rocket, Sparkles, X } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { listProjectNames } from "@forge/api-client/project"
@@ -21,7 +10,6 @@ const navigation = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Projects", href: "/projects", icon: Box },
   { label: "Deployments", href: "/deployments", icon: Rocket },
-  { label: "Domains", href: "/domains", icon: Globe2 },
 ]
 
 export function Sidebar({

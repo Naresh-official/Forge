@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  AlertCircle,
   ArrowLeft,
   ExternalLink,
   GitBranch,
@@ -12,8 +11,6 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { getDeployment, redeployDeployment } from "@forge/api-client/deployment"
-import type { DeploymentDetailResponse } from "@forge/types/deployment"
-import { Alert, AlertTitle } from "@forge/ui/components/alert"
 import { Button } from "@forge/ui/components/button"
 import {
   Card,
@@ -24,152 +21,22 @@ import {
 } from "@forge/ui/components/card"
 import { Skeleton } from "@forge/ui/components/skeleton"
 import { cn } from "@forge/ui/lib/utils"
-import { CopyButton, StatusBadge } from "../../../_components/ui"
-import { useToast } from "../../../_components/toast-provider"
+import { CopyButton } from "../../../../../_components/copy-button"
+import { InlineError } from "../../../../../_components/inline-error"
+import { StatusBadge } from "../../../../../_components/status-badge"
+import { useToast } from "../../../../../_components/toast-provider"
 import {
   formatDeploymentDuration,
-  formatElapsed,
   formatRelativeTime,
   formatRuntime,
   isDeploymentActive,
 } from "@/lib/deployment-format"
-import { DeploymentLogs } from "./deployment-logs"
+import { buildStages, stageCaption, stageTone } from "@/lib/deployment-stages"
+import { DeploymentLogs } from "../../../components/deployment-logs"
+import { Info } from "../../../components/info"
 
 /** How often the page refreshes while the deployment is still moving. */
 const ACTIVE_REFETCH_INTERVAL_MS = 5_000
-
-type Stage = {
-  label: string
-  at: Date | null
-  until: Date | null
-}
-
-function toDate(value: Date | string | null | undefined): Date | null {
-  return value ? new Date(value) : null
-}
-
-/**
- * The pipeline as Forge actually records it: when the deployment was queued,
- * when the build ran, when the deployer started, and how it ended. There is no
- * separate "uploading" stage timestamp, so it is not invented here.
- */
-function buildStages(deployment: DeploymentDetailResponse): Stage[] {
-  const build = deployment.build
-
-  const finishLabel =
-    deployment.status === "READY"
-      ? "Ready"
-      : deployment.status === "FAILED"
-        ? "Failed"
-        : deployment.status === "CANCELLED"
-          ? "Cancelled"
-          : "Ready"
-
-  return [
-    {
-      label: "Queued",
-      at: toDate(deployment.createdAt),
-      until: toDate(build?.startedAt ?? deployment.startedAt),
-    },
-    {
-      label: "Building",
-      at: toDate(build?.startedAt),
-      until: toDate(build?.completedAt),
-    },
-    {
-      label: "Deploying",
-      at: toDate(deployment.startedAt),
-      until: toDate(deployment.completedAt),
-    },
-    {
-      label: finishLabel,
-      at: toDate(deployment.completedAt ?? build?.completedAt),
-      until: null,
-    },
-  ]
-}
-
-function stageCaption(stage: Stage, deployment: DeploymentDetailResponse) {
-  if (stage.at && stage.until) {
-    return formatElapsed(stage.at, stage.until)
-  }
-
-  if (stage.at) {
-    if (deployment.status === "READY") return "completed"
-    if (deployment.status === "FAILED" || deployment.status === "CANCELLED") {
-      return "stopped"
-    }
-    return "in progress"
-  }
-
-  return "pending"
-}
-
-function stageTone(stage: Stage, deployment: DeploymentDetailResponse) {
-  const failed =
-    deployment.status === "FAILED" || deployment.status === "CANCELLED"
-  const isLast =
-    stage.label === "Ready" ||
-    stage.label === "Failed" ||
-    stage.label === "Cancelled"
-
-  if (stage.at) {
-    return "border-primary"
-  }
-
-  if (failed && isLast) {
-    return "border-rose-500/60"
-  }
-
-  return "border-border"
-}
-
-function InlineError({
-  message,
-  onRetry,
-}: {
-  message: string
-  onRetry?: () => void
-}) {
-  return (
-    <Alert
-      variant="destructive"
-      className="mt-3 flex items-center gap-2 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2.5 text-[11px] text-rose-300"
-    >
-      <AlertCircle className="size-3.5 shrink-0" />
-      <AlertTitle className="flex-1 text-[11px] font-normal text-inherit">
-        {message}
-      </AlertTitle>
-      {onRetry && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          onClick={onRetry}
-          className="shrink-0 gap-1 text-rose-200 hover:bg-transparent hover:text-rose-100"
-        >
-          <RefreshCw className="size-3" />
-          Retry
-        </Button>
-      )}
-    </Alert>
-  )
-}
-
-function Info({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[9px] text-muted-foreground">{label}</span>
-      <strong className="text-[11px] font-medium">{children}</strong>
-    </div>
-  )
-}
 
 export function DeploymentDetail({
   projectId,

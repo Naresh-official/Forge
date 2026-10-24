@@ -61,9 +61,11 @@ import {
   formatMemory,
   planForAllocation,
 } from "@/lib/resource-format"
-import { PageHeader, StatusBadge } from "../../../_components/ui"
-import { useToast } from "../../../_components/toast-provider"
-import { ProjectHeader } from "./project-header"
+import { InlineError } from "../../../../_components/inline-error"
+import { PageHeader } from "../../../../_components/page-header"
+import { StatusBadge } from "../../../../_components/status-badge"
+import { useToast } from "../../../../_components/toast-provider"
+import { ProjectHeader } from "../../components/project-header"
 
 /** Plan choices for the resources card, with their per-replica footprint. */
 const PLAN_OPTIONS = Object.values(DEPLOYMENT_PLANS).map((plan) => ({
@@ -473,19 +475,5 @@ export function ProjectSettings({ projectId }: { projectId: string }) {
         )}
       </Card>
     </>
-  )
-}
-
-function InlineError({ message }: { message: string }) {
-  return (
-    <Alert
-      variant="destructive"
-      className="flex items-center gap-1.5 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2 text-[11px] text-rose-300"
-    >
-      <AlertCircle className="size-3.5 shrink-0" />
-      <AlertTitle className="text-[11px] font-normal text-inherit">
-        {message}
-      </AlertTitle>
-    </Alert>
   )
 }

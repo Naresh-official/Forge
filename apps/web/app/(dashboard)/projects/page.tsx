@@ -1,22 +1,16 @@
-"use client"
-
-import { useQuery } from "@tanstack/react-query"
-import { listProjects } from "@forge/api-client/project"
+import { PageHeader } from "../_components/page-header"
 import { ProjectsView } from "./components/projects-view"
 
 export default function ProjectsPage() {
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["projects"],
-    queryFn: listProjects,
-  })
-
   return (
-    <ProjectsView
-      projects={data?.data ?? []}
-      isLoading={isLoading}
-      isError={isError}
-      error={error}
-      onRetry={() => refetch()}
-    />
+    <>
+      <PageHeader
+        title="Projects"
+        description="Manage your applications and deployments."
+        action="New project"
+        actionHref="/projects/new"
+      />
+      <ProjectsView />
+    </>
   )
 }

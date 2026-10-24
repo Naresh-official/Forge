@@ -1,4 +1,4 @@
-import { ProjectEnvironmentVariables } from "../components/project-environment-variables"
+import { ProjectEnvironmentVariables } from "./components/project-environment-variables"
 
 export default async function Page({
   params,

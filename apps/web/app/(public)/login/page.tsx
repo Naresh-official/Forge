@@ -1,5 +1,5 @@
-import ForgeLogo from "@/components/ForgeLogo"
 import { signIn } from "@/auth"
+import { ForgeLogo } from "./components/forge-logo"
 import { Button } from "@forge/ui/components/button"
 import { FaGithub } from "react-icons/fa"
 

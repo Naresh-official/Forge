@@ -1,11 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   AlertCircle,
   Boxes,
-  Clock3,
   Cpu,
   Gauge,
   HardDrive,
@@ -14,15 +12,10 @@ import {
 } from "lucide-react"
 import { getProjectResources } from "@forge/api-client/resources"
 import { listProjects } from "@forge/api-client/project"
-import type {
-  ProjectAutoscalingStatus,
-  ResourceUsage,
-} from "@forge/types/resources"
 import { Alert, AlertTitle } from "@forge/ui/components/alert"
 import { Badge } from "@forge/ui/components/badge"
 import { Button } from "@forge/ui/components/button"
-import { Card, CardContent } from "@forge/ui/components/card"
-import { Progress } from "@forge/ui/components/progress"
+import { Card } from "@forge/ui/components/card"
 import { Skeleton } from "@forge/ui/components/skeleton"
 import { cn } from "@forge/ui/lib/utils"
 import {
@@ -30,240 +23,16 @@ import {
   formatMemory,
   planForAllocation,
 } from "@/lib/resource-format"
-import { PageHeader } from "../../../_components/ui"
-import { ProjectHeader } from "./project-header"
+import { InlineError } from "../../../../_components/inline-error"
+import { PageHeader } from "../../../../_components/page-header"
+import { ProjectHeader } from "../../components/project-header"
+import { AutoscalingPanel } from "./autoscaling-panel"
+import { LastUpdated } from "./last-updated"
+import { StatCard } from "./stat-card"
+import { UsageCard } from "./usage-card"
 
 /** How often the tab re-reads live usage from the API. */
 const REFETCH_INTERVAL_MS = 60_000
-
-/** "60s" reads badly for the polling hint — say "minute" from 60s up. */
-function formatInterval(ms: number) {
-  const seconds = ms / 1000
-  return seconds >= 60 && seconds % 60 === 0
-    ? `${seconds / 60} min`
-    : `${seconds}s`
-}
-
-/**
- * "Updated 12s ago" tag. Ticks every second so the age stays truthful
- * between the refetches.
- */
-function LastUpdated({ timestamp }: { timestamp: number }) {
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  const seconds = Math.max(0, Math.round((now - timestamp) / 1000))
-  const relative =
-    seconds < 5
-      ? "just now"
-      : seconds < 60
-        ? `${seconds}s ago`
-        : `${Math.floor(seconds / 60)}m ago`
-
-  return (
-    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-      <Clock3 className="size-3" />
-      Updated {relative}
-      <span className="text-muted-foreground/60">
-        · refreshes every {formatInterval(REFETCH_INTERVAL_MS)}
-      </span>
-    </span>
-  )
-}
-
-/**
- * One resource's usage. Fixed-size projects lead with the percentage of the
- * allocation consumed; autoscaled ones lead with the absolute usage, since
- * the allocation itself moves with the replica count.
- */
-function UsageCard({
-  label,
-  icon,
-  usage,
-  format,
-  showAmount = false,
-}: {
-  label: string
-  icon: React.ReactNode
-  usage: ResourceUsage
-  format: (value: number) => string
-  showAmount?: boolean
-}) {
-  const percent = usage.percent
-  const clamped = Math.min(100, Math.max(0, percent ?? 0))
-  const percentLabel = percent === null ? "—" : `${percent}%`
-
-  return (
-    <Card size="sm">
-      <CardContent>
-        <span className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-          {icon}
-          {label}
-        </span>
-        <strong className="mt-2 block font-mono text-lg">
-          {showAmount ? format(usage.used) : percentLabel}
-        </strong>
-        <small className="mt-1 block text-[9px] text-muted-foreground">
-          {showAmount
-            ? `${percentLabel} of ${format(usage.allocated)} allocated`
-            : `${format(usage.used)} of ${format(usage.allocated)} allocated`}
-        </small>
-        <Progress value={clamped} className="mt-2 block" />
-      </CardContent>
-    </Card>
-  )
-}
-
-function StatCard({
-  label,
-  icon,
-  value,
-  hint,
-  progress,
-}: {
-  label: string
-  icon: React.ReactNode
-  value: string
-  hint?: string
-  progress?: number | null
-}) {
-  return (
-    <Card size="sm">
-      <CardContent>
-        <span className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-          {icon}
-          {label}
-        </span>
-        <strong className="mt-2 block font-mono text-lg">{value}</strong>
-        {hint && (
-          <small className="mt-1 block text-[9px] text-muted-foreground">
-            {hint}
-          </small>
-        )}
-        {progress !== null && progress !== undefined && (
-          <Progress
-            value={Math.min(100, Math.max(0, progress))}
-            className="mt-2 block"
-          />
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-/** Autoscaler state as a badge; colours follow the same scale as statuses. */
-function ScalingBadge({ status }: { status: string }) {
-  const tone =
-    status === "Steady"
-      ? "text-emerald-400"
-      : status === "Scaling up" ||
-          status === "Scaling down" ||
-          status === "At maximum replicas"
-        ? "text-amber-400"
-        : "text-rose-400"
-
-  return (
-    <Badge variant="outline" className={cn("gap-1.5 px-2 py-1", tone)}>
-      <span
-        className={cn(
-          "size-1.5 rounded-full",
-          tone === "text-emerald-400"
-            ? "bg-emerald-400"
-            : tone === "text-amber-400"
-              ? "bg-amber-400"
-              : "bg-rose-400"
-        )}
-      />
-      {status}
-    </Badge>
-  )
-}
-
-function AutoscalingPanel({
-  autoscaling,
-}: {
-  autoscaling: ProjectAutoscalingStatus
-}) {
-  return (
-    <Card className="mt-2.5">
-      <CardContent className="flex flex-wrap items-center gap-4">
-        <div className="flex flex-1 flex-col gap-1">
-          <span className="text-[9px] text-muted-foreground">
-            Scaling status
-          </span>
-          <div className="flex items-center gap-2">
-            <ScalingBadge status={autoscaling.status} />
-            <span className="text-[11px] text-muted-foreground">
-              {autoscaling.message}
-            </span>
-          </div>
-        </div>
-        <div className="flex gap-6">
-          <div className="flex flex-col gap-1">
-            <span className="text-[9px] text-muted-foreground">CPU target</span>
-            <strong className="font-mono text-sm">
-              {autoscaling.targetCpuUtilization}%
-            </strong>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[9px] text-muted-foreground">
-              Current CPU
-            </span>
-            <strong className="font-mono text-sm">
-              {autoscaling.currentCpuUtilization === null
-                ? "—"
-                : `${autoscaling.currentCpuUtilization}%`}
-            </strong>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[9px] text-muted-foreground">
-              Replica range
-            </span>
-            <strong className="font-mono text-sm">
-              {autoscaling.minReplicas}–{autoscaling.maxReplicas}
-            </strong>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function InlineError({
-  message,
-  onRetry,
-}: {
-  message: string
-  onRetry?: () => void
-}) {
-  return (
-    <Alert
-      variant="destructive"
-      className="mt-3 flex items-center gap-2 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2.5 text-[11px] text-rose-300"
-    >
-      <AlertCircle className="size-3.5 shrink-0" />
-      <AlertTitle className="flex-1 text-[11px] font-normal text-inherit">
-        {message}
-      </AlertTitle>
-      {onRetry && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
-          onClick={onRetry}
-          className="shrink-0 gap-1 text-rose-200 hover:bg-transparent hover:text-rose-100"
-        >
-          <RefreshCw className="size-3" />
-          Retry
-        </Button>
-      )}
-    </Alert>
-  )
-}
 
 export function ProjectResources({ projectId }: { projectId: string }) {
   const projectsQuery = useQuery({
@@ -336,7 +105,10 @@ export function ProjectResources({ projectId }: { projectId: string }) {
 
       <div className="mb-4 flex items-center justify-between gap-3">
         {resourcesQuery.dataUpdatedAt > 0 ? (
-          <LastUpdated timestamp={resourcesQuery.dataUpdatedAt} />
+          <LastUpdated
+            timestamp={resourcesQuery.dataUpdatedAt}
+            intervalMs={REFETCH_INTERVAL_MS}
+          />
         ) : (
           <span />
         )}

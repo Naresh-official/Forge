@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { AlertCircle, GitBranch, RefreshCw, Search, X } from "lucide-react"
+import { GitBranch, RefreshCw, Search, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { listDeployments } from "@forge/api-client/deployment"
 import {
@@ -13,7 +13,6 @@ import {
 } from "@/lib/deployment-format"
 import { ALL_FILTER, filterDeployments } from "@/lib/deployment-filter"
 import type { DeploymentListItem } from "@forge/types/deployment"
-import { Alert, AlertTitle } from "@forge/ui/components/alert"
 import { Button } from "@forge/ui/components/button"
 import { Card } from "@forge/ui/components/card"
 import { Input } from "@forge/ui/components/input"
@@ -33,7 +32,8 @@ import {
   TableHeader,
   TableRow,
 } from "@forge/ui/components/table"
-import { PageHeader, StatusBadge } from "../../_components/ui"
+import { InlineError } from "../../_components/inline-error"
+import { StatusBadge } from "../../_components/status-badge"
 
 /** How often the list refreshes while a deployment is in flight. */
 const ACTIVE_REFETCH_INTERVAL_MS = 5_000
@@ -111,11 +111,6 @@ export function DeploymentsView() {
 
   return (
     <>
-      <PageHeader
-        title="Deployments"
-        description="Every build, preview, and production release across your projects — the 50 most recent."
-      />
-
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <div className="relative flex min-w-60 items-center max-sm:w-full">
           <Search className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
@@ -202,25 +197,10 @@ export function DeploymentsView() {
       )}
 
       {!deploymentsQuery.isLoading && deploymentsQuery.isError && (
-        <Alert
-          variant="destructive"
-          className="mt-3 flex items-center gap-2 rounded-md border-rose-500/20 bg-rose-500/5 px-3 py-2.5 text-[11px] text-rose-300"
-        >
-          <AlertCircle className="size-3.5 shrink-0" />
-          <AlertTitle className="flex-1 text-[11px] font-normal text-inherit">
-            Could not load deployments.
-          </AlertTitle>
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={() => deploymentsQuery.refetch()}
-            className="shrink-0 gap-1 text-rose-200 hover:bg-transparent hover:text-rose-100"
-          >
-            <RefreshCw className="size-3" />
-            Retry
-          </Button>
-        </Alert>
+        <InlineError
+          message="Could not load deployments."
+          onRetry={() => deploymentsQuery.refetch()}
+        />
       )}
 
       {!deploymentsQuery.isLoading &&

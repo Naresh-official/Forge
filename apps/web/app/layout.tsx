@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import "@forge/ui/globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { QueryProvider } from "@/components/query-provider"
+import { ThemeProvider } from "./_components/theme-provider"
+import { QueryProvider } from "./_components/query-provider"
 
 export const metadata: Metadata = {
   title: "Forge",

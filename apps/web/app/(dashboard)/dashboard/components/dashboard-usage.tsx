@@ -2,21 +2,15 @@
 
 import { useState } from "react"
 import {
-  ArrowUpRight,
   Boxes,
   CheckCircle2,
   Clock,
-  Cpu,
-  Database,
   Globe,
   HardDrive,
-  Layers,
   Server,
-  ShieldCheck,
   TrendingUp,
   Zap,
 } from "lucide-react"
-import Link from "next/link"
 
 type UsageCategory = "all" | "static" | "server" | "builds" | "traffic"
 
@@ -218,13 +212,6 @@ export function DashboardUsage() {
               </span>
             </div>
           </div>
-          <Link
-            href="/settings"
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            Manage plan
-            <ArrowUpRight className="size-3" />
-          </Link>
         </div>
       </div>
 
@@ -356,7 +343,7 @@ export function DashboardUsage() {
                         </h3>
                         <span
                           className={[
-                            "py-0.2 rounded px-1 font-mono text-[9px]",
+                            "rounded px-1 py-0.5 font-mono text-[9px]",
                             metric.typeBadge === "Static"
                               ? "border border-sky-500/20 bg-sky-500/10 text-sky-400"
                               : metric.typeBadge === "Server"

@@ -74,12 +74,18 @@ export function useDeploymentLogs(
    * Reset per-deployment state only. `type` is deliberately excluded: the
    * live buffer holds events for the whole deployment and is filtered for
    * display, so switching tabs keeps whatever has already streamed in.
+   *
+   * This runs during render (React's "adjust state when a prop changes"
+   * pattern) instead of in an effect, so the previous deployment's buffer is
+   * never rendered for the new one.
    */
-  useEffect(() => {
+  const [bufferedDeploymentId, setBufferedDeploymentId] = useState(deploymentId)
+  if (bufferedDeploymentId !== deploymentId) {
+    setBufferedDeploymentId(deploymentId)
     setLiveLines([])
     setIsLiveConnected(false)
     setCursorStack([])
-  }, [deploymentId])
+  }
 
   const streamRef = useRef<DeploymentLogStream | undefined>(undefined)
 
